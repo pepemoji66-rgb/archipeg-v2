@@ -134,7 +134,7 @@ const Galeria = () => {
         <div className="galeria-layout">
             <header className="galeria-header">
                 <button className="btn-header-neon" onClick={() => navigate('/')}>🏠 INICIO</button>
-                <h1 className="galeria-titulo">ARCHIVO NEÓN</h1>
+                <h1 className="galeria-titulo">ARCHIVO FOTOGRÁFICO</h1>
 
                 <div className="galeria-filtros">
                     <input
