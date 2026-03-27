@@ -67,7 +67,6 @@ function generarToken() {
 }
 
 // --- CONFIGURACIÓN DE VERSIÓN ---
-const MODO_DEMO = true;       // false en versión de pago
 const LIMITE_DEMO = 50;
 
 // --- CONFIGURACIÓN DE MULTER ---
@@ -325,10 +324,10 @@ app.delete('/api/eventos/:id/fotos/:fotoId', async (req, res) => {
 // 4. FILTRAR POR AÑO
 app.get('/api/fotos/:anio', async (req, res) => {
     try {
-        const query = MODO_DEMO
+        const query = !req.esAutenticado
             ? "SELECT * FROM fotos WHERE anio = ? AND en_papelera = 0 LIMIT ?"
             : "SELECT * FROM fotos WHERE anio = ? AND en_papelera = 0";
-        const fotos = MODO_DEMO
+        const fotos = !req.esAutenticado
             ? await db.all(query, [req.params.anio, LIMITE_DEMO])
             : await db.all(query, [req.params.anio]);
         res.json(fotos);
