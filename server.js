@@ -146,7 +146,7 @@ app.post('/api/auth/registro', async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
-        const existente = await db.get('SELECT id FROM usuarios WHERE email = ?', [email]);
+        const existente = await db.get('SELECT id FROM usuarios WHERE email = ?', [email.toLowerCase()]);
         if (existente) return res.status(409).json({ error: 'Este email ya está registrado' });
 
         const salt = crypto.randomBytes(16).toString('hex');
