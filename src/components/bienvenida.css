@@ -1,0 +1,184 @@
+.bienvenida-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+}
+
+.bienvenida-titulo-marco {
+    border: 6px solid #ff2d7d;
+    box-shadow: 0 0 25px #ff2d7d, inset 0 0 15px rgba(255, 45, 125, 0.3);
+    border-radius: 20px;
+    padding: 32px 48px;
+    text-align: center;
+}
+
+.bienvenida-titulo {
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+}
+
+.bienvenida-subtitulo {
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    color: #00f2ff;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.bienvenida-formulario {
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid #00f2ff;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+    border-radius: 16px;
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bienvenida-formulario h2 {
+    margin: 0 0 8px 0;
+    color: #ffffff;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.bienvenida-input {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 242, 255, 0.4);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.bienvenida-input:focus {
+    border-color: #00f2ff;
+    box-shadow: 0 0 8px rgba(0, 242, 255, 0.3);
+}
+
+.bienvenida-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.bienvenida-btn-primary {
+    background: transparent;
+    border: 2px solid #00f2ff;
+    color: #00f2ff;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+}
+
+.bienvenida-btn-primary:hover {
+    background: #00f2ff;
+    color: #0a0b2e;
+    box-shadow: 0 0 20px #00f2ff;
+}
+
+.bienvenida-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bienvenida-toggle {
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bienvenida-toggle button {
+    background: none;
+    border: none;
+    color: #00f2ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0;
+    margin-left: 4px;
+    text-decoration: underline;
+}
+
+.bienvenida-error {
+    color: #ff4d4d;
+    font-size: 0.82rem;
+    text-align: center;
+    background: rgba(255, 77, 77, 0.1);
+    border: 1px solid rgba(255, 77, 77, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.bienvenida-separador {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 400px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.bienvenida-separador::before,
+.bienvenida-separador::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.bienvenida-demo-bloque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.bienvenida-btn-demo {
+    background: transparent;
+    border: 2px solid #ff2d7d;
+    color: #ff2d7d;
+    padding: 10px 32px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(255, 45, 125, 0.2);
+}
+
+.bienvenida-btn-demo:hover {
+    background: #ff2d7d;
+    color: #ffffff;
+    box-shadow: 0 0 20px #ff2d7d;
+}
+
+.bienvenida-demo-nota {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 1px;
+}
