@@ -168,6 +168,32 @@ app.post('/api/auth/registro', async (req, res) => {
     }
 });
 
+// --- AUTH: LOGIN ---
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        const usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.toLowerCase()]);
+        if (!usuario) return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+
+        const hash = hashPassword(password, usuario.salt);
+        if (hash !== usuario.password_hash) return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+
+        const token = generarToken();
+        await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, usuario.id]);
+
+        res.json({
+            usuario: { id: usuario.id, email: usuario.email, esAdmin: usuario.es_admin === 1 },
+            token
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+});
+
 // --- RUTAS API ---
 
 // 0. SUBIR FOTOS
