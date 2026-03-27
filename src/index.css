@@ -1,0 +1,144 @@
+/* =============================================================================
+ * CSS GLOBAL RESPONSIVE - ARCHIPEG (VERSIÓN DARK & TURQUESA)
+ * ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+    /* ADIÓS BLANCO: Ahora el fondo es oscuro profundo */
+    --bg-oscuro: #0a0b2e;
+    --texto-light: #f8fafc;
+    --acento-turquesa: #00f2ff;
+    --esmeralda-pro: #8b5cf6;
+    --blanco-puro: #ffffff;
+    --borde-neon: 1px solid rgba(0, 242, 255, 0.3);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif !important;
+    /* MATAMOS LA LAVADORA AQUÍ */
+    background-color: var(--bg-oscuro) !important;
+    color: var(--texto-light);
+    line-height: 1.6;
+    overflow-x: hidden;
+    /* MOSAICO REPARADO: Tamaño 100 (más pequeño) y casi invisible (0.03) */
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50%25' y='50%25' font-size='10' fill='rgba(0, 242, 255, 0.03)' font-family='Arial' font-weight='bold' text-anchor='middle' transform='rotate(-30, 50, 50)'%3EARCHIPEG%3C/text%3E%3C/svg%3E") !important;
+    background-repeat: repeat !important;
+    background-attachment: fixed !important;
+}
+
+/* --- ESTILOS DEL MODAL (TUS FLECHAS LIBERADAS SE MANTIENEN) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    /* Fondo negro total para el zoom */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content img {
+    max-width: 85%;
+    max-height: 75vh;
+    object-fit: contain;
+    border: 4px solid white;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 242, 255, 0.4);
+    z-index: 5;
+}
+
+/* TUS FLECHAS (He mantenido tu lógica exacta para que no se rompan) */
+.btn-nav-zoom {
+    position: fixed !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border: 2px solid var(--acento-turquesa) !important;
+    width: 70px !important;
+    height: 70px !important;
+    border-radius: 50% !important;
+    font-size: 40px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10000 !important;
+    transition: 0.3s !important;
+}
+
+.btn-nav-zoom:hover {
+    background: var(--acento-turquesa) !important;
+    color: black !important;
+    scale: 1.1;
+}
+
+.prev-zoom {
+    left: 40px !important;
+}
+
+.next-zoom {
+    right: 40px !important;
+}
+
+.btn-cerrar-modal {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    background: var(--esmeralda-pro);
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+/* --- AJUSTES DE CONTENEDORES --- */
+.container-archipeg {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.admin-container,
+.galeria-container,
+.galeria-layout,
+.galeria-principal {
+    background: transparent !important;
+}
+
+/* El sidebar ahora es oscuro para que no desentone */
+.sidebar-anios {
+    background: rgba(10, 11, 46, 0.8) !important;
+    backdrop-filter: blur(8px);
+    border-right: 1px solid var(--acento-turquesa);
+}

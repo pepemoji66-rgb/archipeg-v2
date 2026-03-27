@@ -1,0 +1,92 @@
+/**
+ * =============================================================================
+ * ARCHIPEG - galeria-controles.css (BUSCADOR Y PAGINACIÓN NEÓN)
+ * =============================================================================
+ */
+
+/* --- CONTENEDOR BUSCADOR --- */
+.buscador-contenedor-pro {
+    margin-bottom: 30px;
+    max-width: 800px;
+    position: relative;
+    padding: 0 10px;
+}
+
+.input-busqueda-pro {
+    width: 100%;
+    padding: 14px 25px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 2px solid var(--neon-cian) !important;
+    color: white !important;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+}
+
+.input-busqueda-pro:focus {
+    box-shadow: 0 0 25px var(--neon-cian);
+    border-color: white !important;
+    background: rgba(15, 23, 42, 1) !important;
+}
+
+/* --- PAGINACIÓN MODERNA --- */
+.paginacion-container,
+.paginacion-controles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 40px;
+    padding: 20px;
+}
+
+.btn-paginacion {
+    background: transparent !important;
+    border: 2px solid var(--neon-magenta) !important;
+    color: var(--neon-magenta) !important;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-paginacion:hover:not(:disabled) {
+    background: var(--neon-magenta) !important;
+    color: white !important;
+    box-shadow: 0 0 20px var(--neon-magenta);
+    transform: translateY(-3px);
+}
+
+.btn-paginacion:disabled {
+    border-color: #334155 !important;
+    color: #475569 !important;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* --- SALTO DE PÁGINA (Ir a la página X) --- */
+.salto-pagina-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(168, 85, 247, 0.1);
+    padding: 8px 18px;
+    border-radius: 25px;
+    border: 1px solid var(--neon-lila);
+}
+
+.input-salto-pagina {
+    width: 50px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--neon-cian);
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    outline: none;
+}

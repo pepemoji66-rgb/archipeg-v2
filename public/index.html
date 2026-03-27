@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="JOSE MORENO JIMENEZ">
+    <meta name="description" content="Archipeg - Sistema de Gestión de Activos y Archivo Fotográfico v1.0">
+
+    <title>Archipeg - Archivo Fotográfico Pro</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos base para evitar saltos visuales */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            min-height: 100vh;
+        }
+
+        /* Configuración del fondo:
+           1. Capa blanca semitransparente (0.94) para que el logo sea sutil.
+           2. Ruta absoluta (/logo...) para que cargue desde la carpeta public sin fallos.
+        */
+        .fondo-global-archipeg {
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)),
+                url('/logo_archipeg_principal.png');
+            background-attachment: fixed;
+            background-size: 40% auto;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+
+<body class="fondo-global-archipeg">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div id="root"></div>
+
+</body>
+
+</html>

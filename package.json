@@ -1,0 +1,99 @@
+{
+  "name": "archipeg",
+  "version": "1.0.0",
+  "homepage": ".",
+  "description": "Sistema Archipeg - Gestión de Activos y Geo-localización",
+  "main": "main.js",
+  "author": "[JOSE MORENO JIMENEZ]",
+  "license": "Proprietary",
+  "private": true,
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "server": "node server.js",
+    "electron-dev": "electron .",
+    "dist": "npm run build && electron-builder"
+  },
+  "keywords": [
+    "archipeg",
+    "gestion-activos",
+    "geolocalizacion",
+    "inventario-professional"
+  ],
+  "dependencies": {
+    "axios": "^1.13.6",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "leaflet": "^1.9.4",
+    "multer": "^2.1.1",
+    "mysql2": "^3.18.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.30.3",
+    "react-scripts": "5.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.archipeg.app",
+    "productName": "Archipeg Pro",
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "main.js",
+      "server.js",
+      "archipeg_data.db",
+      "package.json",
+      "public/logo_archipeg.ico"
+    ],
+    "directories": {
+      "output": "dist_electron"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/logo_archipeg.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 150,
+          "type": "file"
+        },
+        {
+          "x": 410,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}

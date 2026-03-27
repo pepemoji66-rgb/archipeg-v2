@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCHIPEG — Diseño Propuesto</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+
+  h1 { font-size: 1.1rem; font-weight: 600; color: #f5f5f7; margin-bottom: 4px; }
+  .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 24px; }
+
+  .app-frame {
+    border: 1px solid #333;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1c1c1e;
+    margin-bottom: 32px;
+  }
+
+  .frame-label {
+    background: #0a0a0a;
+    padding: 8px 16px;
+    font-size: 0.7rem;
+    color: #666;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #222;
+  }
+
+  .app-layout {
+    display: flex;
+    height: 520px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 200px;
+    background: #111;
+    border-right: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-brand {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid #222;
+  }
+
+  .brand-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #f5f5f7;
+    letter-spacing: 0.05em;
+  }
+
+  .brand-dot {
+    color: #ff9f0a;
+  }
+
+  .brand-version {
+    font-size: 0.6rem;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  .sidebar-search {
+    padding: 12px 12px 8px;
+  }
+
+  .search-box {
+    background: #2c2c2e;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: #f5f5f7;
+    font-size: 0.72rem;
+    width: 100%;
+    outline: none;
+  }
+
+  .search-box::placeholder { color: #555; }
+
+  .nav-section {
+    padding: 8px 8px 4px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .nav-label {
+    font-size: 0.58rem;
+    color: #555;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 8px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 1px;
+  }
+
+  .nav-item.active {
+    background: #2c2c2e;
+    color: #f5f5f7;
+  }
+
+  .nav-item.active .nav-icon {
+    color: #ff9f0a;
+  }
+
+  .nav-item .badge {
+    margin-left: auto;
+    background: #2c2c2e;
+    color: #888;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .nav-item.active .badge {
+    background: #ff9f0a22;
+    color: #ff9f0a;
+  }
+
+  .sidebar-bottom {
+    padding: 12px;
+    border-top: 1px solid #222;
+  }
+
+  .btn-upload {
+    background: #ff9f0a;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 9px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.02em;
+  }
+
+  /* MAIN CONTENT */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .content-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .view-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f5f5f7;
+    white-space: nowrap;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .filter-chip {
+    background: #2c2c2e;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: #aaa;
+    font-size: 0.68rem;
+    cursor: pointer;
+  }
+
+  .filter-chip.active {
+    background: #ff9f0a22;
+    color: #ff9f0a;
+    border: 1px solid #ff9f0a44;
+  }
+
+  .sort-btn {
+    background: #2c2c2e;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: #aaa;
+    font-size: 0.68rem;
+    cursor: pointer;
+  }
+
+  /* MASONRY GRID */
+  .masonry-container {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+    column-count: 4;
+    column-gap: 10px;
+  }
+
+  .photo-card {
+    break-inside: avoid;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: #2c2c2e;
+  }
+
+  .photo-card:hover .photo-overlay { opacity: 1; }
+
+  .photo-img {
+    width: 100%;
+    display: block;
+    border-radius: 8px;
+  }
+
+  .photo-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    padding: 20px 8px 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .photo-title {
+    font-size: 0.65rem;
+    color: #f5f5f7;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .photo-meta {
+    font-size: 0.58rem;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .fav-btn {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    cursor: pointer;
+    color: #ff9f0a;
+  }
+
+  /* PHOTO HEIGHTS for masonry illusion */
+  .h-sm { height: 90px; }
+  .h-md { height: 120px; }
+  .h-lg { height: 160px; }
+  .h-xl { height: 200px; }
+
+  /* STATUS BAR */
+  .status-bar {
+    padding: 8px 20px;
+    border-top: 1px solid #222;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #111;
+  }
+
+  .status-text { font-size: 0.65rem; color: #555; }
+  .demo-badge {
+    background: #ff9f0a22;
+    color: #ff9f0a;
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: auto;
+  }
+
+  /* SECTION NOTES */
+  .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 8px; }
+  .note {
+    background: #1c1c1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .note-icon { font-size: 1.2rem; margin-bottom: 8px; }
+  .note-title { font-size: 0.8rem; font-weight: 600; color: #f5f5f7; margin-bottom: 4px; }
+  .note-desc { font-size: 0.72rem; color: #888; line-height: 1.5; }
+
+  .section-title { font-size: 0.9rem; font-weight: 600; color: #f5f5f7; margin: 24px 0 12px; }
+
+  .tag-pill {
+    display: inline-block;
+    background: #2c2c2e;
+    color: #aaa;
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin: 3px;
+    cursor: pointer;
+  }
+  .tag-pill:hover { background: #3a3a3c; color: #f5f5f7; }
+
+  .color-bar { display: flex; gap: 8px; margin: 12px 0; align-items: center; }
+  .color-swatch { width: 32px; height: 32px; border-radius: 6px; }
+  .color-label { font-size: 0.65rem; color: #888; margin-top: 4px; text-align: center; }
+  .color-item { text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>ARCHIPEG — Diseño Propuesto</h1>
+<p class="subtitle">Dark Premium · Masonry · Sidebar · Todas las organizaciones</p>
+
+<!-- APP MOCKUP -->
+<div class="app-frame">
+  <div class="frame-label">Vista principal — Galería</div>
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-name">ARCHIPEG<span class="brand-dot"> ·</span></div>
+        <div class="brand-version">v2.0 · DEMO</div>
+      </div>
+
+      <div class="sidebar-search">
+        <input class="search-box" placeholder="🔍 Buscar fotos..." readonly>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Biblioteca</div>
+        <div class="nav-item active">
+          <span class="nav-icon">🖼️</span> Todas las fotos
+          <span class="badge">9</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">⭐</span> Favoritos
+          <span class="badge">3</span>
+        </div>
+
+        <div class="nav-label">Organizar</div>
+        <div class="nav-item">
+          <span class="nav-icon">📁</span> Álbumes
+          <span class="badge">2</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">📅</span> Eventos
+          <span class="badge">1</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">👤</span> Personas
+          <span class="badge">4</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">📍</span> Lugares
+          <span class="badge">3</span>
+        </div>
+
+        <div class="nav-label">Explorar</div>
+        <div class="nav-item">
+          <span class="nav-icon">📅</span> Por año
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">🏷️</span> Tags
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">🗺️</span> Mapa
+        </div>
+
+        <div class="nav-label">Sistema</div>
+        <div class="nav-item">
+          <span class="nav-icon">⚙️</span> Gestión
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">🗑️</span> Papelera
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button class="btn-upload">+ SUBIR FOTOS</button>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+      <div class="content-header">
+        <div class="view-title">Todas las fotos</div>
+        <div class="header-controls">
+          <button class="filter-chip active">📅 2026</button>
+          <button class="filter-chip">📅 2025</button>
+          <button class="filter-chip">📅 2024</button>
+          <button class="sort-btn">⇅ Más recientes</button>
+        </div>
+      </div>
+
+      <div class="masonry-container">
+        <!-- Col 1 -->
+        <div class="photo-card h-lg">
+          <div style="background: linear-gradient(135deg,#2c2c2e,#3a3a3c); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn">⭐</button>
+          <div class="photo-overlay" style="opacity:1">
+            <div class="photo-title">Paisaje montaña</div>
+            <div class="photo-meta">2026 · Naturaleza</div>
+          </div>
+        </div>
+        <div class="photo-card h-sm">
+          <div style="background: linear-gradient(135deg,#3a2c2e,#2e3a3a); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+        </div>
+        <div class="photo-card h-md">
+          <div style="background: linear-gradient(135deg,#2c3a2e,#2e2c3a); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+        </div>
+
+        <!-- Col 2 -->
+        <div class="photo-card h-sm">
+          <div style="background: linear-gradient(135deg,#2e2c3a,#3a2c3a); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn">⭐</button>
+        </div>
+        <div class="photo-card h-xl">
+          <div style="background: linear-gradient(135deg,#2c3a3a,#3a3a2c); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+          <div class="photo-overlay" style="opacity:1">
+            <div class="photo-title">Retrato verano</div>
+            <div class="photo-meta">2025 · Familia</div>
+          </div>
+        </div>
+
+        <!-- Col 3 -->
+        <div class="photo-card h-md">
+          <div style="background: linear-gradient(135deg,#3a2e2c,#2c2e3a); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+        </div>
+        <div class="photo-card h-lg">
+          <div style="background: linear-gradient(135deg,#2e3a2c,#3a2c2e); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn">⭐</button>
+        </div>
+
+        <!-- Col 4 -->
+        <div class="photo-card h-xl">
+          <div style="background: linear-gradient(135deg,#2c2e3a,#3a2e2c); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+        </div>
+        <div class="photo-card h-sm">
+          <div style="background: linear-gradient(135deg,#3a3a2c,#2c3a3a); width:100%; height:100%; border-radius:8px;"></div>
+          <button class="fav-btn" style="color:#555;">☆</button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span class="status-text">9 fotos · Mostrando todas</span>
+        <span class="status-text">·</span>
+        <span class="status-text">Página 1 de 1</span>
+        <span class="demo-badge">DEMO — 9/50 fotos</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PALETA DE COLOR -->
+<div class="section-title">🎨 Paleta de colores</div>
+<div class="color-bar">
+  <div class="color-item"><div class="color-swatch" style="background:#111;border:1px solid #333;"></div><div class="color-label">Fondo</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#1c1c1e;border:1px solid #333;"></div><div class="color-label">Superficie</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#2c2c2e;"></div><div class="color-label">Elevado</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#3a3a3c;"></div><div class="color-label">Hover</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#ff9f0a;"></div><div class="color-label">Ámbar</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#f5f5f7;"></div><div class="color-label">Texto</div></div>
+  <div class="color-item"><div class="color-swatch" style="background:#888;"></div><div class="color-label">Secundario</div></div>
+</div>
+
+<!-- NOVEDADES -->
+<div class="section-title">✨ Nuevas funcionalidades</div>
+<div class="notes">
+  <div class="note">
+    <div class="note-icon">📁</div>
+    <div class="note-title">Álbumes</div>
+    <div class="note-desc">Crear colecciones manuales. Una foto puede estar en varios álbumes. Portada personalizable.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">📅</div>
+    <div class="note-title">Eventos</div>
+    <div class="note-desc">Grupos con rango de fechas. Ej: "Boda Ana · 12-14 junio 2024". Vista de línea de tiempo.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">👤</div>
+    <div class="note-title">Personas</div>
+    <div class="note-desc">Etiquetar personas en cada foto. Filtrar por "Fotos con Juan". Gestión de contactos.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">📍</div>
+    <div class="note-title">Lugares</div>
+    <div class="note-desc">Asignar ciudad/país. Vista de mapa mejorada con clusters. Filtro por país o región.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">⭐</div>
+    <div class="note-title">Favoritos</div>
+    <div class="note-desc">Marcar con estrella desde la galería. Acceso rápido en el sidebar.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">🏷️</div>
+    <div class="note-title">Tags mejorados</div>
+    <div class="note-desc">Autocompletado al escribir. Filtro por múltiples tags. Nube de tags visual.</div>
+  </div>
+</div>
+
+<!-- DEMO BANNER -->
+<div style="margin-top:24px; background:#ff9f0a22; border:1px solid #ff9f0a44; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:12px;">
+  <span style="font-size:1.1rem;">⚠️</span>
+  <div>
+    <div style="font-size:0.8rem; color:#ff9f0a; font-weight:600;">Modo DEMO — límite de 50 fotos</div>
+    <div style="font-size:0.72rem; color:#888; margin-top:2px;">Al llegar al límite, el sistema bloquea nuevas subidas y muestra un aviso visible en el sidebar y en el panel de subida.</div>
+  </div>
+</div>
+
+</body>
+</html>

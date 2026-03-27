@@ -1,0 +1,119 @@
+<h2>¿Cómo quieres acceder a la edición desde la foto?</h2>
+<p class="subtitle">Cada opción cambia cómo se muestra el editor dentro del modal actual</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;gap:0;height:200px;background:#111;border-radius:6px;overflow:hidden;font-size:11px;">
+        <!-- Imagen -->
+        <div style="flex:1.4;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#555;">
+          📷 FOTO
+        </div>
+        <!-- Panel lateral en modo edición -->
+        <div style="width:160px;background:#181825;padding:10px;display:flex;flex-direction:column;gap:6px;border-left:1px solid #333;">
+          <div style="font-size:10px;color:#8b5cf6;font-weight:bold;">✏️ MODO EDICIÓN</div>
+          <div style="background:#222;border:1px solid #444;border-radius:4px;padding:4px 6px;color:#ccc;font-size:9px;">Título de la foto</div>
+          <div style="background:#222;border:1px solid #444;border-radius:4px;padding:4px 6px;color:#ccc;font-size:9px;">2024 · Madrid</div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">
+            <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 6px;font-size:8px;">verano</span>
+            <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 6px;font-size:8px;">+ tag</span>
+          </div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">
+            <span style="background:#1a2e1a;color:#86efac;border-radius:10px;padding:2px 6px;font-size:8px;">👤 Ana</span>
+            <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 6px;font-size:8px;">+ persona</span>
+          </div>
+          <div style="margin-top:auto;display:flex;gap:4px;">
+            <div style="flex:1;background:#6d28d9;color:#fff;border-radius:4px;padding:3px;text-align:center;font-size:8px;">Guardar</div>
+            <div style="flex:1;background:#333;color:#aaa;border-radius:4px;padding:3px;text-align:center;font-size:8px;">Cancelar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Panel lateral se convierte en editor</h3>
+      <p>Botón "Editar" en el panel derecho que lo transforma en formulario. La foto sigue visible. Al guardar, vuelve al modo lectura.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;gap:0;height:200px;background:#111;border-radius:6px;overflow:hidden;font-size:11px;position:relative;">
+        <!-- Imagen -->
+        <div style="flex:1.4;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#555;">
+          📷 FOTO
+        </div>
+        <!-- Panel lectura (oscurecido) -->
+        <div style="width:160px;background:#181825;padding:10px;opacity:0.3;border-left:1px solid #333;">
+          <div style="font-size:9px;color:#aaa;">Título</div>
+          <div style="font-size:8px;color:#666;">2024 · Madrid</div>
+        </div>
+        <!-- Drawer encima -->
+        <div style="position:absolute;right:0;top:0;bottom:0;width:200px;background:#1e1b2e;border-left:2px solid #6d28d9;padding:10px;display:flex;flex-direction:column;gap:5px;box-shadow:-4px 0 16px #000a;">
+          <div style="font-size:10px;color:#8b5cf6;font-weight:bold;">✏️ Editar foto</div>
+          <input style="width:100%;box-sizing:border-box;background:#111;border:1px solid #444;border-radius:4px;color:#ccc;padding:3px 5px;font-size:8px;" placeholder="Título..." />
+          <input style="width:100%;box-sizing:border-box;background:#111;border:1px solid #444;border-radius:4px;color:#ccc;padding:3px 5px;font-size:8px;" placeholder="Lugar..." />
+          <div style="font-size:8px;color:#777;">Personas</div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">
+            <span style="background:#1a2e1a;color:#86efac;border-radius:10px;padding:2px 6px;font-size:7px;">👤 Ana ✕</span>
+            <span style="background:#222;color:#a78bfa;border-radius:10px;padding:2px 6px;font-size:7px;">+ añadir</span>
+          </div>
+          <div style="margin-top:auto;display:flex;gap:4px;">
+            <div style="flex:1;background:#6d28d9;color:#fff;border-radius:4px;padding:3px;text-align:center;font-size:8px;">Guardar</div>
+            <div style="flex:1;background:#333;color:#aaa;border-radius:4px;padding:3px;text-align:center;font-size:8px;">✕</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Drawer lateral que aparece encima</h3>
+      <p>Al pulsar "Editar" aparece un panel deslizante sobre el modal. El fondo se oscurece. Más espacio para el formulario.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;gap:0;height:200px;background:#111;border-radius:6px;overflow:hidden;font-size:11px;">
+        <!-- Imagen -->
+        <div style="flex:1.4;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:#555;">
+          📷 FOTO
+        </div>
+        <!-- Panel con edición inline -->
+        <div style="width:160px;background:#181825;padding:10px;display:flex;flex-direction:column;gap:5px;border-left:1px solid #333;">
+          <!-- Título editable inline -->
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div style="font-size:9px;color:#ccc;flex:1;">Mi foto de verano</div>
+            <span style="color:#6d28d9;font-size:9px;cursor:pointer;">✏️</span>
+          </div>
+          <div style="font-size:8px;color:#777;display:flex;align-items:center;gap:3px;">
+            📍 Madrid <span style="color:#6d28d9;font-size:8px;">✏️</span>
+          </div>
+          <!-- Tags editables -->
+          <div style="font-size:8px;color:#666;margin-top:2px;">Tags</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;">
+            <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 5px;font-size:7px;">verano ✕</span>
+            <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 5px;font-size:7px;">playa ✕</span>
+            <span style="background:#222;border:1px dashed #444;color:#777;border-radius:10px;padding:2px 5px;font-size:7px;">+ tag</span>
+          </div>
+          <!-- Personas editables -->
+          <div style="font-size:8px;color:#666;">Personas</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;">
+            <span style="background:#1a2e1a;color:#86efac;border-radius:10px;padding:2px 5px;font-size:7px;">👤 Ana ✕</span>
+            <span style="background:#222;border:1px dashed #444;color:#777;border-radius:10px;padding:2px 5px;font-size:7px;">+ persona</span>
+          </div>
+          <!-- Álbumes -->
+          <div style="font-size:8px;color:#666;">Álbumes</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;">
+            <span style="background:#1a2030;color:#7dd3fc;border-radius:10px;padding:2px 5px;font-size:7px;">📁 Verano 24 ✕</span>
+            <span style="background:#222;border:1px dashed #444;color:#777;border-radius:10px;padding:2px 5px;font-size:7px;">+ álbum</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Edición inline sin modo explícito</h3>
+      <p>Cada campo tiene un icono ✏️ o botones ✕/+ directamente. Sin "modo edición". Los cambios se guardan al momento.</p>
+    </div>
+  </div>
+
+</div>

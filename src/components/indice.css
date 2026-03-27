@@ -1,0 +1,104 @@
+.indice-page {
+    min-height: 100vh;
+    background: var(--bg-principal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+}
+
+.indice-logo {
+    width: 220px;
+    height: auto;
+    margin-bottom: 32px;
+    opacity: 0.9;
+}
+
+.indice-titulo {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--texto-primario);
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+
+.indice-punto { color: var(--acento); }
+
+.indice-subtitulo {
+    font-size: 0.9rem;
+    color: var(--texto-secundario);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+}
+
+.indice-botones {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 48px;
+}
+
+.indice-btn-principal {
+    background: var(--acento);
+    color: #000;
+    border: none;
+    border-radius: var(--radio);
+    padding: 14px 32px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.15s;
+}
+.indice-btn-principal:hover { opacity: 0.85; }
+
+.indice-btn-secundario {
+    background: var(--bg-superficie);
+    color: var(--texto-primario);
+    border: 1px solid var(--borde-suave);
+    border-radius: var(--radio);
+    padding: 14px 32px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+}
+.indice-btn-secundario:hover { background: var(--bg-elevado); }
+
+.indice-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    max-width: 700px;
+    width: 100%;
+    margin-bottom: 48px;
+}
+
+.indice-feature {
+    background: var(--bg-superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 16px;
+    font-size: 0.78rem;
+    color: var(--texto-secundario);
+}
+
+.indice-feature-icon { font-size: 1.4rem; margin-bottom: 6px; }
+.indice-feature-label { color: var(--texto-primario); font-weight: 500; font-size: 0.82rem; }
+
+.indice-footer {
+    font-size: 0.7rem;
+    color: var(--texto-secundario);
+    opacity: 0.6;
+}

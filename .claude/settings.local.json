@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(lsof -ti:5000)",
+      "Bash(lsof -ti:3000,5000)",
+      "Bash(xargs kill:*)",
+      "Bash(lsof:*)",
+      "Bash(open http://localhost:3000)",
+      "Read(//private/tmp/**)",
+      "Bash(grep -r \"5000\\\\|5001\" /Users/franciscovalero/Desktop/proyectos/ARCHIPEG/build/static/js/*.js)",
+      "Bash(CI=true npm run build)",
+      "Bash(bash /Users/franciscovalero/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh --project-dir /Users/franciscovalero/Desktop/proyectos/ARCHIPEG)",
+      "Bash(open:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(curl -s http://localhost:5001/api/albumes)",
+      "Bash(curl -s http://localhost:5001/api/favoritos)",
+      "Bash(curl -s http://localhost:5001/api/personas)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

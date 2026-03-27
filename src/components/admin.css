@@ -1,0 +1,326 @@
+/* RESET DE SEGURIDAD PARA ARCHIPEG */
+.admin-container * {
+    box-sizing: border-box;
+}
+
+/* --- FONDO Y ESTRUCTURA GENERAL --- */
+.admin-container {
+    background-color: #050515 !important;
+    min-height: 100vh;
+    padding: 20px;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- CABECERA --- */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ff2d7d;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.admin-title {
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+/* --- TARJETAS (CARDS) --- */
+.admin-card {
+    background: rgba(10, 10, 30, 0.8);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.section-title {
+    color: #00ffff;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* --- FORMULARIO DE SUBIDA --- */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+    width: 100%;
+    background: #0a0a1a !important;
+    border: 1px solid #00ffff !important;
+    color: #00ffff !important;
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+}
+
+.admin-textarea {
+    min-height: 80px;
+    margin-bottom: 15px;
+}
+
+/* --- AJUSTE DE BUSCADORES (PARA QUE NO SE ESTIREN) --- */
+.admin-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 900px;
+    /* Evita que ocupen todo el ancho de la pantalla */
+    margin-bottom: 25px;
+}
+
+.admin-controls .admin-input {
+    flex: 2;
+    min-width: 250px;
+}
+
+.admin-controls .admin-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* --- TABLA Y MINIATURAS --- */
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    text-align: left;
+    color: #ff2d7d;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 45, 125, 0.3);
+}
+
+.admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.admin-mini-morada {
+    width: 60px !important;
+    height: 60px !important;
+    object-fit: cover;
+    border: 1px solid #00ffff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.admin-mini-morada:hover {
+    box-shadow: 0 0 10px #00ffff;
+    transform: scale(1.1);
+}
+
+/* --- MODAL DE ZOOM --- */
+.archipeg-zoom-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.archipeg-zoom-content {
+    background: #050515;
+    border: 2px solid #00ffff;
+    display: flex;
+    max-width: 90%;
+    max-height: 85vh;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+}
+
+.zoom-image-wrapper {
+    flex: 2;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.zoom-image-wrapper img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.zoom-sidebar-info {
+    flex: 1;
+    padding: 25px;
+    border-left: 1px solid rgba(0, 255, 255, 0.2);
+    min-width: 300px;
+    background: #0a0a1a;
+}
+
+/* --- ASPA DE CIERRE NEÓN --- */
+.btn-zoom-close-neon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 45, 125, 0.1);
+    border: 1px solid #ff2d7d;
+    color: #ff2d7d;
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s;
+    box-shadow: 0 0 8px #ff2d7d;
+}
+
+.btn-zoom-close-neon:hover {
+    background: #ff2d7d;
+    color: white;
+    box-shadow: 0 0 20px #ff2d7d;
+}
+
+/* --- BOTONES DE ACCIÓN --- */
+.zoom-actions-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.btn-archipeg-action {
+    background: transparent;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 12px;
+    text-transform: uppercase;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-archipeg-action:hover {
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: inset 0 0 10px #00ffff;
+}
+
+.btn-dangerous {
+    border-color: #ff2d7d;
+    color: #ff2d7d;
+}
+
+.btn-dangerous:hover {
+    background: rgba(255, 45, 125, 0.1);
+    box-shadow: inset 0 0 10px #ff2d7d;
+}
+
+.btn-archipeg-main-morado {
+    background: transparent;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-top: 10px;
+}
+
+.btn-archipeg-main-morado:hover {
+    background: #00ffff;
+    color: #000;
+}
+
+.tag-badge {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-right: 5px;
+}
+
+.btn-volver-neon {
+    background: transparent;
+    border: 1px solid #ff2d7d;
+    color: #ff2d7d;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 5px #ff2d7d;
+    font-size: 0.8rem;
+}
+
+.btn-volver-neon:hover {
+    background: #ff2d7d;
+    color: white;
+    box-shadow: 0 0 20px #ff2d7d;
+    transform: scale(1.05);
+}
+
+/* --- ESTILOS ESPECÍFICOS PARA LA SECCIÓN ÁLBUMES --- */
+.album-form-container {
+    display: flex;
+    gap: 15px;
+    background: rgba(10, 10, 30, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    margin-bottom: 30px;
+}
+
+.album-input-custom {
+    background: #0a0a1a;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 10px;
+    border-radius: 5px;
+    flex: 1;
+}
+
+.btn-crear-album {
+    background: transparent;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 10px 25px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: 0.3s;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+}
+
+.btn-crear-album:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 20px #00ffff;
+}

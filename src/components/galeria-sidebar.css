@@ -1,0 +1,89 @@
+/**
+ * =============================================================================
+ * ARCHIPEG - galeria-sidebar.css (COMPONENTES: AÑOS Y FILTROS)
+ * =============================================================================
+ */
+
+/* Contenedor lateral */
+.sidebar-anios {
+    width: 220px;
+    min-width: 220px;
+    background: rgba(15, 23, 42, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border-right: 2px solid var(--neon-lila);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+}
+
+/* Título "Años" o similar */
+.sidebar-titulo {
+    font-size: 1.1rem;
+    color: var(--neon-cian) !important;
+    margin-bottom: 15px;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px var(--neon-cian);
+}
+
+/* Botón de "Todos los años" */
+.btn-anio-todo {
+    background: var(--neon-magenta) !important;
+    color: white !important;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 900;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: 0.3s;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px var(--neon-magenta);
+}
+
+.btn-anio-todo:hover {
+    background: white !important;
+    color: var(--neon-magenta) !important;
+    box-shadow: 0 0 20px white;
+    transform: scale(1.02);
+}
+
+/* Rejilla de botones de años (2 columnas) */
+.lista-anios-scroll {
+    overflow-y: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding-right: 5px;
+}
+
+/* Botones individuales de cada año */
+.btn-anio-item {
+    padding: 10px;
+    border: 1px solid var(--neon-lila) !important;
+    background: rgba(168, 85, 247, 0.1) !important;
+    color: white !important;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: 0.2s;
+    text-align: center;
+}
+
+.btn-anio-item:hover {
+    background: var(--neon-lila) !important;
+    box-shadow: 0 0 10px var(--neon-lila);
+}
+
+/* Estado activo (Año seleccionado) */
+.btn-anio-item.active {
+    background: var(--neon-cian) !important;
+    color: var(--fondo-oscuro) !important;
+    border-color: white !important;
+    box-shadow: 0 0 15px var(--neon-cian);
+}

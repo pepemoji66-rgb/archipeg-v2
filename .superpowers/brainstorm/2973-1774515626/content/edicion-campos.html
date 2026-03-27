@@ -1,0 +1,91 @@
+<h2>¿Cómo organizas los campos dentro del panel editor?</h2>
+<p class="subtitle">El panel tiene espacio limitado — ¿todo junto o dividido en secciones?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:170px;margin:0 auto;background:#181825;border-radius:6px;padding:12px;font-size:9px;color:#ccc;display:flex;flex-direction:column;gap:6px;height:200px;overflow:hidden;box-sizing:border-box;">
+        <div style="color:#8b5cf6;font-weight:bold;font-size:10px;">✏️ Editar foto</div>
+
+        <div style="color:#777;font-size:8px;">Título</div>
+        <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;color:#ccc;font-size:8px;">Mi foto de verano</div>
+
+        <div style="display:flex;gap:4px;">
+          <div style="flex:1;">
+            <div style="color:#777;font-size:8px;">Año</div>
+            <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;">2024</div>
+          </div>
+          <div style="flex:1;">
+            <div style="color:#777;font-size:8px;">Lugar</div>
+            <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;">Madrid</div>
+          </div>
+        </div>
+
+        <div style="color:#777;font-size:8px;">Tags</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          <span style="background:#1e1b4b;color:#a78bfa;border-radius:10px;padding:2px 5px;font-size:7px;">verano ✕</span>
+          <span style="background:#222;border:1px dashed #555;color:#777;border-radius:10px;padding:2px 5px;font-size:7px;">+ tag</span>
+        </div>
+
+        <div style="color:#777;font-size:8px;">Personas</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          <span style="background:#1a2e1a;color:#86efac;border-radius:10px;padding:2px 5px;font-size:7px;">👤 Ana ✕</span>
+          <span style="background:#222;border:1px dashed #555;color:#777;border-radius:10px;padding:2px 5px;font-size:7px;">+ añadir</span>
+        </div>
+
+        <div style="color:#777;font-size:8px;">Álbum</div>
+        <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;color:#7dd3fc;">📁 Verano 2024 ▾</div>
+
+        <div style="margin-top:auto;display:flex;gap:4px;">
+          <div style="flex:1;background:#6d28d9;color:#fff;border-radius:4px;padding:4px;text-align:center;font-size:8px;">Guardar</div>
+          <div style="flex:1;background:#333;color:#aaa;border-radius:4px;padding:4px;text-align:center;font-size:8px;">Cancelar</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Todo en un scroll continuo</h3>
+      <p>Título, año, lugar, tags, personas y álbum en un único panel. Rápido de acceder, se hace scroll si es largo.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:170px;margin:0 auto;background:#181825;border-radius:6px;padding:12px;font-size:9px;color:#ccc;display:flex;flex-direction:column;gap:6px;height:200px;overflow:hidden;box-sizing:border-box;">
+        <div style="color:#8b5cf6;font-weight:bold;font-size:10px;">✏️ Editar foto</div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:0;border-bottom:1px solid #333;">
+          <div style="padding:4px 8px;font-size:8px;color:#a78bfa;border-bottom:2px solid #6d28d9;margin-bottom:-1px;">Datos</div>
+          <div style="padding:4px 8px;font-size:8px;color:#666;">Organización</div>
+        </div>
+
+        <!-- Tab "Datos" activa -->
+        <div style="color:#777;font-size:8px;">Título</div>
+        <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;color:#ccc;font-size:8px;">Mi foto de verano</div>
+        <div style="display:flex;gap:4px;">
+          <div style="flex:1;">
+            <div style="color:#777;font-size:8px;">Año</div>
+            <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;">2024</div>
+          </div>
+          <div style="flex:1;">
+            <div style="color:#777;font-size:8px;">Lugar</div>
+            <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;">Madrid</div>
+          </div>
+        </div>
+        <div style="color:#777;font-size:8px;">Descripción</div>
+        <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 5px;font-size:8px;color:#666;font-style:italic;">Opcional...</div>
+
+        <div style="margin-top:auto;display:flex;gap:4px;">
+          <div style="flex:1;background:#6d28d9;color:#fff;border-radius:4px;padding:4px;text-align:center;font-size:8px;">Guardar</div>
+          <div style="flex:1;background:#333;color:#aaa;border-radius:4px;padding:4px;text-align:center;font-size:8px;">Cancelar</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Dos pestañas: Datos / Organización</h3>
+      <p><b>Datos</b>: título, año, lugar, descripción. <b>Organización</b>: personas, álbumes, tags. Más ordenado si hay muchos campos.</p>
+    </div>
+  </div>
+
+</div>

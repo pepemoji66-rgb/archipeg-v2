@@ -1,0 +1,107 @@
+/* EL PANEL LATERAL - MODO DARK NEÓN */
+.nav-links-archipeg {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 260px;
+    /* Un poco más estrecho para mayor elegancia */
+    height: 100vh;
+    background: #0a0a0f;
+    /* Fondo oscuro profundo */
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.7);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    z-index: 5050;
+    border-right: 1px solid #1a1a25;
+}
+
+.nav-links-archipeg.active {
+    left: 0;
+}
+
+/* HEADER DEL LOGO */
+.menu-header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 30px 20px;
+    border-bottom: 1px solid #1a1a25;
+    margin-bottom: 10px;
+    background: linear-gradient(to bottom, #11111a, #0a0a0f);
+}
+
+.brand-name {
+    font-weight: 800;
+    color: #00ffff;
+    /* Cian Neón */
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+/* SEPARADORES (BIBLIOTECA, ORGANIZAR, etc.) */
+.menu-separador {
+    padding: 25px 25px 10px;
+    font-size: 0.65rem;
+    color: #444;
+    /* Color discreto para que no distraiga */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ENLACES - ESTILO ACTIVO Y HOVER */
+.lista-enlaces li a {
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    text-decoration: none;
+    color: #aaa;
+    /* Gris suave por defecto */
+    font-weight: 500;
+    font-size: 0.88rem;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.lista-enlaces li a:hover {
+    background: rgba(0, 255, 255, 0.05);
+    color: #00ffff;
+    padding-left: 30px;
+    border-left: 3px solid #00ffff;
+}
+
+/* Iconos con brillo */
+.icon {
+    margin-right: 15px;
+    font-size: 1.1rem;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.1));
+}
+
+/* INDICADORES DE CONTEO (Badge a la derecha) */
+.menu-counter {
+    margin-left: auto;
+    font-family: 'monospace';
+    font-size: 0.7rem;
+    color: #00ffff;
+    opacity: 0.6;
+}
+
+/* FOOTER DEL MENÚ */
+.menu-footer {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #1a1a25;
+    font-size: 0.7rem;
+    color: #333;
+    background: #08080c;
+}
+
+/* OVERLAY (El fondo que oscurece el resto) */
+.menu-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    /* Más oscuro para resaltar el cian */
+    backdrop-filter: blur(4px);
+    /* Aumentamos el desenfoque */
+}

@@ -1,0 +1,109 @@
+/**
+ * =============================================================================
+ * ARCHIPEG - galeria-grid.css (REJILLA Y TARJETAS NEÓN)
+ * =============================================================================
+ */
+
+/* Contenedor de la rejilla */
+.galeria-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 25px;
+    padding: 20px 0;
+}
+
+/* Tarjeta individual de foto */
+.card-foto-item {
+    background: rgba(30, 41, 59, 0.4) !important;
+    /* Fondo translúcido */
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+/* Efecto al pasar el ratón (Elevación y brillo) */
+.card-foto-item:hover {
+    transform: translateY(-8px);
+    border-color: var(--neon-magenta) !important;
+    box-shadow: 0 0 20px var(--neon-magenta);
+}
+
+/* Contenedor de la imagen */
+.foto-wrapper {
+    position: relative;
+    overflow: hidden;
+    height: 180px;
+    background: #000;
+}
+
+.foto-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.8);
+    transition: 0.5s ease;
+}
+
+/* Zoom suave en la imagen al hacer hover */
+.card-foto-item:hover .foto-wrapper img {
+    filter: brightness(1.1);
+    transform: scale(1.1);
+}
+
+/* Información al pie de la tarjeta */
+.foto-info-card {
+    padding: 15px;
+    text-align: center;
+    background: rgba(10, 10, 26, 0.6);
+}
+
+.foto-info-card h4 {
+    margin: 0 0 8px 0;
+    color: var(--neon-cian) !important;
+    text-shadow: 0 0 5px var(--neon-cian);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Etiqueta del año (Badge) */
+.badge-anio-pro {
+    background: rgba(168, 85, 247, 0.2) !important;
+    color: var(--neon-lila) !important;
+    border: 1px solid var(--neon-lila);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+.info-footer-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.card-tags-mini {
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.mini-tag-pill {
+    font-size: 0.65rem;
+    background: rgba(0, 200, 83, 0.1);
+    color: #00c853;
+    border: 1px solid rgba(0, 200, 83, 0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.more-tags {
+    color: #888;
+    font-size: 0.7rem;
+}

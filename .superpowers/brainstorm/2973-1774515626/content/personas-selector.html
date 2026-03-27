@@ -1,0 +1,54 @@
+<h2>¿Cómo seleccionas las personas en el editor?</h2>
+<p class="subtitle">Cuando editas una foto, ¿cómo añades o quitas personas?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:170px;margin:0 auto;background:#181825;border-radius:6px;padding:12px;font-size:9px;color:#ccc;display:flex;flex-direction:column;gap:5px;height:180px;box-sizing:border-box;">
+        <div style="color:#777;font-size:8px;text-transform:uppercase;letter-spacing:.5px;">Personas</div>
+        <p style="font-size:7.5px;color:#555;margin:0;">Pulsa para añadir o quitar</p>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          <!-- seleccionada -->
+          <span style="background:#1a2e1a;color:#86efac;border:1px solid #4ade80;border-radius:10px;padding:3px 7px;font-size:7.5px;cursor:pointer;">👤 Ana ✓</span>
+          <!-- no seleccionada -->
+          <span style="background:#1e1e2e;color:#555;border:1px solid #333;border-radius:10px;padding:3px 7px;font-size:7.5px;cursor:pointer;">👤 Carlos</span>
+          <span style="background:#1e1e2e;color:#555;border:1px solid #333;border-radius:10px;padding:3px 7px;font-size:7.5px;cursor:pointer;">👤 Elena</span>
+          <span style="background:#1e1e2e;color:#555;border:1px solid #333;border-radius:10px;padding:3px 7px;font-size:7.5px;cursor:pointer;">👤 Miguel</span>
+          <span style="background:#1e1e2e;color:#555;border:1px solid #333;border-radius:10px;padding:3px 7px;font-size:7.5px;cursor:pointer;">👤 Laura</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Chips toggle (como en AdminPanel)</h3>
+      <p>Se muestran todas las personas. Las que están en la foto aparecen resaltadas. Pulsa para añadir o quitar. Simple y directo.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:170px;margin:0 auto;background:#181825;border-radius:6px;padding:12px;font-size:9px;color:#ccc;display:flex;flex-direction:column;gap:5px;height:180px;box-sizing:border-box;">
+        <div style="color:#777;font-size:8px;text-transform:uppercase;letter-spacing:.5px;">Personas</div>
+        <!-- Chips de los ya asignados -->
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          <span style="background:#1a2e1a;color:#86efac;border-radius:10px;padding:2px 6px;font-size:7.5px;">👤 Ana ✕</span>
+        </div>
+        <!-- Input de búsqueda -->
+        <div style="background:#111;border:1px solid #444;border-radius:3px;padding:3px 6px;color:#777;font-size:8px;display:flex;align-items:center;gap:3px;">
+          🔍 <span>Buscar persona...</span>
+        </div>
+        <!-- Dropdown sugerencias -->
+        <div style="background:#111;border:1px solid #333;border-radius:3px;overflow:hidden;">
+          <div style="padding:3px 6px;font-size:8px;color:#ccc;border-bottom:1px solid #222;">👤 Carlos</div>
+          <div style="padding:3px 6px;font-size:8px;color:#ccc;border-bottom:1px solid #222;">👤 Elena</div>
+          <div style="padding:3px 6px;font-size:8px;color:#666;">👤 Miguel</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Input de búsqueda + chips</h3>
+      <p>Las personas asignadas aparecen como chips con ✕. Para añadir, escribes y seleccionas del desplegable. Mejor si hay muchas personas.</p>
+    </div>
+  </div>
+
+</div>

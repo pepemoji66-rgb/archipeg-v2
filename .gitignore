@@ -1,0 +1,29 @@
+# --- ARCHIPEG v2.0 GITIGNORE ---
+
+# Dependencias (NUNCA se suben, pesan demasiado)
+node_modules/
+
+# Producción y empaquetado (se generan con comandos)
+build/
+dist/
+dist_electron/
+
+# Base de datos local (Opcional: súbela solo si quieres que otros tengan tus datos de prueba)
+# archipeg_data.db
+
+# Logs y temporales
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log
+*.log
+
+# Variables de entorno (Seguridad: rutas, contraseñas)
+.env
+.env.local
+
+# Archivos de sistema y editores
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

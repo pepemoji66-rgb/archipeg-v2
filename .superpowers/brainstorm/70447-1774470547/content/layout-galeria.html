@@ -1,0 +1,66 @@
+<h2>¿Cómo quieres ver las fotos en la galería?</h2>
+<p class="subtitle">Elige el layout principal de la cuadrícula</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="masonry" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e; padding:16px; border-radius:8px;">
+      <div style="columns:3; column-gap:6px;">
+        <div style="background:#2c2c2e; border-radius:6px; height:70px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:45px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:60px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:50px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:80px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:55px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:65px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:40px; margin-bottom:6px; break-inside:avoid;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:75px; margin-bottom:6px; break-inside:avoid;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Masonry (Pinterest)</h3>
+      <p>Columnas de ancho fijo, alto variable. Las fotos se muestran en su proporción real sin recortar.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="grid" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e; padding:16px; border-radius:8px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+        <div style="background:#2c2c2e; border-radius:6px; height:58px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Grid Uniforme</h3>
+      <p>Cuadrados perfectos, fotos recortadas al centro. Orden limpio, estilo Instagram.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="timeline" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1c1c1e; padding:16px; border-radius:8px; font-family:system-ui;">
+      <div style="color:#ff9f0a; font-size:0.7rem; font-weight:700; margin-bottom:6px;">MARZO 2024</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; margin-bottom:10px;">
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+      </div>
+      <div style="color:#ff9f0a; font-size:0.7rem; font-weight:700; margin-bottom:6px;">ENERO 2024</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px;">
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+        <div style="background:#2c2c2e; border-radius:4px; height:40px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Timeline por fecha</h3>
+      <p>Fotos agrupadas por mes/año con separadores de fecha. Como Google Photos.</p>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,384 @@
+/* =============================================================================
+   GALERIA ARCHIPEG - REDISEÑO NEÓN ELÉCTRICO (REGLA 3x5)
+   ============================================================================= */
+
+:root {
+    --bg-galeria: #0a0b2e;
+    --cian-neon: #00f2ff;
+    --fucsia-neon: #ff2d7d;
+    --borde-neon: 2px solid var(--cian-neon);
+}
+
+.galeria-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--bg-galeria) !important;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='5' y='80' fill='rgba(0, 242, 255, 0.03)' font-family='Arial' font-weight='bold' font-size='10' transform='rotate(-35 5 80)'%3EARCHIPEG%3C/text%3E%3C/svg%3E") !important;
+}
+
+/* --- HEADER: REDISEÑO NEÓN --- */
+.galeria-header {
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--fucsia-neon);
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.galeria-titulo {
+    color: #fff;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px var(--cian-neon);
+    margin: 0;
+}
+
+/* Botones de Cabecera (Adiós Windows 95) */
+.btn-header-neon {
+    background: rgba(0, 0, 0, 0.6) !important;
+    color: var(--cian-neon) !important;
+    border: 1px solid var(--cian-neon) !important;
+    border-radius: 8px !important;
+    padding: 8px 18px !important;
+    font-weight: bold !important;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+}
+
+.btn-header-neon:hover {
+    box-shadow: 0 0 15px var(--cian-neon);
+    background: var(--cian-neon) !important;
+    color: #000 !important;
+}
+
+.btn-header-neon.btn-fucsia-neon {
+    color: var(--fucsia-neon) !important;
+    border-color: var(--fucsia-neon) !important;
+}
+
+.btn-header-neon.btn-fucsia-neon:hover {
+    box-shadow: 0 0 15px var(--fucsia-neon);
+    background: var(--fucsia-neon) !important;
+    color: #fff !important;
+}
+
+/* Filtros e Inputs */
+.galeria-filtros {
+    display: flex;
+    gap: 10px;
+}
+
+.input-neon,
+.select-neon {
+    background: #000 !important;
+    border: 1px solid var(--cian-neon) !important;
+    color: var(--cian-neon) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px;
+    outline: none;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(0, 242, 255, 0.2);
+}
+
+.input-neon::placeholder {
+    color: rgba(0, 242, 255, 0.5);
+}
+
+/* --- GRID 3x5 (5 columnas fijas) --- */
+.masonry-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 20px;
+    padding: 30px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.foto-card {
+    aspect-ratio: 1 / 1;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.foto-card:hover {
+    transform: scale(1.05) translateY(-5px);
+    border-color: var(--cian-neon);
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
+    z-index: 10;
+}
+
+.foto-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Favoritos (Estrella) */
+.foto-card-fav {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: none;
+    color: #ffeb3b !important;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 5;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 10px #ffeb3b;
+}
+
+/* Overlay Info */
+.foto-card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    padding: 15px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.foto-card:hover .foto-card-overlay {
+    opacity: 1;
+}
+
+.foto-titulo-tag {
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* --- FOOTER: PAGINACIÓN CON SALTO --- */
+.footer-paginacion {
+    margin-top: auto;
+    padding: 40px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid rgba(0, 242, 255, 0.1);
+}
+
+.paginacion-controles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+}
+
+.btn-pagi-flecha {
+    background: transparent;
+    border: 1px solid var(--cian-neon);
+    color: var(--cian-neon);
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-pagi-flecha:hover:not(:disabled) {
+    background: var(--cian-neon);
+    color: #000;
+    box-shadow: 0 0 15px var(--cian-neon);
+}
+
+.btn-pagi-flecha:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    border-color: #555;
+    color: #555;
+}
+
+.pagi-salto-zona {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagi-info {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.input-salto-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.label-goto {
+    color: var(--fucsia-neon);
+    font-size: 0.7rem;
+    font-weight: 900;
+}
+
+.input-salto-neon {
+    background: #000;
+    border: 1px solid var(--fucsia-neon);
+    color: #fff;
+    width: 50px;
+    padding: 5px;
+    border-radius: 4px;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.input-salto-neon:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--fucsia-neon);
+}
+
+/* --- ESTILOS DE SELECCIÓN Y ACCIONES MASIVAS NEÓN --- */
+
+/* Contenedor de la barra flotante de acciones masivas */
+.batch-action-bar {
+    position: fixed;
+    top: 90px;
+    /* Ajustado para que no tape el header */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a0a0f;
+    /* Fondo oscuro ARCHIPEG */
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    padding: 12px 30px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 6000;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Solo se ve cuando hay elementos seleccionados y el modo está activo */
+.batch-action-bar.active {
+    opacity: 1;
+    visibility: visible;
+    top: 100px;
+}
+
+/* El texto de información (ej: 6 ITEMS SELECCIONADOS) */
+.batch-info {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    font-family: 'monospace';
+}
+
+/* Contenedor para los botones de acción masiva */
+.batch-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+/* Botón base para descargar y borrar dentro de la barra */
+.btn-batch {
+    background: transparent;
+    color: #fff;
+    border: 1px solid;
+    padding: 8px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Botón DESCARGAR - Estilo Cian */
+.btn-batch.btn-download {
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+}
+
+.btn-batch.btn-download:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 20px #00ffff;
+}
+
+/* Botón BORRAR - Estilo Fucsia */
+.btn-batch.btn-delete {
+    border-color: #ff00ff;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.1);
+}
+
+.btn-batch.btn-delete:hover {
+    background: #ff00ff;
+    color: #000;
+    box-shadow: 0 0 20px #ff00ff;
+}
+
+/* --- ESTILO DE LA FOTO SELECCIONADA --- */
+
+/* La tarjeta de la foto cuando está seleccionada */
+.foto-card.foto-card-seleccionada {
+    transform: scale(0.96) translateY(-5px);
+    /* Pequeño reescalado para feedback */
+    border: 3px solid #00ffff !important;
+    /* Borde Cian Neón */
+    filter: brightness(1.2) contrast(1.1);
+    /* Resalta un poco la imagen */
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3) !important;
+}
+
+/* El Checkmark (Palomita) Neón sobre la foto */
+.select-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #00ffff;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    /* Oculto por defecto */
+    font-weight: bold;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+/* Cuando está realmente seleccionada, se vuelve cian */
+.select-badge.selected {
+    background: #00ffff;
+    color: #000;
+    /* Texto negro sobre fondo cian */
+    box-shadow: 0 0 15px #00ffff;
+}
