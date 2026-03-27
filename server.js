@@ -20,6 +20,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- MIDDLEWARE DE AUTENTICACIÓN ---
+async function authMiddleware(req, res, next) {
+    req.esAutenticado = false;
+    req.esAdmin = false;
+    if (!db) return next();
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+            const sesion = await db.get(
+                'SELECT u.id, u.email, u.es_admin FROM sesiones s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token = ?',
+                [token]
+            );
+            if (sesion) {
+                req.esAutenticado = true;
+                req.esAdmin = sesion.es_admin === 1;
+            }
+        } catch (e) { /* db no lista todavía */ }
+    }
+    next();
+}
+app.use(authMiddleware);
+
 // 🟢 LA PIEZA QUE FALTABA: Servir archivos estáticos
 // Esto crea el puente entre la URL /uploads y tu carpeta física
 const dirDestino = path.join(__dirname, 'fotos_archipeg');
@@ -203,10 +226,10 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
         const archivos = req.files;
         if (!archivos || archivos.length === 0) return res.status(400).json({ message: "Sin fotos" });
 
-        if (MODO_DEMO) {
+        if (!req.esAutenticado) {
             const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0");
             if (count >= LIMITE_DEMO) {
-                return res.status(403).json({ error: `DEMO: límite de ${LIMITE_DEMO} fotos alcanzado. Actualiza a la versión completa.` });
+                return res.status(403).json({ error: `DEMO: límite de ${LIMITE_DEMO} fotos alcanzado. Regístrate gratis para continuar.` });
             }
         }
 
@@ -226,10 +249,10 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
 // 1. GALERÍA PRINCIPAL
 app.get('/api/imagenes', async (req, res) => {
     try {
-        const query = MODO_DEMO
+        const query = !req.esAutenticado
             ? "SELECT * FROM fotos WHERE en_papelera = 0 ORDER BY anio DESC, id DESC LIMIT ?"
             : "SELECT * FROM fotos WHERE en_papelera = 0 ORDER BY anio DESC, id DESC";
-        const fotos = MODO_DEMO
+        const fotos = !req.esAutenticado
             ? await db.all(query, [LIMITE_DEMO])
             : await db.all(query);
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
@@ -239,10 +262,10 @@ app.get('/api/imagenes', async (req, res) => {
 // 2. MAPA
 app.get('/api/fotos-mapa', async (req, res) => {
     try {
-        const query = MODO_DEMO
+        const query = !req.esAutenticado
             ? "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0 LIMIT ?"
             : "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0";
-        const fotos = MODO_DEMO
+        const fotos = !req.esAutenticado
             ? await db.all(query, [LIMITE_DEMO])
             : await db.all(query);
         res.json(fotos);
