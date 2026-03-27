@@ -139,6 +139,35 @@ async function inicializarMotor() {
 }
 inicializarMotor();
 
+// --- AUTH: REGISTRO ---
+app.post('/api/auth/registro', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        const existente = await db.get('SELECT id FROM usuarios WHERE email = ?', [email]);
+        if (existente) return res.status(409).json({ error: 'Este email ya está registrado' });
+
+        const salt = crypto.randomBytes(16).toString('hex');
+        const password_hash = hashPassword(password, salt);
+        const es_admin = ADMINS.includes(email.toLowerCase()) ? 1 : 0;
+
+        const result = await db.run(
+            'INSERT INTO usuarios (email, password_hash, salt, es_admin) VALUES (?, ?, ?, ?)',
+            [email.toLowerCase(), password_hash, salt, es_admin]
+        );
+
+        const token = generarToken();
+        await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, result.lastID]);
+
+        res.json({ usuario: { id: result.lastID, email: email.toLowerCase(), esAdmin: es_admin === 1 }, token });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al registrar usuario' });
+    }
+});
+
 // --- RUTAS API ---
 
 // 0. SUBIR FOTOS
