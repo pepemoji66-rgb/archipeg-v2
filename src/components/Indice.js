@@ -14,7 +14,6 @@ const Indice = () => (
         <div className="indice-botones">
             <Link to="/galeria-completa" className="btn-neon cian">GALERÍA COMPLETA</Link>
             <Link to="/admin" className="btn-neon fucsia">ADMINISTRACIÓN</Link>
-            <Link to="/mapa" className="btn-neon fucsia">SISTEMA</Link>
         </div>
 
         {/* LAS 6 SECCIONES EN FILA O 3x2 */}
@@ -23,7 +22,6 @@ const Indice = () => (
                 { icon: '📁', label: 'Álbumes', desc: 'Colecciones', path: '/albumes' },
                 { icon: '📅', label: 'Eventos', desc: 'Fechas', path: '/eventos' },
                 { icon: '👤', label: 'Personas', desc: 'Etiquetado', path: '/personas' },
-                { icon: '📍', label: 'Lugares', desc: 'Ubicación', path: '/lugares' },
                 { icon: '⭐', label: 'Favoritos', desc: 'Mejores', path: '/favoritos' },
                 { icon: '🏷️', label: 'Tags', desc: 'Etiquetas', path: '/tags' },
             ].map(f => (
@@ -35,7 +33,7 @@ const Indice = () => (
             ))}
         </div>
 
-        <p className="indice-footer">ARCHIPEG v2.0 · © 2026 Jose Moreno Jimenez</p>
+        <p className="indice-footer">ARCHIPEG · © 2026 Jose Moreno Jimenez</p>
     </div>
 );
 

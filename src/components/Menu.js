@@ -78,22 +78,11 @@ const Menu = () => {
                             <span className="icon">👤</span> PERSONAS
                         </Link>
                     </li>
-                    <li>
-                        <Link to="/lugares" onClick={cerrarMenu}>
-                            <span className="icon">📍</span> LUGARES
-                        </Link>
-                    </li>
-
                     {/* EXPLORAR */}
                     <li className="menu-separador">EXPLORAR</li>
                     <li>
                         <Link to="/tags" onClick={cerrarMenu}>
                             <span className="icon">🏷️</span> TAGS
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/mapa" onClick={cerrarMenu}>
-                            <span className="icon">🗺️</span> MAPA
                         </Link>
                     </li>
 

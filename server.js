@@ -175,6 +175,48 @@ app.get('/api/anios', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
+// ACTUALIZAR CAMPOS BÁSICOS DE UNA FOTO
+app.patch('/api/fotos/:id', async (req, res) => {
+    try {
+        const { titulo, descripcion, anio, mes, etiquetas, lugar } = req.body;
+        await db.run(
+            "UPDATE fotos SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), anio = COALESCE(?, anio), mes = COALESCE(?, mes), etiquetas = COALESCE(?, etiquetas), lugar = COALESCE(?, lugar) WHERE id = ?",
+            [titulo, descripcion, anio, mes, etiquetas, lugar, req.params.id]
+        );
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json(err); }
+});
+
+// ÁLBUMES DE UNA FOTO
+app.get('/api/fotos/:id/albumes', async (req, res) => {
+    try {
+        const albumes = await db.all(
+            "SELECT a.* FROM albumes a JOIN album_fotos af ON a.id = af.album_id WHERE af.foto_id = ?",
+            [req.params.id]
+        );
+        res.json(albumes);
+    } catch (err) { res.status(500).json(err); }
+});
+
+// EVENTOS DE UNA FOTO
+app.get('/api/fotos/:id/eventos', async (req, res) => {
+    try {
+        const eventos = await db.all(
+            "SELECT e.* FROM eventos e JOIN evento_fotos ef ON e.id = ef.evento_id WHERE ef.foto_id = ?",
+            [req.params.id]
+        );
+        res.json(eventos);
+    } catch (err) { res.status(500).json(err); }
+});
+
+// QUITAR FOTO DE EVENTO
+app.delete('/api/eventos/:id/fotos/:fotoId', async (req, res) => {
+    try {
+        await db.run("DELETE FROM evento_fotos WHERE evento_id = ? AND foto_id = ?", [req.params.id, req.params.fotoId]);
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json(err); }
+});
+
 // 4. FILTRAR POR AÑO
 app.get('/api/fotos/:anio', async (req, res) => {
     try {

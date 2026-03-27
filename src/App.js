@@ -10,10 +10,8 @@ import Albumes from './components/Albumes';
 import AlbumDetalle from './components/AlbumDetalle';
 import Eventos from './components/Eventos';
 import Personas from './components/Personas';
-import Lugares from './components/Lugares';
 import Favoritos from './components/Favoritos';
 import Tags from './components/Tags';
-import Mapa from './components/Mapa';
 import './App.css';
 
 const withLayout = (Component) => (props) => (
@@ -28,10 +26,8 @@ const AlbumesL = withLayout(Albumes);
 const AlbumDetalleL = withLayout(AlbumDetalle);
 const EventosL = withLayout(Eventos);
 const PersonasL = withLayout(Personas);
-const LugaresL = withLayout(Lugares);
 const FavoritosL = withLayout(Favoritos);
 const TagsL = withLayout(Tags);
-const MapaL = withLayout(Mapa);
 
 function App() {
     return (
@@ -47,10 +43,8 @@ function App() {
                 <Route path="/albumes/:id" element={<AlbumDetalleL />} />
                 <Route path="/eventos" element={<EventosL />} />
                 <Route path="/personas" element={<PersonasL />} />
-                <Route path="/lugares" element={<LugaresL />} />
                 <Route path="/favoritos" element={<FavoritosL />} />
                 <Route path="/tags" element={<TagsL />} />
-                <Route path="/mapa" element={<MapaL />} />
             </Routes>
         </Router>
     );

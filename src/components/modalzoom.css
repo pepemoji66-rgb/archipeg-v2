@@ -173,3 +173,165 @@
     font-size: 0.85rem;
     font-family: monospace;
 }
+
+/* Panel de edición */
+.modal-edit-panel {
+    padding: 10px 0;
+    border-top: 1px solid rgba(0, 242, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    max-height: 50vh;
+}
+
+.modal-edit-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.modal-edit-input:focus {
+    border-color: rgba(0, 242, 255, 0.7);
+}
+
+.modal-edit-input option {
+    background: #1a1a3e;
+    color: #e0e0e0;
+}
+
+.modal-edit-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.modal-edit-check-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #c0c0c0;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s;
+}
+
+.modal-edit-check-label:hover {
+    border-color: rgba(0, 242, 255, 0.4);
+    color: #e0e0e0;
+}
+
+.modal-edit-check-label input[type="checkbox"] {
+    accent-color: #00f2ff;
+    cursor: pointer;
+}
+
+/* Fila de item con checkbox + botón borrar */
+.modal-edit-item-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.modal-edit-delete-btn {
+    background: none;
+    border: 1px solid rgba(255, 45, 125, 0.4);
+    color: #ff2d7d;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+    line-height: 1;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.modal-edit-delete-btn:hover {
+    background: rgba(255, 45, 125, 0.2);
+    border-color: #ff2d7d;
+}
+
+/* Fila para crear nuevo item */
+.modal-edit-create-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.modal-edit-create-btn {
+    background: rgba(0, 242, 255, 0.1);
+    border: 1px solid rgba(0, 242, 255, 0.4);
+    color: #00f2ff;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.modal-edit-create-btn:hover {
+    background: rgba(0, 242, 255, 0.2);
+    border-color: #00f2ff;
+}
+
+/* Tags visuales en el editor */
+.modal-edit-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 20px;
+    padding: 2px 0;
+}
+
+.modal-edit-tag-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(0, 242, 255, 0.08);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #00f2ff;
+}
+
+.modal-edit-tag-pill button {
+    background: none;
+    border: none;
+    color: rgba(0, 242, 255, 0.5);
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.modal-edit-tag-pill button:hover {
+    color: #ff2d7d;
+}

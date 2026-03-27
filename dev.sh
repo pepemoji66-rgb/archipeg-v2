@@ -17,9 +17,9 @@ BACKEND_PID=$!
 
 sleep 2
 
-# Reconstruir frontend si hay cambios (opcional, comentar si no quieres rebuild)
-# echo "▶ Construyendo frontend..."
-# CI=true npm run build
+# Reconstruir frontend
+echo "▶ Construyendo frontend..."
+CI=true npm run build
 
 # Servir el build estático en puerto 3000
 echo "▶ Iniciando frontend (puerto 3000)..."

@@ -7,19 +7,18 @@ const API = 'http://localhost:5001/api';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [conteos, setConteos] = useState({ fotos: 0, favoritos: 0, albumes: 0, eventos: 0, personas: 0, lugares: 0 });
+    const [conteos, setConteos] = useState({ fotos: 0, favoritos: 0, albumes: 0, eventos: 0, personas: 0 });
     const [busqueda, setBusqueda] = useState('');
 
     useEffect(() => {
         const cargar = async () => {
             try {
-                const [fotos, favs, albs, evs, pers, lugs] = await Promise.all([
+                const [fotos, favs, albs, evs, pers] = await Promise.all([
                     fetch(`${API}/imagenes`).then(r => r.json()),
                     fetch(`${API}/favoritos`).then(r => r.json()),
                     fetch(`${API}/albumes`).then(r => r.json()),
                     fetch(`${API}/eventos`).then(r => r.json()),
                     fetch(`${API}/personas`).then(r => r.json()),
-                    fetch(`${API}/lugares`).then(r => r.json()),
                 ]);
                 setConteos({
                     fotos: Array.isArray(fotos) ? fotos.length : 0,
@@ -27,7 +26,6 @@ const Sidebar = () => {
                     albumes: Array.isArray(albs) ? albs.length : 0,
                     eventos: Array.isArray(evs) ? evs.length : 0,
                     personas: Array.isArray(pers) ? pers.length : 0,
-                    lugares: Array.isArray(lugs) ? lugs.length : 0,
                 });
             } catch (e) { /* servidor no disponible */ }
         };
@@ -49,7 +47,7 @@ const Sidebar = () => {
         <aside className="sidebar">
             <div className="sidebar-brand">
                 <div className="sidebar-brand-name">ARCHIPEG<span className="sidebar-brand-dot"> ·</span></div>
-                <div className="sidebar-brand-version">v2.0 · DEMO</div>
+                <div className="sidebar-brand-version">DEMO</div>
             </div>
 
             <div className="sidebar-search">
@@ -86,17 +84,10 @@ const Sidebar = () => {
                     <span className="sidebar-item-icon">👤</span> Personas
                     <span className="sidebar-item-badge">{conteos.personas}</span>
                 </Link>
-                <Link to="/lugares" className={`sidebar-item ${isActive('/lugares') ? 'active' : ''}`}>
-                    <span className="sidebar-item-icon">📍</span> Lugares
-                    <span className="sidebar-item-badge">{conteos.lugares}</span>
-                </Link>
 
                 <div className="sidebar-section-label">Explorar</div>
                 <Link to="/tags" className={`sidebar-item ${isActive('/tags') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🏷️</span> Tags
-                </Link>
-                <Link to="/mapa" className={`sidebar-item ${isActive('/mapa') ? 'active' : ''}`}>
-                    <span className="sidebar-item-icon">🗺️</span> Mapa
                 </Link>
 
                 <div className="sidebar-section-label">Sistema</div>
