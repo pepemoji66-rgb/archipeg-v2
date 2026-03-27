@@ -12,6 +12,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -30,6 +31,17 @@ if (!fs.existsSync(dirDestino)) {
 }
 
 let db;
+
+// --- AUTENTICACIÓN ---
+const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com'];
+
+function hashPassword(password, salt) {
+    return crypto.createHash('sha256').update(salt + password).digest('hex');
+}
+
+function generarToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
 
 // --- CONFIGURACIÓN DE VERSIÓN ---
 const MODO_DEMO = true;       // false en versión de pago
@@ -105,6 +117,21 @@ async function inicializarMotor() {
             foto_id INTEGER,
             persona_id INTEGER,
             PRIMARY KEY (foto_id, persona_id)
+        );
+    `);
+
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            es_admin INTEGER DEFAULT 0,
+            creado_en TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS sesiones (
+            token TEXT PRIMARY KEY,
+            usuario_id INTEGER NOT NULL
         );
     `);
 
