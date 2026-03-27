@@ -1,10 +1,16 @@
 import React, { createContext, useContext, useState } from 'react';
+import { setToken } from './api';
 
 const API = 'http://localhost:5001/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [auth, setAuth] = useState({ usuario: null, token: null, esDemo: false });
+
+    function actualizarAuth(nuevoEstado) {
+        setToken(nuevoEstado.token);
+        setAuth(nuevoEstado);
+    }
 
     async function login(email, password) {
         const res = await fetch(`${API}/auth/login`, {
@@ -14,7 +20,7 @@ export function AuthProvider({ children }) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
-        setAuth({ usuario: data.usuario, token: data.token, esDemo: false });
+        actualizarAuth({ usuario: data.usuario, token: data.token, esDemo: false });
         return data.usuario;
     }
 
@@ -26,16 +32,16 @@ export function AuthProvider({ children }) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al registrarse');
-        setAuth({ usuario: data.usuario, token: data.token, esDemo: false });
+        actualizarAuth({ usuario: data.usuario, token: data.token, esDemo: false });
         return data.usuario;
     }
 
     function entrarDemo() {
-        setAuth({ usuario: null, token: null, esDemo: true });
+        actualizarAuth({ usuario: null, token: null, esDemo: true });
     }
 
     function logout() {
-        setAuth({ usuario: null, token: null, esDemo: false });
+        actualizarAuth({ usuario: null, token: null, esDemo: false });
     }
 
     return (

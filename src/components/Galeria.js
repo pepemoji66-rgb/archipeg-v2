@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ModalZoom from './ModalZoom';
 import './galeria.css';
+import { apiFetch } from '../api';
 
 const API = 'http://localhost:5001/api';
 const URL_FOTOS = 'http://localhost:5001/uploads/';
@@ -33,7 +34,7 @@ const Galeria = () => {
 
     const cargar = useCallback(async () => {
         try {
-            const res = await fetch(`${API}/imagenes`);
+            const res = await apiFetch(`${API}/imagenes`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setFotos(Array.isArray(data) ? data : []);
@@ -93,7 +94,7 @@ const Galeria = () => {
         if (!window.confirm(`¿Mover ${seleccionadas.length} fotos a la papelera?`)) return;
         try {
             await Promise.all(
-                seleccionadas.map(id => fetch(`${API}/imagenes/${id}`, { method: 'DELETE' }))
+                seleccionadas.map(id => apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' }))
             );
             setSeleccionadas([]);
             setModoSeleccion(false);
@@ -104,7 +105,7 @@ const Galeria = () => {
     const toggleFavorito = async (e, foto) => {
         e.stopPropagation();
         try {
-            const res = await fetch(`${API}/fotos/${foto.id}/favorito`, { method: 'PATCH' });
+            const res = await apiFetch(`${API}/fotos/${foto.id}/favorito`, { method: 'PATCH' });
             const { favorito } = await res.json();
             setFotos(prev => prev.map(f => f.id === foto.id ? { ...f, favorito } : f));
         } catch (e) { console.error(e); }

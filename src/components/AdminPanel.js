@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './admin.css';
+import { apiFetch } from '../api';
+import { useAuth } from '../AuthContext';
 
 const AdminPanel = () => {
+    const { token } = useAuth();
 
     // --- CONFIGURACIÓN DE RED IP DIRECTA ---
     const API_URL = "http://127.0.0.1:5001/api";
@@ -46,7 +49,7 @@ const AdminPanel = () => {
     };
 
     const cargarFotos = () => {
-        fetch(`${API_URL}/imagenes`)
+        apiFetch(`${API_URL}/imagenes`)
             .then(res => res.ok ? res.json() : [])
             .then(data => setFotos(data.sort((a, b) => b.id - a.id)))
             .catch(err => console.error("Error API:", err));
@@ -54,8 +57,8 @@ const AdminPanel = () => {
 
     useEffect(() => {
         cargarFotos();
-        fetch(`${API_URL}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
-        fetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
+        apiFetch(`${API_URL}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
+        apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
     }, []);
 
     const girarFoto = () => setRotacion(prev => (prev + 90) % 360);
@@ -78,6 +81,9 @@ const AdminPanel = () => {
 
         const xhr = new XMLHttpRequest();
         xhr.open("POST", `${API_URL}/fotos/subir`, true);
+        if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
 
         xhr.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable) setProgreso(Math.round((event.loaded * 100) / event.total));
@@ -86,20 +92,20 @@ const AdminPanel = () => {
         xhr.onreadystatechange = async () => {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 setMensaje("¡Éxito! Activos guardados en ARCHIPEG");
-                const res = await fetch(`${API_URL}/imagenes`);
+                const res = await apiFetch(`${API_URL}/imagenes`);
                 const actualizadas = await res.json();
                 const nuevas = actualizadas.slice(0, archivos.length);
 
                 for (const foto of nuevas) {
                     if (personasSeleccionadas.length > 0) {
-                        await fetch(`${API_URL}/fotos/${foto.id}/personas`, {
+                        await apiFetch(`${API_URL}/fotos/${foto.id}/personas`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ persona_ids: personasSeleccionadas })
                         });
                     }
                     if (albumSeleccionado) {
-                        await fetch(`${API_URL}/albumes/${albumSeleccionado}/fotos`, {
+                        await apiFetch(`${API_URL}/albumes/${albumSeleccionado}/fotos`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ foto_id: foto.id })
@@ -116,7 +122,7 @@ const AdminPanel = () => {
     const borrarFoto = async (id) => {
         if (!window.confirm("¿Seguro que quieres enviar este activo a la papelera?")) return;
         try {
-            const res = await fetch(`${API_URL}/imagenes/${id}`, { method: 'DELETE' });
+            const res = await apiFetch(`${API_URL}/imagenes/${id}`, { method: 'DELETE' });
             if (res.ok) { setFotoEnZoom(null); setRotacion(0); cargarFotos(); }
         } catch (error) { alert("Error de conexión"); }
     };

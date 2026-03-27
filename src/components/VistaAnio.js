@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './vistaAnio.css';
+import { apiFetch } from '../api';
 
 // El motor ahora apunta a Node (Puerto 5000)
 const URL_BASE_FOTOS = "http://localhost:5001/uploads/";
@@ -13,7 +14,7 @@ const VistaAnio = () => {
 
     useEffect(() => {
         // Llamada al nuevo servidor autónomo
-        fetch(`http://localhost:5001/api/fotos/${anio}`)
+        apiFetch(`http://localhost:5001/api/fotos/${anio}`)
             .then(res => {
                 if (!res.ok) throw new Error("Error al conectar con el motor ARCHIPEG");
                 return res.json();

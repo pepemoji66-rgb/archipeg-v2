@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './sidebar.css';
+import { useAuth } from '../AuthContext';
+import { apiFetch } from '../api';
 
 const API = 'http://localhost:5001/api';
 
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { usuario, esDemo, logout } = useAuth();
     const [conteos, setConteos] = useState({ fotos: 0, favoritos: 0, albumes: 0, eventos: 0, personas: 0 });
     const [busqueda, setBusqueda] = useState('');
 
@@ -14,11 +17,11 @@ const Sidebar = () => {
         const cargar = async () => {
             try {
                 const [fotos, favs, albs, evs, pers] = await Promise.all([
-                    fetch(`${API}/imagenes`).then(r => r.json()),
-                    fetch(`${API}/favoritos`).then(r => r.json()),
-                    fetch(`${API}/albumes`).then(r => r.json()),
-                    fetch(`${API}/eventos`).then(r => r.json()),
-                    fetch(`${API}/personas`).then(r => r.json()),
+                    apiFetch(`${API}/imagenes`).then(r => r.json()),
+                    apiFetch(`${API}/favoritos`).then(r => r.json()),
+                    apiFetch(`${API}/albumes`).then(r => r.json()),
+                    apiFetch(`${API}/eventos`).then(r => r.json()),
+                    apiFetch(`${API}/personas`).then(r => r.json()),
                 ]);
                 setConteos({
                     fotos: Array.isArray(fotos) ? fotos.length : 0,
@@ -47,7 +50,7 @@ const Sidebar = () => {
         <aside className="sidebar">
             <div className="sidebar-brand">
                 <div className="sidebar-brand-name">ARCHIPEG<span className="sidebar-brand-dot"> ·</span></div>
-                <div className="sidebar-brand-version">DEMO</div>
+                {esDemo && <div className="sidebar-brand-version">DEMO</div>}
             </div>
 
             <div className="sidebar-search">
@@ -100,13 +103,24 @@ const Sidebar = () => {
             </nav>
 
             <div className="sidebar-bottom">
-                <div className="sidebar-demo-info">{conteos.fotos}/{LIMITE} fotos (DEMO)</div>
-                <div className="sidebar-demo-bar">
-                    <div className="sidebar-demo-bar-fill" style={{ width: `${porcentaje}%` }}></div>
-                </div>
+                {esDemo ? (
+                    <>
+                        <div className="sidebar-demo-info">{conteos.fotos}/{LIMITE} fotos (DEMO)</div>
+                        <div className="sidebar-demo-bar">
+                            <div className="sidebar-demo-bar-fill" style={{ width: `${porcentaje}%` }}></div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="sidebar-demo-info">{conteos.fotos} fotos</div>
+                )}
                 <button className="sidebar-upload-btn" onClick={() => navigate('/admin')}>
                     + SUBIR FOTOS
                 </button>
+                {usuario && (
+                    <button className="sidebar-upload-btn" style={{ marginTop: '6px', background: 'transparent', border: '1px solid #555', color: '#aaa' }} onClick={logout}>
+                        Cerrar sesión
+                    </button>
+                )}
             </div>
         </aside>
     );
