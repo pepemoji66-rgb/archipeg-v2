@@ -78,7 +78,7 @@ const Galeria = () => {
             const data = await res.json();
             if (res.ok) {
                 setResultadoImport(data);
-                cargar();
+                await cargar();
             } else {
                 setResultadoImport({ error: data.error });
             }
