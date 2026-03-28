@@ -52,11 +52,16 @@ const Galeria = () => {
         } catch (e) { console.error(e); }
     }, []);
 
-    const esElectron = !!window.ipcRenderer;
-
     const seleccionarCarpeta = async () => {
         try {
-            const ruta = await window.ipcRenderer.invoke('seleccionar-carpeta');
+            let ruta = null;
+            if (window.ipcRenderer) {
+                ruta = await window.ipcRenderer.invoke('seleccionar-carpeta');
+            } else {
+                const res = await apiFetch(`${API}/seleccionar-carpeta`);
+                const data = await res.json();
+                ruta = data.ruta;
+            }
             if (ruta) {
                 setRutaImport(ruta);
                 setResultadoImport(null);
@@ -221,21 +226,10 @@ const Galeria = () => {
 
             {/* BARRA DE IMPORTACIÓN MASIVA */}
             <div className="import-bar">
-                {esElectron ? (
-                    <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
-                        📂 SELECCIONAR DISCO/CARPETA
-                    </button>
-                ) : (
-                    <input
-                        type="text"
-                        className="import-input-ruta"
-                        placeholder="Ruta del disco o carpeta (ej: /Users/yo/Fotos)"
-                        value={rutaImport}
-                        onChange={e => { setRutaImport(e.target.value); setResultadoImport(null); }}
-                        disabled={importando}
-                    />
-                )}
-                {esElectron && rutaImport && (
+                <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
+                    📂 SELECCIONAR DISCO/CARPETA
+                </button>
+                {rutaImport && (
                     <span className="import-ruta" title={rutaImport}>{rutaImport}</span>
                 )}
                 {rutaImport && (

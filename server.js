@@ -13,6 +13,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { exec } = require('child_process');
 
 const app = express();
 
@@ -686,6 +687,24 @@ app.get('/api/foto-local', (req, res) => {
     const stream = fs.createReadStream(ruta);
     stream.on('error', () => res.status(500).end());
     stream.pipe(res);
+});
+
+// DIÁLOGO NATIVO DE SELECCIÓN DE CARPETA (funciona en todos los contextos)
+app.get('/api/seleccionar-carpeta', (req, res) => {
+    if (process.platform === 'darwin') {
+        exec(`osascript -e 'POSIX path of (choose folder)'`, (err, stdout) => {
+            if (err) return res.json({ ruta: null });
+            res.json({ ruta: stdout.trim() });
+        });
+    } else if (process.platform === 'win32') {
+        const ps = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; if ($f.ShowDialog() -eq 'OK') { $f.SelectedPath } else { '' }`;
+        exec(`powershell -command "${ps}"`, (err, stdout) => {
+            if (err) return res.json({ ruta: null });
+            res.json({ ruta: stdout.trim() || null });
+        });
+    } else {
+        res.status(501).json({ error: 'Plataforma no soportada' });
+    }
 });
 
 // --- LANZAMIENTO ---
