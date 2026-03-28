@@ -69,6 +69,27 @@ function generarToken() {
 // --- CONFIGURACIÓN DE VERSIÓN ---
 const LIMITE_DEMO = 50;
 
+// --- IMPORTACIÓN MASIVA ---
+const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
+
+function escanearRecursivo(dir) {
+    const resultados = [];
+    try {
+        const entradas = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entrada of entradas) {
+            const rutaCompleta = path.join(dir, entrada.name);
+            try {
+                if (entrada.isDirectory()) {
+                    resultados.push(...escanearRecursivo(rutaCompleta));
+                } else if (entrada.isFile() && EXTENSIONES_IMAGEN.has(path.extname(entrada.name).toLowerCase())) {
+                    resultados.push(rutaCompleta);
+                }
+            } catch (_) { /* sin permiso, se ignora */ }
+        }
+    } catch (_) { /* directorio inaccesible, se ignora */ }
+    return resultados;
+}
+
 // --- CONFIGURACIÓN DE MULTER ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, dirDestino),
@@ -588,6 +609,55 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
         );
         res.json(personas);
     } catch (err) { res.status(500).json(err); }
+});
+
+// IMPORTACIÓN MASIVA DESDE DISCO
+app.post('/api/importar-masivo', async (req, res) => {
+    try {
+        const { ruta } = req.body;
+        if (!ruta) return res.status(400).json({ error: 'Ruta requerida' });
+
+        let stat;
+        try { stat = fs.statSync(ruta); } catch (_) {
+            return res.status(400).json({ error: 'Ruta inválida o no existe' });
+        }
+        if (!stat.isDirectory()) {
+            return res.status(400).json({ error: 'La ruta debe ser un directorio' });
+        }
+
+        const imagenes = escanearRecursivo(ruta);
+
+        let importadas = 0;
+        let actualizadas = 0;
+        let ignoradas = 0;
+
+        let fotosActuales = 0;
+        if (!req.esAutenticado) {
+            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0");
+            fotosActuales = count;
+        }
+
+        for (const rutaImagen of imagenes) {
+            if (!req.esAutenticado && fotosActuales >= LIMITE_DEMO) {
+                ignoradas++;
+                continue;
+            }
+
+            const existente = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [rutaImagen]);
+            if (existente) {
+                actualizadas++;
+            } else {
+                await db.run("INSERT INTO fotos (imagen_url, en_papelera) VALUES (?, 0)", [rutaImagen]);
+                importadas++;
+                if (!req.esAutenticado) fotosActuales++;
+            }
+        }
+
+        res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
+    } catch (err) {
+        console.error('Error importar-masivo:', err);
+        res.status(500).json({ error: 'Error interno al importar' });
+    }
 });
 
 // --- LANZAMIENTO ---
