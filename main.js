@@ -27,6 +27,7 @@ function createWindow() {
         // Buscamos el logo en la carpeta public
         icon: path.join(__dirname, 'public/logo_archipeg.ico'),
         webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
             contextIsolation: false,
             webSecurity: false

@@ -64,6 +64,7 @@
       "build/**/*",
       "node_modules/**/*",
       "main.js",
+      "preload.js",
       "server.js",
       "archipeg_data.db",
       "package.json",

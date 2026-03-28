@@ -54,14 +54,13 @@ const Galeria = () => {
 
     const seleccionarCarpeta = async () => {
         try {
-            const { ipcRenderer } = window.require('electron');
-            const ruta = await ipcRenderer.invoke('seleccionar-carpeta');
+            const ruta = await window.ipcRenderer.invoke('seleccionar-carpeta');
             if (ruta) {
                 setRutaImport(ruta);
                 setResultadoImport(null);
             }
         } catch (e) {
-            console.error('IPC no disponible:', e);
+            console.error('Error seleccionando carpeta:', e);
         }
     };
 
