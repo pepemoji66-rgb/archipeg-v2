@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 
@@ -44,6 +44,11 @@ function createWindow() {
         if (serverProcess) serverProcess.kill();
     });
 }
+
+ipcMain.handle('seleccionar-carpeta', async () => {
+    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+    return result.canceled ? null : result.filePaths[0];
+});
 
 app.whenReady().then(createWindow);
 
