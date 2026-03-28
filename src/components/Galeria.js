@@ -97,6 +97,22 @@ const Galeria = () => {
 
     useEffect(() => { cargar(); }, [cargar]);
 
+    const borrarFoto = async (id) => {
+        if (!window.confirm('¿Mover esta foto a la papelera?')) return;
+        try {
+            await apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
+            setFotoZoom(null);
+            await cargar();
+        } catch (e) { console.error(e); }
+    };
+
+    const navegarFoto = (direccion) => {
+        const idx = fotosFiltradas.findIndex(f => f.id === fotoZoom?.id);
+        if (idx === -1) return;
+        if (direccion === 'siguiente' && idx < fotosFiltradas.length - 1) setFotoZoom(fotosFiltradas[idx + 1]);
+        else if (direccion === 'anterior' && idx > 0) setFotoZoom(fotosFiltradas[idx - 1]);
+    };
+
     // LÓGICA DE CLIC: Seleccionar o Zoom
     const manejarClicFoto = (foto) => {
         if (modoSeleccion) {
@@ -303,7 +319,10 @@ const Galeria = () => {
                 <ModalZoom
                     foto={fotoZoom}
                     onClose={() => setFotoZoom(null)}
+                    onNavigate={navegarFoto}
+                    onBorrar={borrarFoto}
                     getFotoUrl={getFotoUrl}
+                    setBusqueda={setBusqueda}
                     onFavoritoToggle={(fAct) => setFotos(prev => prev.map(f => f.id === fAct.id ? fAct : f))}
                 />
             )}
