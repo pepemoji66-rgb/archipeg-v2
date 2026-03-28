@@ -614,6 +614,7 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
 // IMPORTACIÓN MASIVA DESDE DISCO
 app.post('/api/importar-masivo', async (req, res) => {
     try {
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
         const { ruta } = req.body;
         if (!ruta) return res.status(400).json({ error: 'Ruta requerida' });
 
@@ -638,19 +639,20 @@ app.post('/api/importar-masivo', async (req, res) => {
         }
 
         for (const rutaImagen of imagenes) {
+            const existente = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [rutaImagen]);
+            if (existente) {
+                actualizadas++;
+                continue;
+            }
+
             if (!req.esAutenticado && fotosActuales >= LIMITE_DEMO) {
                 ignoradas++;
                 continue;
             }
 
-            const existente = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [rutaImagen]);
-            if (existente) {
-                actualizadas++;
-            } else {
-                await db.run("INSERT INTO fotos (imagen_url, en_papelera) VALUES (?, 0)", [rutaImagen]);
-                importadas++;
-                if (!req.esAutenticado) fotosActuales++;
-            }
+            await db.run("INSERT INTO fotos (imagen_url, en_papelera) VALUES (?, 0)", [rutaImagen]);
+            importadas++;
+            if (!req.esAutenticado) fotosActuales++;
         }
 
         res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
