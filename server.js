@@ -72,6 +72,16 @@ const LIMITE_DEMO = 50;
 // --- IMPORTACIÓN MASIVA ---
 const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
 
+const MIME_TIPOS = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.heic': 'image/heic',
+    '.bmp': 'image/bmp'
+};
+
 function escanearRecursivo(dir) {
     const resultados = [];
     try {
@@ -660,6 +670,18 @@ app.post('/api/importar-masivo', async (req, res) => {
         console.error('Error importar-masivo:', err);
         res.status(500).json({ error: 'Error interno al importar' });
     }
+});
+
+// SERVIR FOTOS REFERENCIADAS POR RUTA ABSOLUTA
+app.get('/api/foto-local', (req, res) => {
+    const ruta = req.query.ruta;
+    if (!ruta) return res.status(400).json({ error: 'Parámetro ruta requerido' });
+
+    if (!fs.existsSync(ruta)) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+    const ext = path.extname(ruta).toLowerCase();
+    res.setHeader('Content-Type', MIME_TIPOS[ext] || 'application/octet-stream');
+    fs.createReadStream(ruta).pipe(res);
 });
 
 // --- LANZAMIENTO ---
