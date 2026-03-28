@@ -37,6 +37,9 @@ const Galeria = () => {
     const [seleccionadas, setSeleccionadas] = useState([]);
     const [modoSeleccion, setModoSeleccion] = useState(false);
     const [fotoZoom, setFotoZoom] = useState(null);
+    const [rutaImport, setRutaImport] = useState('');
+    const [importando, setImportando] = useState(false);
+    const [resultadoImport, setResultadoImport] = useState(null);
 
     const fotosPorPagina = 15;
 
@@ -48,6 +51,43 @@ const Galeria = () => {
             setFotos(Array.isArray(data) ? data : []);
         } catch (e) { console.error(e); }
     }, []);
+
+    const seleccionarCarpeta = async () => {
+        try {
+            const { ipcRenderer } = window.require('electron');
+            const ruta = await ipcRenderer.invoke('seleccionar-carpeta');
+            if (ruta) {
+                setRutaImport(ruta);
+                setResultadoImport(null);
+            }
+        } catch (e) {
+            console.error('IPC no disponible:', e);
+        }
+    };
+
+    const importarMasivo = async () => {
+        if (!rutaImport) return;
+        setImportando(true);
+        setResultadoImport(null);
+        try {
+            const res = await apiFetch(`${API}/importar-masivo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ruta: rutaImport })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setResultadoImport(data);
+                cargar();
+            } else {
+                setResultadoImport({ error: data.error });
+            }
+        } catch (_) {
+            setResultadoImport({ error: 'Error de conexión' });
+        } finally {
+            setImportando(false);
+        }
+    };
 
     useEffect(() => { cargar(); }, [cargar]);
 
@@ -176,6 +216,33 @@ const Galeria = () => {
                         🗑️ BORRAR
                     </button>
                 </div>
+            </div>
+
+            {/* BARRA DE IMPORTACIÓN MASIVA */}
+            <div className="import-bar">
+                <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
+                    📂 SELECCIONAR DISCO/CARPETA
+                </button>
+                {rutaImport && (
+                    <span className="import-ruta" title={rutaImport}>{rutaImport}</span>
+                )}
+                {rutaImport && (
+                    <button
+                        className="btn-import btn-import-action"
+                        onClick={importarMasivo}
+                        disabled={importando}
+                    >
+                        {importando ? '⏳ Importando...' : '⚡ IMPORTAR TODAS'}
+                    </button>
+                )}
+                {resultadoImport && !resultadoImport.error && (
+                    <span className="import-resultado">
+                        ✅ {resultadoImport.importadas} importadas · {resultadoImport.actualizadas} actualizadas · {resultadoImport.ignoradas} ignoradas
+                    </span>
+                )}
+                {resultadoImport?.error && (
+                    <span className="import-error">❌ {resultadoImport.error}</span>
+                )}
             </div>
 
             <main className="masonry-grid">
