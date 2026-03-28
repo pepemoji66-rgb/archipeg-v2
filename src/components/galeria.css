@@ -382,3 +382,76 @@
     /* Texto negro sobre fondo cian */
     box-shadow: 0 0 15px #00ffff;
 }
+
+/* =============================================================================
+   BARRA DE IMPORTACIÓN MASIVA
+   ============================================================================= */
+
+.import-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(0, 242, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+    flex-wrap: wrap;
+}
+
+.btn-import {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--cian-neon);
+    color: var(--cian-neon);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    font-family: inherit;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-import:hover:not(:disabled) {
+    background: rgba(0, 242, 255, 0.08);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.25);
+}
+
+.btn-import:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-import-action {
+    border-color: #ff9f0a;
+    color: #ff9f0a;
+}
+
+.btn-import-action:hover:not(:disabled) {
+    background: rgba(255, 159, 10, 0.08);
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.25);
+}
+
+.import-ruta {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.78rem;
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 4px 10px;
+    border-radius: 4px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.import-resultado {
+    color: #4ade80;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.import-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
