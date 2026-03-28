@@ -52,6 +52,8 @@ const Galeria = () => {
         } catch (e) { console.error(e); }
     }, []);
 
+    const esElectron = !!window.ipcRenderer;
+
     const seleccionarCarpeta = async () => {
         try {
             const ruta = await window.ipcRenderer.invoke('seleccionar-carpeta');
@@ -219,10 +221,21 @@ const Galeria = () => {
 
             {/* BARRA DE IMPORTACIÓN MASIVA */}
             <div className="import-bar">
-                <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
-                    📂 SELECCIONAR DISCO/CARPETA
-                </button>
-                {rutaImport && (
+                {esElectron ? (
+                    <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
+                        📂 SELECCIONAR DISCO/CARPETA
+                    </button>
+                ) : (
+                    <input
+                        type="text"
+                        className="import-input-ruta"
+                        placeholder="Ruta del disco o carpeta (ej: /Users/yo/Fotos)"
+                        value={rutaImport}
+                        onChange={e => { setRutaImport(e.target.value); setResultadoImport(null); }}
+                        disabled={importando}
+                    />
+                )}
+                {esElectron && rutaImport && (
                     <span className="import-ruta" title={rutaImport}>{rutaImport}</span>
                 )}
                 {rutaImport && (

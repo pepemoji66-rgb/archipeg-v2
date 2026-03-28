@@ -455,3 +455,28 @@
     font-size: 0.8rem;
     font-weight: bold;
 }
+
+.import-input-ruta {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    width: 320px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.import-input-ruta:focus {
+    border-color: var(--cian-neon);
+}
+
+.import-input-ruta::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.import-input-ruta:disabled {
+    opacity: 0.45;
+}
