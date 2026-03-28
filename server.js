@@ -677,11 +677,15 @@ app.get('/api/foto-local', (req, res) => {
     const ruta = req.query.ruta;
     if (!ruta) return res.status(400).json({ error: 'Parámetro ruta requerido' });
 
+    const ext = path.extname(ruta).toLowerCase();
+    if (!EXTENSIONES_IMAGEN.has(ext)) return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+
     if (!fs.existsSync(ruta)) return res.status(404).json({ error: 'Archivo no encontrado' });
 
-    const ext = path.extname(ruta).toLowerCase();
     res.setHeader('Content-Type', MIME_TIPOS[ext] || 'application/octet-stream');
-    fs.createReadStream(ruta).pipe(res);
+    const stream = fs.createReadStream(ruta);
+    stream.on('error', () => res.status(500).end());
+    stream.pipe(res);
 });
 
 // --- LANZAMIENTO ---
