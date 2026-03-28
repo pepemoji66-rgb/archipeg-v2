@@ -6,10 +6,18 @@ import { apiFetch } from '../api';
 
 const API = 'http://localhost:5001/api';
 const URL_FOTOS = 'http://localhost:5001/uploads/';
+const URL_FOTO_LOCAL = 'http://localhost:5001/api/foto-local?ruta=';
+
+const esRutaAbsoluta = (url) =>
+    /^[A-Za-z]:[\\\/]/.test(url) || url.startsWith('/');
 
 const getFotoUrl = (foto) => {
     if (!foto?.imagen_url) return '';
-    return URL_FOTOS + foto.imagen_url.trim().replace(/ /g, '%20').replace(/\\/g, '/');
+    const url = foto.imagen_url.trim();
+    if (esRutaAbsoluta(url)) {
+        return URL_FOTO_LOCAL + encodeURIComponent(url);
+    }
+    return URL_FOTOS + url.replace(/ /g, '%20').replace(/\\/g, '/');
 };
 
 const normalizar = (str) =>
