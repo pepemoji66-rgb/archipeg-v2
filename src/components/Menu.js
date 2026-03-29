@@ -60,6 +60,11 @@ const Menu = () => {
                             <span className="icon">🖼️</span> TODAS LAS FOTOS
                         </Link>
                     </li>
+                    <li>
+                        <Link to="/duplicados" onClick={cerrarMenu}>
+                            <span className="icon">🧬</span> DUPLICADOS
+                        </Link>
+                    </li>
 
                     {/* ORGANIZAR - Las nuevas secciones que hemos creado */}
                     <li className="menu-separador">ORGANIZAR</li>

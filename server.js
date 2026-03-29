@@ -37,6 +37,7 @@ async function authMiddleware(req, res, next) {
             if (sesion) {
                 req.esAutenticado = true;
                 req.esAdmin = sesion.es_admin === 1;
+                req.usuario = { id: sesion.id, email: sesion.email };
             }
         } catch (e) { /* db no lista todavía */ }
     }
@@ -193,6 +194,39 @@ async function inicializarMotor() {
 }
 inicializarMotor();
 
+// --- LIMPIEZA AUTOMÁTICA DE FOTOS ROTAS (OPCIÓN A) ---
+// Optimizada: No bloquea al usuario al iterar 10000 promesas simultáneas ni agota los sockets TCP
+async function limpiarFotosRotas(fotos, req) {
+    if (!req.esAutenticado || !fotos || fotos.length === 0) return fotos;
+    
+    setImmediate(async () => {
+        const idRotas = [];
+        for (const f of fotos) {
+            let rutaAbsoluta = f.imagen_url;
+            if (!rutaAbsoluta) continue;
+            if (!path.isAbsolute(rutaAbsoluta)) {
+                rutaAbsoluta = path.join(dirDestino, rutaAbsoluta);
+            }
+            try {
+                await fs.promises.access(rutaAbsoluta, fs.constants.F_OK);
+            } catch (err) {
+                if (err.code === 'ENOENT') {
+                    idRotas.push(f.id);
+                }
+            }
+        }
+        if (idRotas.length > 0) {
+            const batchSize = 100;
+            for(let i = 0; i < idRotas.length; i += batchSize) {
+                const batch = idRotas.slice(i, i + batchSize);
+                const placeholders = batch.map(() => '?').join(',');
+                db.run(`DELETE FROM fotos WHERE id IN (${placeholders})`, batch).catch(console.error);
+            }
+        }
+    });
+    return fotos;
+}
+
 // --- AUTH: REGISTRO ---
 app.post('/api/auth/registro', async (req, res) => {
     try {
@@ -258,7 +292,7 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
         if (!archivos || archivos.length === 0) return res.status(400).json({ message: "Sin fotos" });
 
         if (!req.esAutenticado) {
-            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0");
+            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0 AND usuario_id IS NULL");
             if (count >= LIMITE_DEMO) {
                 return res.status(403).json({ error: `DEMO: límite de ${LIMITE_DEMO} fotos alcanzado. Regístrate gratis para continuar.` });
             }
@@ -266,7 +300,7 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
 
         for (const file of archivos) {
             await db.run(
-                "INSERT INTO fotos (titulo, anio, descripcion, etiquetas, imagen_url, en_papelera) VALUES (?, ?, ?, ?, ?, 0)",
+                "INSERT INTO fotos (titulo, anio, descripcion, etiquetas, imagen_url, en_papelera, usuario_id) VALUES (?, ?, ?, ?, ?, 0, ?)",
                 [titulo, anio, descripcion, etiquetas || "", file.filename]
             );
         }
@@ -277,15 +311,40 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
     }
 });
 
+// --- ZONA DE MANTENIMIENTO: RESET DE BASE DE DATOS ---
+app.post('/api/sistema/limpiar-todo', async (req, res) => {
+    try {
+        if (!req.esAutenticado || !req.esAdmin) return res.status(403).json({ error: 'Solo Admin' });
+        
+        await db.run("BEGIN");
+        try {
+            await db.run("DELETE FROM fotos");
+            await db.run("DELETE FROM album_fotos");
+            await db.run("DELETE FROM evento_fotos");
+            await db.run("DELETE FROM foto_personas");
+            // No borramos álbumes ni eventos para no romper la estructura local, solo las asociaciones
+            await db.run("DELETE FROM sqlite_sequence WHERE name='fotos'"); 
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+        res.json({ message: "Reset completado" });
+    } catch (err) {
+        res.status(500).json({ error: "Fallo al vaciar la DB" });
+    }
+});
+
 // 1. GALERÍA PRINCIPAL
 app.get('/api/imagenes', async (req, res) => {
     try {
         const query = !req.esAutenticado
-            ? "SELECT * FROM fotos WHERE en_papelera = 0 ORDER BY anio DESC, id DESC LIMIT ?"
-            : "SELECT * FROM fotos WHERE en_papelera = 0 ORDER BY anio DESC, id DESC";
-        const fotos = !req.esAutenticado
+            ? "SELECT * FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id IS NULL ORDER BY anio DESC, id DESC LIMIT ?"
+            : "SELECT * FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ? ORDER BY anio DESC, id DESC";
+        const fotosRaw = !req.esAutenticado
             ? await db.all(query, [LIMITE_DEMO])
-            : await db.all(query);
+            : await db.all(query, [req.usuario?.id]);
+        const fotos = await limpiarFotosRotas(fotosRaw, req);
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
 });
@@ -294,11 +353,12 @@ app.get('/api/imagenes', async (req, res) => {
 app.get('/api/fotos-mapa', async (req, res) => {
     try {
         const query = !req.esAutenticado
-            ? "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0 LIMIT ?"
-            : "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0";
-        const fotos = !req.esAutenticado
+            ? "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0 AND es_duplicado = 0 AND usuario_id IS NULL LIMIT ?"
+            : "SELECT * FROM fotos WHERE latitud IS NOT NULL AND en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ?";
+        const fotosRaw = !req.esAutenticado
             ? await db.all(query, [LIMITE_DEMO])
-            : await db.all(query);
+            : await db.all(query, [req.usuario?.id]);
+        const fotos = await limpiarFotosRotas(fotosRaw, req);
         res.json(fotos);
     } catch (err) { res.status(500).json(err); }
 });
@@ -306,7 +366,7 @@ app.get('/api/fotos-mapa', async (req, res) => {
 // 3. OBTENER AÑOS
 app.get('/api/anios', async (req, res) => {
     try {
-        const anios = await db.all("SELECT DISTINCT anio FROM fotos WHERE en_papelera = 0 ORDER BY anio DESC");
+        const anios = await db.all(!req.esAutenticado ? "SELECT DISTINCT anio FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id IS NULL ORDER BY anio DESC" : "SELECT DISTINCT anio FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ?" , !req.esAutenticado ? [] : [req.usuario?.id]);
         res.json(anios);
     } catch (err) { res.status(500).json(err); }
 });
@@ -316,8 +376,8 @@ app.patch('/api/fotos/:id', async (req, res) => {
     try {
         const { titulo, descripcion, anio, mes, etiquetas, lugar } = req.body;
         await db.run(
-            "UPDATE fotos SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), anio = COALESCE(?, anio), mes = COALESCE(?, mes), etiquetas = COALESCE(?, etiquetas), lugar = COALESCE(?, lugar) WHERE id = ?",
-            [titulo, descripcion, anio, mes, etiquetas, lugar, req.params.id]
+            "UPDATE fotos SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), anio = COALESCE(?, anio), mes = COALESCE(?, mes), etiquetas = COALESCE(?, etiquetas), lugar = COALESCE(?, lugar) WHERE id = ? AND usuario_id = ?",
+            [titulo, descripcion, anio, mes, etiquetas, lugar, req.params.id, req.usuario?.id]
         );
         res.json({ ok: true });
     } catch (err) { res.status(500).json(err); }
@@ -327,7 +387,7 @@ app.patch('/api/fotos/:id', async (req, res) => {
 app.get('/api/fotos/:id/albumes', async (req, res) => {
     try {
         const albumes = await db.all(
-            "SELECT a.* FROM albumes a JOIN album_fotos af ON a.id = af.album_id WHERE af.foto_id = ?",
+            "SELECT a.* FROM albumes a JOIN album_fotos af ON a.id = af.album_id WHERE af.foto_id = ? AND a.usuario_id = ?",
             [req.params.id]
         );
         res.json(albumes);
@@ -338,8 +398,7 @@ app.get('/api/fotos/:id/albumes', async (req, res) => {
 app.get('/api/fotos/:id/eventos', async (req, res) => {
     try {
         const eventos = await db.all(
-            "SELECT e.* FROM eventos e JOIN evento_fotos ef ON e.id = ef.evento_id WHERE ef.foto_id = ?",
-            [req.params.id]
+            "SELECT e.* FROM eventos e JOIN evento_fotos ef ON e.id = ef.evento_id WHERE ef.foto_id = ? AND e.usuario_id = ?", [req.params.id, req.usuario?.id]
         );
         res.json(eventos);
     } catch (err) { res.status(500).json(err); }
@@ -358,10 +417,10 @@ app.get('/api/fotos/:anio', async (req, res) => {
     try {
         const query = !req.esAutenticado
             ? "SELECT * FROM fotos WHERE anio = ? AND en_papelera = 0 LIMIT ?"
-            : "SELECT * FROM fotos WHERE anio = ? AND en_papelera = 0";
+            : "SELECT * FROM fotos WHERE anio = ? AND en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ?";
         const fotos = !req.esAutenticado
             ? await db.all(query, [req.params.anio, LIMITE_DEMO])
-            : await db.all(query, [req.params.anio]);
+            : await db.all(query, [req.params.anio, req.usuario?.id]);
         res.json(fotos);
     } catch (err) { res.status(500).json(err); }
 });
@@ -369,7 +428,7 @@ app.get('/api/fotos/:anio', async (req, res) => {
 // 5. MOVER A PAPELERA
 app.delete('/api/imagenes/:id', async (req, res) => {
     try {
-        await db.run("UPDATE fotos SET en_papelera = 1 WHERE id = ?", [req.params.id]);
+        await db.run("UPDATE fotos SET en_papelera = 1 WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario?.id]);
         res.json({ message: "Movido a papelera" });
     } catch (err) { res.status(500).json(err); }
 });
@@ -377,7 +436,7 @@ app.delete('/api/imagenes/:id', async (req, res) => {
 // 6. VER PAPELERA
 app.get('/api/papelera', async (req, res) => {
     try {
-        const fotos = await db.all("SELECT * FROM fotos WHERE en_papelera = 1 ORDER BY id DESC");
+        const fotos = await db.all("SELECT * FROM fotos WHERE en_papelera = 1 AND usuario_id = ? ORDER BY id DESC", [req.usuario?.id]);
         res.json(fotos);
     } catch (err) { res.status(500).json(err); }
 });
@@ -390,9 +449,9 @@ app.post('/api/papelera/operaciones', async (req, res) => {
             return res.status(400).json({ error: "Acción inválida. Use 'restaurar' o 'eliminar_permanente'" });
         }
         if (accion === 'restaurar') {
-            await db.run("UPDATE fotos SET en_papelera = 0 WHERE id = ?", [id]);
+            await db.run("UPDATE fotos SET en_papelera = 0 WHERE id = ? AND usuario_id = ?", [id, req.usuario?.id]);
         } else {
-            await db.run("DELETE FROM fotos WHERE id = ?", [id]);
+            await db.run("DELETE FROM fotos WHERE id = ? AND usuario_id = ?", [id, req.usuario?.id]);
         }
         res.json({ message: "Operación realizada" });
     } catch (err) { res.status(500).json(err); }
@@ -401,10 +460,10 @@ app.post('/api/papelera/operaciones', async (req, res) => {
 // FAVORITO — toggle
 app.patch('/api/fotos/:id/favorito', async (req, res) => {
     try {
-        const foto = await db.get("SELECT favorito FROM fotos WHERE id = ?", [req.params.id]);
+        const foto = await db.get("SELECT favorito FROM fotos WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario?.id]);
         if (!foto) return res.status(404).json({ error: "No encontrada" });
         const nuevo = foto.favorito ? 0 : 1;
-        await db.run("UPDATE fotos SET favorito = ? WHERE id = ?", [nuevo, req.params.id]);
+        await db.run("UPDATE fotos SET favorito = ? WHERE id = ? AND usuario_id = ?", [nuevo, req.params.id, req.usuario?.id]);
         res.json({ favorito: nuevo });
     } catch (err) { res.status(500).json(err); }
 });
@@ -412,7 +471,7 @@ app.patch('/api/fotos/:id/favorito', async (req, res) => {
 // FAVORITOS — listar
 app.get('/api/favoritos', async (req, res) => {
     try {
-        const fotos = await db.all("SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 ORDER BY id DESC");
+        const fotos = await db.all("SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 AND usuario_id = ? ORDER BY id DESC", [req.usuario?.id]);
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
 });
@@ -421,7 +480,7 @@ app.get('/api/favoritos', async (req, res) => {
 app.patch('/api/fotos/:id/lugar', async (req, res) => {
     try {
         const { lugar } = req.body;
-        await db.run("UPDATE fotos SET lugar = ? WHERE id = ?", [lugar, req.params.id]);
+        await db.run("UPDATE fotos SET lugar = ? WHERE id = ? AND usuario_id = ?", [lugar, req.params.id, req.usuario?.id]);
         res.json({ ok: true });
     } catch (err) { res.status(500).json(err); }
 });
@@ -439,7 +498,7 @@ app.get('/api/lugares', async (req, res) => {
 // TAGS — listar únicos con frecuencia
 app.get('/api/tags', async (req, res) => {
     try {
-        const fotos = await db.all("SELECT etiquetas FROM fotos WHERE etiquetas IS NOT NULL AND etiquetas != '' AND en_papelera = 0");
+        const fotos = await db.all("SELECT etiquetas FROM fotos WHERE etiquetas IS NOT NULL AND etiquetas != \'\' AND en_papelera = 0 AND usuario_id = ?", [req.usuario?.id]);
         const contador = {};
         fotos.forEach(f => {
             f.etiquetas.split(',').forEach(t => {
@@ -455,7 +514,7 @@ app.get('/api/tags', async (req, res) => {
 // ÁLBUMES — CRUD
 app.get('/api/albumes', async (req, res) => {
     try {
-        const albumes = await db.all("SELECT a.*, COUNT(af.foto_id) as total FROM albumes a LEFT JOIN album_fotos af ON a.id = af.album_id GROUP BY a.id ORDER BY a.creado_en DESC");
+        const albumes = await db.all("SELECT a.*, COUNT(af.foto_id) as total FROM albumes a LEFT JOIN album_fotos af ON a.id = af.album_id WHERE a.usuario_id = ? GROUP BY a.id ORDER BY a.creado_en DESC", [req.usuario?.id]);
         res.json(albumes);
     } catch (err) { res.status(500).json(err); }
 });
@@ -464,7 +523,7 @@ app.post('/api/albumes', async (req, res) => {
     try {
         const { nombre, descripcion } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
-        const result = await db.run("INSERT INTO albumes (nombre, descripcion) VALUES (?, ?)", [nombre, descripcion || ""]);
+        const result = await db.run("INSERT INTO albumes (nombre, descripcion, usuario_id) VALUES (?, ?, ?)", [nombre, descripcion || "", req.usuario?.id]);
         res.json({ id: result.lastID, nombre, descripcion });
     } catch (err) { res.status(500).json(err); }
 });
@@ -487,8 +546,7 @@ app.delete('/api/albumes/:id', async (req, res) => {
 app.get('/api/albumes/:id/fotos', async (req, res) => {
     try {
         const fotos = await db.all(
-            "SELECT f.* FROM fotos f JOIN album_fotos af ON f.id = af.foto_id WHERE af.album_id = ? AND f.en_papelera = 0",
-            [req.params.id]
+            "SELECT f.* FROM fotos f JOIN album_fotos af ON f.id = af.foto_id WHERE af.album_id = ? AND f.en_papelera = 0 AND f.usuario_id = ?", [req.params.id, req.usuario?.id]
         );
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
@@ -512,7 +570,7 @@ app.delete('/api/albumes/:id/fotos/:fotoId', async (req, res) => {
 // EVENTOS — CRUD
 app.get('/api/eventos', async (req, res) => {
     try {
-        const eventos = await db.all("SELECT e.*, COUNT(ef.foto_id) as total FROM eventos e LEFT JOIN evento_fotos ef ON e.id = ef.evento_id GROUP BY e.id ORDER BY e.fecha_inicio DESC");
+        const eventos = await db.all("SELECT e.*, COUNT(ef.foto_id) as total FROM eventos e LEFT JOIN evento_fotos ef ON e.id = ef.evento_id WHERE e.usuario_id = ? GROUP BY e.id ORDER BY e.fecha_inicio DESC", [req.usuario?.id]);
         res.json(eventos);
     } catch (err) { res.status(500).json(err); }
 });
@@ -521,7 +579,7 @@ app.post('/api/eventos', async (req, res) => {
     try {
         const { nombre, fecha_inicio, fecha_fin, descripcion } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
-        const result = await db.run("INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, descripcion) VALUES (?, ?, ?, ?)", [nombre, fecha_inicio || "", fecha_fin || "", descripcion || ""]);
+        const result = await db.run("INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, descripcion, usuario_id) VALUES (?, ?, ?, ?, ?)", [nombre, fecha_inicio || "", fecha_fin || "", descripcion || "", req.usuario?.id]);
         res.json({ id: result.lastID, nombre });
     } catch (err) { res.status(500).json(err); }
 });
@@ -544,8 +602,7 @@ app.delete('/api/eventos/:id', async (req, res) => {
 app.get('/api/eventos/:id/fotos', async (req, res) => {
     try {
         const fotos = await db.all(
-            "SELECT f.* FROM fotos f JOIN evento_fotos ef ON f.id = ef.foto_id WHERE ef.evento_id = ? AND f.en_papelera = 0",
-            [req.params.id]
+            "SELECT f.* FROM fotos f JOIN evento_fotos ef ON f.id = ef.foto_id WHERE ef.evento_id = ? AND f.en_papelera = 0 AND f.usuario_id = ?", [req.params.id, req.usuario?.id]
         );
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
@@ -562,7 +619,7 @@ app.post('/api/eventos/:id/fotos', async (req, res) => {
 // PERSONAS — CRUD
 app.get('/api/personas', async (req, res) => {
     try {
-        const personas = await db.all("SELECT p.*, COUNT(fp.foto_id) as total FROM personas p LEFT JOIN foto_personas fp ON p.id = fp.persona_id GROUP BY p.id ORDER BY p.nombre");
+        const personas = await db.all("SELECT p.*, COUNT(fp.foto_id) as total FROM personas p LEFT JOIN foto_personas fp ON p.id = fp.persona_id WHERE p.usuario_id = ? GROUP BY p.id ORDER BY p.nombre", [req.usuario?.id]);
         res.json(personas);
     } catch (err) { res.status(500).json(err); }
 });
@@ -571,7 +628,7 @@ app.post('/api/personas', async (req, res) => {
     try {
         const { nombre } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
-        const result = await db.run("INSERT INTO personas (nombre) VALUES (?)", [nombre]);
+        const result = await db.run("INSERT INTO personas (nombre, usuario_id) VALUES (?, ?)", [nombre, req.usuario?.id]);
         res.json({ id: result.lastID, nombre });
     } catch (err) { res.status(500).json(err); }
 });
@@ -594,8 +651,7 @@ app.delete('/api/personas/:id', async (req, res) => {
 app.get('/api/personas/:id/fotos', async (req, res) => {
     try {
         const fotos = await db.all(
-            "SELECT f.* FROM fotos f JOIN foto_personas fp ON f.id = fp.foto_id WHERE fp.persona_id = ? AND f.en_papelera = 0",
-            [req.params.id]
+            "SELECT f.* FROM fotos f JOIN foto_personas fp ON f.id = fp.foto_id WHERE fp.persona_id = ? AND f.en_papelera = 0 AND f.usuario_id = ?", [req.params.id, req.usuario?.id]
         );
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
@@ -615,8 +671,7 @@ app.post('/api/fotos/:id/personas', async (req, res) => {
 app.get('/api/fotos/:id/personas', async (req, res) => {
     try {
         const personas = await db.all(
-            "SELECT p.* FROM personas p JOIN foto_personas fp ON p.id = fp.persona_id WHERE fp.foto_id = ?",
-            [req.params.id]
+            "SELECT p.* FROM personas p JOIN foto_personas fp ON p.id = fp.persona_id WHERE fp.foto_id = ? AND p.usuario_id = ?", [req.params.id, req.usuario?.id]
         );
         res.json(personas);
     } catch (err) { res.status(500).json(err); }
@@ -627,14 +682,15 @@ app.post('/api/importar-masivo', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
         const { ruta } = req.body;
-        if (!ruta) return res.status(400).json({ error: 'Ruta requerida' });
+        if (!ruta) return res.status(400).json({ error: 'La ruta llegó vacía a la base de datos' });
 
         let stat;
-        try { stat = fs.statSync(ruta); } catch (_) {
-            return res.status(400).json({ error: 'Ruta inválida o no existe' });
+        try { stat = fs.statSync(ruta); } catch (e) {
+            console.error("FS stat error:", e);
+            return res.status(400).json({ error: 'Ruta inválida en el disco duro o no existe: ' + String(ruta) });
         }
         if (!stat.isDirectory()) {
-            return res.status(400).json({ error: 'La ruta debe ser un directorio' });
+            return res.status(400).json({ error: 'La ruta seleccionada no es un directorio válido: ' + String(ruta) });
         }
 
         const imagenes = escanearRecursivo(ruta);
@@ -645,12 +701,12 @@ app.post('/api/importar-masivo', async (req, res) => {
 
         let fotosActuales = 0;
         if (!req.esAutenticado) {
-            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0");
+            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0 AND usuario_id IS NULL");
             fotosActuales = count;
         }
 
         for (const rutaImagen of imagenes) {
-            const existente = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [rutaImagen]);
+            const existente = await db.get(req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL", req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]);
             if (existente) {
                 actualizadas++;
                 continue;
@@ -661,7 +717,7 @@ app.post('/api/importar-masivo', async (req, res) => {
                 continue;
             }
 
-            await db.run("INSERT INTO fotos (imagen_url, en_papelera) VALUES (?, 0)", [rutaImagen]);
+            await db.run("INSERT INTO fotos (imagen_url, en_papelera, usuario_id) VALUES (?, 0, ?)", [rutaImagen, req.esAutenticado ? req.usuario.id : null]);
             importadas++;
             if (!req.esAutenticado) fotosActuales++;
         }
@@ -697,10 +753,30 @@ app.get('/api/seleccionar-carpeta', (req, res) => {
             res.json({ ruta: stdout.trim() });
         });
     } else if (process.platform === 'win32') {
-        const ps = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; if ($f.ShowDialog() -eq 'OK') { $f.SelectedPath } else { '' }`;
-        exec(`powershell -command "${ps}"`, (err, stdout) => {
+        const psFile = path.join(__dirname, 'selector.ps1');
+        const psCode = `
+Add-Type -AssemblyName System.Windows.Forms
+$form = New-Object System.Windows.Forms.Form
+$form.TopMost = $true
+$form.ShowInTaskbar = $false
+$form.WindowState = 'Minimized'
+$form.Show()
+[void]$form.Focus()
+$f = New-Object System.Windows.Forms.FolderBrowserDialog
+$f.Description = 'Selecciona la carpeta para importar a ARCHIPEG'
+if ($f.ShowDialog($form) -eq 'OK') { Write-Output $f.SelectedPath }
+$form.Dispose()
+        `.trim();
+        
+        fs.writeFileSync(psFile, psCode);
+        
+        exec(`powershell -ExecutionPolicy Bypass -File "${psFile}"`, (err, stdout) => {
+            try { fs.unlinkSync(psFile); } catch(e){} // limpiar
+            
             if (err) return res.json({ ruta: null });
-            res.json({ ruta: stdout.trim() || null });
+            const ruta = stdout.trim();
+            if (!ruta || ruta.includes("Error") || ruta.includes("Exception")) return res.json({ ruta: null });
+            res.json({ ruta: ruta });
         });
     } else {
         res.status(501).json({ error: 'Plataforma no soportada' });

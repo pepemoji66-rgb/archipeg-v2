@@ -69,6 +69,9 @@ const Sidebar = () => {
                     <span className="sidebar-item-icon">🖼️</span> Todas las fotos
                     <span className="sidebar-item-badge">{conteos.fotos}</span>
                 </Link>
+                <Link to="/duplicados" className={`sidebar-item ${isActive('/duplicados') ? 'active' : ''}`}>
+                    <span className="sidebar-item-icon">🧬</span> Duplicados
+                </Link>
                 <Link to="/favoritos" className={`sidebar-item ${isActive('/favoritos') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">⭐</span> Favoritos
                     <span className="sidebar-item-badge">{conteos.favoritos}</span>
@@ -94,9 +97,16 @@ const Sidebar = () => {
                 </Link>
 
                 <div className="sidebar-section-label">Sistema</div>
-                <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
-                    <span className="sidebar-item-icon">⚙️</span> Gestión
-                </Link>
+                {usuario?.esAdmin && (
+                    <>
+                        <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
+                            <span className="sidebar-item-icon">👥</span> Usuarios
+                        </Link>
+                        <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
+                            <span className="sidebar-item-icon">⚙️</span> Gestión
+                        </Link>
+                    </>
+                )}
                 <Link to="/papelera" className={`sidebar-item ${isActive('/papelera') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🗑️</span> Papelera
                 </Link>
@@ -113,9 +123,11 @@ const Sidebar = () => {
                 ) : (
                     <div className="sidebar-demo-info">{conteos.fotos} fotos</div>
                 )}
-                <button className="sidebar-upload-btn" onClick={() => navigate('/admin')}>
-                    + SUBIR FOTOS
-                </button>
+                {usuario?.esAdmin && (
+                    <button className="sidebar-upload-btn" onClick={() => navigate('/admin')}>
+                        + SUBIR FOTOS
+                    </button>
+                )}
                 {usuario && (
                     <button className="sidebar-upload-btn" style={{ marginTop: '6px', background: 'transparent', border: '1px solid #555', color: '#aaa' }} onClick={logout}>
                         Cerrar sesión

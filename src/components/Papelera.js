@@ -4,12 +4,37 @@ import './admin.css'; // Usamos el CSS maestro
 
 const API_URL_OPERACIONES = "http://localhost:5001/api/papelera/operaciones";
 const URL_BASE_FOTOS = "http://localhost:5001/uploads/";
+const URL_FOTO_LOCAL = "http://localhost:5001/api/foto-local?ruta=";
+
+const esRutaAbsoluta = (url) =>
+    /^[A-Za-z]:[\\\/]/.test(url) || String(url || '').startsWith('/');
 
 const Papelera = () => {
     const navigate = useNavigate();
     const [fotosBorradas, setFotosBorradas] = useState([]);
     const [seleccionadas, setSeleccionadas] = useState([]);
     const [modoSeleccion, setModoSeleccion] = useState(false);
+
+    const PLACEHOLDER_IMG = (() => {
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>
+            <rect x='2' y='2' width='96' height='96' rx='8' ry='8' fill='#0a0a1a' stroke='#ff4444' stroke-width='2'/>
+            <text x='50' y='50' text-anchor='middle' dominant-baseline='middle' font-family='Segoe UI, Arial' font-size='12' fill='#ff4444'>Sin imagen</text>
+        </svg>`;
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    })();
+
+    const getFotoUrl = (foto) => {
+        const raw = foto?.imagen_url;
+        if (!raw) return PLACEHOLDER_IMG;
+        const url = String(raw).trim();
+
+        // Si `imagen_url` es ruta absoluta, la servimos desde el endpoint que lee disco.
+        if (esRutaAbsoluta(url)) return `${URL_FOTO_LOCAL}${encodeURIComponent(url)}`;
+
+        // Si no es ruta absoluta, asumimos basename relativo servido por `/uploads`.
+        const fileName = url.split('/').pop().split('\\').pop();
+        return `${URL_BASE_FOTOS}${encodeURIComponent(fileName)}`;
+    };
 
     const cargarPapelera = () => {
         fetch("http://localhost:5001/api/papelera")
@@ -120,7 +145,7 @@ const Papelera = () => {
                                     backgroundColor: '#000'
                                 }}>
                                     <img
-                                        src={`${URL_BASE_FOTOS}${encodeURIComponent(foto.imagen_url)}`}
+                                        src={getFotoUrl(foto)}
                                         alt={foto.titulo}
                                         style={{
                                             width: '100%',
@@ -129,6 +154,7 @@ const Papelera = () => {
                                             filter: 'grayscale(1) contrast(1.2)',
                                             transition: '0.5s'
                                         }}
+                                        onError={(e) => { e.currentTarget.src = PLACEHOLDER_IMG; }}
                                     />
                                 </div>
 

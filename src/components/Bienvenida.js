@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import './bienvenida.css';
 
-export default function Bienvenida() {
-    const [modo, setModo] = useState('login'); // 'login' | 'registro'
+export default function Bienvenida({ initialMode = 'login' }) {
+    const [modo, setModo] = useState(initialMode); // 'login' | 'registro'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmar, setConfirmar] = useState('');

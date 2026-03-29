@@ -28,10 +28,13 @@ const Galeria = () => {
     const navigate = useNavigate();
     const params = new URLSearchParams(location.search);
     const qInicial = params.get('q') || '';
+    const anioInicial = params.get('anio') || '';
+    const mesInicial = params.get('mes') || '';
 
     const [fotos, setFotos] = useState([]);
     const [busqueda, setBusqueda] = useState(qInicial);
-    const [busquedaMes, setBusquedaMes] = useState('');
+    const [busquedaMes, setBusquedaMes] = useState(mesInicial);
+    const [busquedaAnio, setBusquedaAnio] = useState(anioInicial);
     const [paginaActual, setPaginaActual] = useState(1);
     const [saltoInput, setSaltoInput] = useState('');
     const [seleccionadas, setSeleccionadas] = useState([]);
@@ -96,6 +99,19 @@ const Galeria = () => {
     };
 
     useEffect(() => { cargar(); }, [cargar]);
+    useEffect(() => {
+        // Mantener URL sincronizada con filtros (para copiar/pegar enlaces)
+        const p = new URLSearchParams();
+        if (busqueda.trim()) p.set('q', busqueda.trim());
+        if (busquedaAnio) p.set('anio', busquedaAnio);
+        if (busquedaMes) p.set('mes', busquedaMes);
+        const qs = p.toString();
+        const destino = `/galeria-completa${qs ? `?${qs}` : ''}`;
+        const actual = `/galeria-completa${location.search || ''}`;
+        if (destino !== actual) {
+            navigate(destino, { replace: true });
+        }
+    }, [busqueda, busquedaAnio, busquedaMes, navigate, location.search]);
 
     const borrarFoto = async (id) => {
         if (!window.confirm('¿Mover esta foto a la papelera?')) return;
@@ -195,7 +211,8 @@ const Galeria = () => {
         const bq = normalizar(busqueda).trim();
         const matchTexto = !bq || [f.titulo, f.anio, f.descripcion, f.etiquetas, f.lugar].some(c => normalizar(c).includes(bq));
         const matchMes = !busquedaMes || f.mes?.toString() === busquedaMes;
-        return matchTexto && matchMes;
+        const matchAnio = !busquedaAnio || f.anio?.toString() === busquedaAnio;
+        return matchTexto && matchMes && matchAnio;
     });
 
     const totalPaginas = Math.ceil(fotosFiltradas.length / fotosPorPagina);
@@ -213,8 +230,40 @@ const Galeria = () => {
                         className="input-neon"
                         placeholder="Buscar..."
                         value={busqueda}
-                        onChange={e => setBusqueda(e.target.value)}
+                        onChange={e => { setBusqueda(e.target.value); setPaginaActual(1); }}
                     />
+                    <select
+                        className="select-neon"
+                        value={busquedaAnio}
+                        onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }}
+                        aria-label="Filtrar por año"
+                    >
+                        <option value="">AÑO</option>
+                        {Array.from(new Set(fotos.map(f => f.anio).filter(Boolean)))
+                            .sort((a, b) => b - a)
+                            .map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <select
+                        className="select-neon"
+                        value={busquedaMes}
+                        onChange={(e) => { setBusquedaMes(e.target.value); setPaginaActual(1); }}
+                        aria-label="Filtrar por mes"
+                    >
+                        <option value="">MES</option>
+                        {Array.from({ length: 12 }).map((_, i) => (
+                            <option key={i + 1} value={String(i + 1)}>{String(i + 1).padStart(2, '0')}</option>
+                        ))}
+                    </select>
+                    {(busqueda || busquedaAnio || busquedaMes) && (
+                        <button
+                            type="button"
+                            className="btn-header-neon btn-fucsia-neon"
+                            onClick={() => { setBusqueda(''); setBusquedaAnio(''); setBusquedaMes(''); setPaginaActual(1); }}
+                            title="Limpiar filtros"
+                        >
+                            LIMPIAR
+                        </button>
+                    )}
                 </div>
 
                 <div className="galeria-acciones">

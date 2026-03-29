@@ -13,8 +13,9 @@ import Eventos from './components/Eventos';
 import Personas from './components/Personas';
 import Favoritos from './components/Favoritos';
 import Tags from './components/Tags';
-import Bienvenida from './components/Bienvenida';
 import './App.css';
+import Duplicados from './components/Duplicados';
+import Usuarios from './components/Usuarios';
 
 const withLayout = (Component) => (props) => (
     <Layout><Component {...props} /></Layout>
@@ -30,6 +31,8 @@ const EventosL = withLayout(Eventos);
 const PersonasL = withLayout(Personas);
 const FavoritosL = withLayout(Favoritos);
 const TagsL = withLayout(Tags);
+const DuplicadosL = withLayout(Duplicados);
+const UsuariosL = withLayout(Usuarios);
 
 function RutaAdmin({ children }) {
     const { usuario } = useAuth();
@@ -44,7 +47,8 @@ function AppRoutes() {
     if (!haySession) {
         return (
             <Routes>
-                <Route path="*" element={<Bienvenida />} />
+                <Route path="/" element={<Indice />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         );
     }
@@ -55,7 +59,9 @@ function AppRoutes() {
             <Route path="/galeria-completa" element={<GaleriaL />} />
             <Route path="/anio/:anio" element={<VistaAnioL />} />
             <Route path="/galeria/:anio" element={<VistaAnioL />} />
+            <Route path="/duplicados" element={<DuplicadosL />} />
             <Route path="/admin" element={<RutaAdmin><AdminL /></RutaAdmin>} />
+            <Route path="/usuarios" element={<RutaAdmin><UsuariosL /></RutaAdmin>} />
             <Route path="/papelera" element={<PapeleraL />} />
             <Route path="/albumes" element={<AlbumesL />} />
             <Route path="/albumes/:id" element={<AlbumDetalleL />} />

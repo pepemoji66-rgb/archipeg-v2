@@ -9,6 +9,17 @@ const AdminPanel = () => {
     // --- CONFIGURACIÓN DE RED IP DIRECTA ---
     const API_URL = "http://127.0.0.1:5001/api";
     const URL_BASE_FOTOS = "http://127.0.0.1:5001/uploads/";
+    const URL_FOTO_LOCAL = `${API_URL}/foto-local?ruta=`;
+    const PLACEHOLDER_IMG = (() => {
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>
+            <rect x='2' y='2' width='96' height='96' rx='8' ry='8' fill='#0a0a1a' stroke='#00ffff' stroke-width='2'/>
+            <text x='50' y='50' text-anchor='middle' dominant-baseline='middle' font-family='Segoe UI, Arial' font-size='12' fill='#00ffff'>Sin imagen</text>
+        </svg>`;
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    })();
+
+    const esRutaAbsoluta = (url) =>
+        /^[A-Za-z]:[\\\/]/.test(url) || url.startsWith('/');
 
     const nombreMeses = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -38,14 +49,18 @@ const AdminPanel = () => {
     const [fotoEnZoom, setFotoEnZoom] = useState(null);
     const [rotacion, setRotacion] = useState(0);
 
+    // --- LÓGICA DE RUTAS CORREGIDA ---
     const getFotoUrl = (foto) => {
-        if (!foto || !foto.imagen_url) return 'https://placehold.co/100x100?text=Sin+Dato';
-        let rutaLimpia = foto.imagen_url.replace(/\\/g, '/');
-        const parteABorrar = "E:/archipeg/FOTOS PARA SUBIR/";
-        if (rutaLimpia.includes("E:")) {
-            rutaLimpia = rutaLimpia.replace(parteABorrar, "");
+        if (!foto || !foto.imagen_url) return PLACEHOLDER_IMG;
+
+        const url = String(foto.imagen_url).trim();
+        if (esRutaAbsoluta(url)) {
+            // Si la BD guarda ruta absoluta, usamos el endpoint que lee desde disco.
+            return `${URL_FOTO_LOCAL}${encodeURIComponent(url)}`;
         }
-        return `${URL_BASE_FOTOS}${encodeURI(rutaLimpia)}`;
+
+        // Si no es ruta absoluta, asumimos que `imagen_url` es el nombre relativo al directorio servido en `/uploads`.
+        return `${URL_BASE_FOTOS}${url.replace(/ /g, '%20').replace(/\\/g, '/')}`;
     };
 
     const cargarFotos = () => {
@@ -65,6 +80,35 @@ const AdminPanel = () => {
 
     const manejarCambioArchivos = (e) => {
         setArchivos(Array.from(e.target.files).filter(f => f.type.startsWith('image/')));
+    };
+
+    // --- FUNCIÓN DE LIMPIEZA TOTAL (BOTÓN DE PÁNICO) ---
+    const ejecutarLimpiezaTotal = async () => {
+        const confirmacion1 = window.confirm("⚠️ ¿ESTÁS SEGURO, HERMANO?\n\nEsto borrará los registros de las 11.000 fotos de la base de datos, pero NO tocará tus archivos en el disco duro.");
+        if (!confirmacion1) return;
+
+        const confirmacion2 = window.confirm("🚨 ÚLTIMA ADVERTENCIA 🚨\n\n¿Seguro que quieres dejar la biblioteca a cero?");
+        if (!confirmacion2) return;
+
+        try {
+            setMensaje("Vaciando base de datos...");
+            const res = await fetch(`${API_URL}/sistema/limpiar-todo`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+
+            if (res.ok) {
+                alert("¡Hecho! La biblioteca está vacía. Ya puedes meter las 3.800 reales.");
+                setMensaje("✅ Sistema reiniciado.");
+                cargarFotos();
+            } else {
+                alert("Error al limpiar. Revisa que la ruta exista en el server.js");
+            }
+        } catch (error) {
+            alert("Error de conexión con el servidor.");
+        }
     };
 
     const manejarSubida = (e) => {
@@ -127,6 +171,47 @@ const AdminPanel = () => {
         } catch (error) { alert("Error de conexión"); }
     };
 
+    const ejecutarImportacionDesdeDisco = async () => {
+        try {
+            setMensaje("Abriendo selector de Windows...");
+            const resRuta = await fetch(`${API_URL}/seleccionar-carpeta`);
+            const dataRuta = await resRuta.json();
+
+            if (!dataRuta.ruta) {
+                setMensaje("Operación cancelada.");
+                return;
+            }
+
+            if (!window.confirm(`¿Importar fotos de: ${dataRuta.ruta}?`)) return;
+
+            setMensaje("Motor trabajando... no cierres el panel.");
+            setProgreso(20);
+
+            const resImport = await fetch(`${API_URL}/importar-masivo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
+                },
+                body: JSON.stringify({ ruta: dataRuta.ruta })
+            });
+
+            const resultado = await resImport.json();
+
+            if (resImport.ok) {
+                alert(`¡ÉXITO!\n- Nuevas: ${resultado.importadas}\n- Ya estaban: ${resultado.actualizadas}\n- Total: ${resultado.total}`);
+                setMensaje("✅ Importación finalizada.");
+                cargarFotos();
+            } else {
+                alert("Error: " + (resultado.error || "Fallo servidor"));
+            }
+            setProgreso(0);
+        } catch (error) {
+            alert("Error de conexión con el motor.");
+            setProgreso(0);
+        }
+    };
+
     const fotosFiltradas = fotos.filter(foto => {
         const bAnio = busquedaAnio.toString().trim();
         const bMes = busquedaMes.toString().trim();
@@ -157,12 +242,7 @@ const AdminPanel = () => {
         <div className="admin-container">
             <header className="admin-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className="btn-volver-neon"
-                    >
-                        ⬅ VOLVER
-                    </button>
+                    <button onClick={() => window.location.href = '/'} className="btn-volver-neon">⬅ VOLVER</button>
                     <div>
                         <h1 className="admin-title">GESTIÓN DE ACTIVOS</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.0</span>
@@ -212,7 +292,10 @@ const AdminPanel = () => {
                             </div>
                         )}
 
-                        <button type="submit" className="btn-archipeg-main-morado">💾 GUARDAR EN BASE DE DATOS</button>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                            <button type="submit" className="btn-archipeg-main-morado" style={{ flex: 1 }}>💾 GUARDAR DB</button>
+                            <button type="button" className="btn-archipeg-main-morado" style={{ flex: 1, backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
+                        </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
                     </form>
                 </section>
@@ -242,7 +325,12 @@ const AdminPanel = () => {
                                 {fotosPaginadas.map(foto => (
                                     <tr key={foto.id}>
                                         <td className="td-mini" onClick={() => { setFotoEnZoom(foto); setRotacion(0); }}>
-                                            <img src={getFotoUrl(foto)} alt="mini" className="admin-mini-morada" />
+                                            <img
+                                                src={getFotoUrl(foto)}
+                                                alt="mini"
+                                                className="admin-mini-morada"
+                                                onError={(e) => { e.target.src = PLACEHOLDER_IMG; }}
+                                            />
                                         </td>
                                         <td className="td-info">
                                             <span className="foto-titulo">{foto.titulo || "S/T"}</span>
@@ -262,35 +350,47 @@ const AdminPanel = () => {
                             </tbody>
                         </table>
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '15px' }}>
+                        <button disabled={paginaActual === 1} onClick={() => setPaginaActual(p => p - 1)} className="btn-action-icon-morado">◀</button>
+                        <span style={{ color: 'white', alignSelf: 'center' }}>Página {paginaActual}</span>
+                        <button disabled={fotosPaginadas.length < fotosPorPagina} onClick={() => setPaginaActual(p => p + 1)} className="btn-action-icon-morado">▶</button>
+                    </div>
+                </section>
+
+                {/* --- SECCIÓN DE MANTENIMIENTO (BOTÓN DE BORRAR TODO) --- */}
+                <section className="admin-card" style={{ border: '2px solid #ff0044', background: 'rgba(255, 0, 68, 0.05)' }}>
+                    <h2 className="section-title" style={{ color: '#ff0044' }}>🛠️ ZONA DE MANTENIMIENTO</h2>
+                    <p style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '15px' }}>
+                        Usa estas herramientas con precaución. Son operaciones irreversibles sobre la base de datos.
+                    </p>
+                    <button
+                        onClick={ejecutarLimpiezaTotal}
+                        className="btn-archipeg-main-morado"
+                        style={{ backgroundColor: '#ff0044', width: '100%', fontWeight: 'bold' }}
+                    >
+                        🚨 BORRAR TODOS LOS ACTIVOS DE LA RED (RESET DB)
+                    </button>
                 </section>
             </main>
 
+            {/* MODAL ZOOM */}
             {fotoEnZoom && (
                 <div className="archipeg-zoom-overlay" onClick={() => { setFotoEnZoom(null); setRotacion(0); }}>
                     <div className="archipeg-zoom-content" onClick={e => e.stopPropagation()}>
                         <button className="btn-zoom-close-neon" onClick={() => { setFotoEnZoom(null); setRotacion(0); }}>✕</button>
-
                         <div className="zoom-image-wrapper">
-                            <img
-                                src={getFotoUrl(fotoEnZoom)}
-                                alt="Vista Previa"
-                                style={{ transform: `rotate(${rotacion}deg)`, transition: 'transform 0.3s ease' }}
-                            />
+                            <img src={getFotoUrl(fotoEnZoom)} alt="Preview" style={{ transform: `rotate(${rotacion}deg)`, transition: '0.3s' }} />
                         </div>
-
                         <div className="zoom-sidebar-info">
-                            <h3 className="admin-title">{fotoEnZoom.titulo || "SIN TÍTULO"}</h3>
+                            <h3 className="admin-title">{fotoEnZoom.titulo || "S/T"}</h3>
                             <div className="mini-tags-display">
-                                {fotoEnZoom.etiquetas ? fotoEnZoom.etiquetas.split(',').map((tag, i) => (
-                                    <span key={i} className="tag-badge">{tag.trim()}</span>
-                                )) : <span className="tag-badge">S/E</span>}
+                                {fotoEnZoom.etiquetas ? fotoEnZoom.etiquetas.split(',').map((tag, i) => <span key={i} className="tag-badge">{tag.trim()}</span>) : <span className="tag-badge">S/E</span>}
                             </div>
-                            <p className="zoom-desc" style={{ marginTop: '15px', color: '#fff' }}>{fotoEnZoom.descripcion || "Sin descripción técnica."}</p>
-
+                            <p className="zoom-desc" style={{ marginTop: '15px', color: '#fff' }}>{fotoEnZoom.descripcion || "Sin descripción."}</p>
                             <div className="zoom-actions-vertical">
-                                <button onClick={girarFoto} className="btn-archipeg-action">🔄 GIRAR 90°</button>
+                                <button onClick={girarFoto} className="btn-archipeg-action">🔄 GIRAR</button>
                                 <button onClick={() => forzarDescarga(getFotoUrl(fotoEnZoom), fotoEnZoom.titulo)} className="btn-archipeg-action">📥 DESCARGAR</button>
-                                <button onClick={() => borrarFoto(fotoEnZoom.id)} className="btn-archipeg-action btn-dangerous">🗑️ BORRAR ACTIVO</button>
+                                <button onClick={() => borrarFoto(fotoEnZoom.id)} className="btn-archipeg-action btn-dangerous">🗑️ BORRAR</button>
                             </div>
                         </div>
                     </div>
