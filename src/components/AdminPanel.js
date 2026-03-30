@@ -43,6 +43,7 @@ const AdminPanel = () => {
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
     const [busquedaTitulo, setBusquedaTitulo] = useState("");
+    const [aniosDb, setAniosDb] = useState([]);
     const [paginaActual, setPaginaActual] = useState(1);
     const fotosPorPagina = 12;
 
@@ -74,6 +75,7 @@ const AdminPanel = () => {
         cargarFotos();
         apiFetch(`${API_URL}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
         apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
+        apiFetch(`${API_URL}/anios`).then(r => r.json()).then(data => setAniosDb(data.map(a => a.anio).filter(Boolean))).catch(() => { });
     }, []);
 
     const girarFoto = () => setRotacion(prev => (prev + 90) % 360);
@@ -308,7 +310,18 @@ const AdminPanel = () => {
                             <option value="">📅 MESES</option>
                             {nombreMeses.map((mes, index) => <option key={index} value={index + 1}>{mes}</option>)}
                         </select>
-                        <input type="number" placeholder="AÑO" value={busquedaAnio} onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }} className="admin-input" />
+                        <input 
+                            type="text" 
+                            placeholder="AÑO" 
+                            list="admin-anios"
+                            value={busquedaAnio} 
+                            onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }} 
+                            className="admin-input" 
+                            style={{ maxWidth: '120px' }}
+                        />
+                        <datalist id="admin-anios">
+                            {aniosDb.map(a => <option key={a} value={a} />)}
+                        </datalist>
                     </div>
 
                     <div className="table-responsive">

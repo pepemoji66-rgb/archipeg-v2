@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './admin.css'; // Usamos el mismo CSS del admin para unificar
+import { apiFetch } from '../api';
 
 const API = 'http://localhost:5001/api';
 
@@ -8,12 +9,13 @@ const Albumes = () => {
     const [albumes, setAlbumes] = useState([]);
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
+    const [privado, setPrivado] = useState(false);
     const [creando, setCreando] = useState(false);
     const navigate = useNavigate();
 
     const cargar = async () => {
         try {
-            const res = await fetch(`${API}/albumes`);
+            const res = await apiFetch(`${API}/albumes`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             setAlbumes(await res.json());
         } catch (e) { console.error(e); }
@@ -24,18 +26,18 @@ const Albumes = () => {
     const crear = async (e) => {
         e.preventDefault();
         if (!nombre.trim()) return;
-        await fetch(`${API}/albumes`, {
+        await apiFetch(`${API}/albumes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nombre.trim(), descripcion: descripcion.trim() })
+            body: JSON.stringify({ nombre: nombre.trim(), descripcion: descripcion.trim(), privado })
         });
-        setNombre(''); setDescripcion(''); setCreando(false);
+        setNombre(''); setDescripcion(''); setPrivado(false); setCreando(false);
         cargar();
     };
 
     const eliminar = async (id) => {
         if (!window.confirm('¿Eliminar este álbum? Las fotos no se borrarán.')) return;
-        await fetch(`${API}/albumes/${id}`, { method: 'DELETE' });
+        await apiFetch(`${API}/albumes/${id}`, { method: 'DELETE' });
         cargar();
     };
 
@@ -72,8 +74,20 @@ const Albumes = () => {
                                 onChange={e => setDescripcion(e.target.value)}
                                 style={{ flex: 2 }}
                             />
+                            <button 
+                                type="button" 
+                                onClick={() => setPrivado(!privado)} 
+                                className="btn-volver-neon" 
+                                style={{ 
+                                    border: `1px solid ${privado ? '#ff0055' : '#00ffff'}`, 
+                                    color: privado ? '#ff0055' : '#00ffff',
+                                    boxShadow: privado ? '0 0 10px #ff0055' : 'none'
+                                }}
+                            >
+                                {privado ? '🔒 PRIVADO (ON)' : '🔓 PÚBLICO (OFF)'}
+                            </button>
                             <button type="submit" className="btn-volver-neon" style={{ border: '1px solid #00ffff', color: '#00ffff' }}>
-                                CREAR
+                                + CREAR ÁLBUM
                             </button>
                         </form>
                     </section>
@@ -85,7 +99,9 @@ const Albumes = () => {
                             style={{ cursor: 'pointer', transition: '0.3s' }}
                             onClick={() => navigate(`/albumes/${album.id}`)}
                         >
-                            <div style={{ fontSize: '2.5rem', marginBottom: '10px', filter: 'drop-shadow(0 0 5px #00ffff)' }}>📁</div>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '10px', filter: 'drop-shadow(0 0 5px #00ffff)' }}>
+                                {album.privado ? '🔒' : '📁'}
+                            </div>
                             <h3 className="admin-title" style={{ fontSize: '1.1rem', marginBottom: '5px' }}>{album.nombre.toUpperCase()}</h3>
                             {album.descripcion && <p style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '10px' }}>{album.descripcion}</p>}
 

@@ -35,6 +35,14 @@ const Galeria = () => {
     const [busqueda, setBusqueda] = useState(qInicial);
     const [busquedaMes, setBusquedaMes] = useState(mesInicial);
     const [busquedaAnio, setBusquedaAnio] = useState(anioInicial);
+    
+    // Estados intermedios (borradores) para no filtrar hasta no darle a Aceptar
+    const [draftBusqueda, setDraftBusqueda] = useState(qInicial);
+    const [draftBusquedaMes, setDraftBusquedaMes] = useState(mesInicial);
+    const [draftBusquedaAnio, setDraftBusquedaAnio] = useState(anioInicial);
+    
+    const [aniosDb, setAniosDb] = useState([]);
+
     const [paginaActual, setPaginaActual] = useState(1);
     const [saltoInput, setSaltoInput] = useState('');
     const [seleccionadas, setSeleccionadas] = useState([]);
@@ -44,14 +52,29 @@ const Galeria = () => {
     const [importando, setImportando] = useState(false);
     const [resultadoImport, setResultadoImport] = useState(null);
 
+    // Nuevos estados para asignar a álbum
+    const [mostrarAsignarAlbum, setMostrarAsignarAlbum] = useState(false);
+    const [albumesDisponibles, setAlbumesDisponibles] = useState([]);
+    const [nuevoAlbumBatch, setNuevoAlbumBatch] = useState('');
+    const [nuevoAlbumBatchPrivado, setNuevoAlbumBatchPrivado] = useState(false);
+
     const fotosPorPagina = 15;
 
     const cargar = useCallback(async () => {
         try {
-            const res = await apiFetch(`${API}/imagenes`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            setFotos(Array.isArray(data) ? data : []);
+            const [resFotos, resAnios] = await Promise.all([
+                apiFetch(`${API}/imagenes`),
+                apiFetch(`${API}/anios`)
+            ]);
+            
+            if (resFotos.ok) {
+                const data = await resFotos.json();
+                setFotos(Array.isArray(data) ? data : []);
+            }
+            if (resAnios.ok) {
+                const anios = await resAnios.json();
+                setAniosDb(anios.map(a => a.anio).filter(Boolean));
+            }
         } catch (e) { console.error(e); }
     }, []);
 
@@ -96,6 +119,44 @@ const Galeria = () => {
         } finally {
             setImportando(false);
         }
+    };
+
+    useEffect(() => {
+        if (mostrarAsignarAlbum) {
+            apiFetch(`${API}/albumes`).then(r => r.json()).then(setAlbumesDisponibles).catch(console.error);
+        }
+    }, [mostrarAsignarAlbum]);
+
+    const asignarAAlbum = async (albumId) => {
+        try {
+            await apiFetch(`${API}/albumes/${albumId}/fotos-masivo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fotos_ids: seleccionadas })
+            });
+            setMostrarAsignarAlbum(false);
+            setSeleccionadas([]);
+            setModoSeleccion(false);
+            cargar(); // Refrescar porque si se asigna a uno privado, desaparecen de aquí
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const crearAlbumYAsignar = async () => {
+        if (!nuevoAlbumBatch.trim()) return;
+        try {
+            const res = await apiFetch(`${API}/albumes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nuevoAlbumBatch.trim(), privado: nuevoAlbumBatchPrivado })
+            });
+            const nuevo = await res.json();
+            await asignarAAlbum(nuevo.id);
+            setNuevoAlbumBatch('');
+            setNuevoAlbumBatchPrivado(false);
+            // asignarAAlbum ya llama a cargar(), que ocultará las fotos si era privado.
+        } catch (e) { console.error(e); }
     };
 
     useEffect(() => { cargar(); }, [cargar]);
@@ -211,12 +272,33 @@ const Galeria = () => {
         const bq = normalizar(busqueda).trim();
         const matchTexto = !bq || [f.titulo, f.anio, f.descripcion, f.etiquetas, f.lugar].some(c => normalizar(c).includes(bq));
         const matchMes = !busquedaMes || f.mes?.toString() === busquedaMes;
-        const matchAnio = !busquedaAnio || f.anio?.toString() === busquedaAnio;
+        
+        const bAnioStr = busquedaAnio ? busquedaAnio.toString() : "";
+        const rutaNorm = (f.imagen_url || "").replace(/\\/g, "/").toLowerCase();
+        const matchAnio = !bAnioStr || f.anio?.toString() === bAnioStr || rutaNorm.includes(bAnioStr);
+        
         return matchTexto && matchMes && matchAnio;
     });
 
     const totalPaginas = Math.ceil(fotosFiltradas.length / fotosPorPagina);
     const fotosPaginadas = fotosFiltradas.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina);
+
+    const aplicarFiltros = () => {
+        setBusqueda(draftBusqueda);
+        setBusquedaAnio(draftBusquedaAnio);
+        setBusquedaMes(draftBusquedaMes);
+        setPaginaActual(1);
+    };
+
+    const limpiarFiltros = () => {
+        setDraftBusqueda('');
+        setDraftBusquedaAnio('');
+        setDraftBusquedaMes('');
+        setBusqueda('');
+        setBusquedaAnio('');
+        setBusquedaMes('');
+        setPaginaActual(1);
+    };
 
     return (
         <div className="galeria-layout">
@@ -224,29 +306,33 @@ const Galeria = () => {
                 <button className="btn-header-neon" onClick={() => navigate('/')}>🏠 INICIO</button>
                 <h1 className="galeria-titulo">ARCHIVO FOTOGRÁFICO</h1>
 
-                <div className="galeria-filtros">
+                <div className="galeria-filtros" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
                     <input
                         type="text"
                         className="input-neon"
                         placeholder="Buscar..."
-                        value={busqueda}
-                        onChange={e => { setBusqueda(e.target.value); setPaginaActual(1); }}
+                        value={draftBusqueda}
+                        onChange={e => setDraftBusqueda(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && aplicarFiltros()}
                     />
-                    <select
-                        className="select-neon"
-                        value={busquedaAnio}
-                        onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }}
+                    <input
+                        type="text"
+                        className="input-neon"
+                        style={{ width: '100px' }}
+                        placeholder="AÑO"
+                        list="galeria-anios"
+                        value={draftBusquedaAnio}
+                        onChange={(e) => setDraftBusquedaAnio(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && aplicarFiltros()}
                         aria-label="Filtrar por año"
-                    >
-                        <option value="">AÑO</option>
-                        {Array.from(new Set(fotos.map(f => f.anio).filter(Boolean)))
-                            .sort((a, b) => b - a)
-                            .map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
+                    />
+                    <datalist id="galeria-anios">
+                        {aniosDb.map(a => <option key={a} value={a} />)}
+                    </datalist>
                     <select
                         className="select-neon"
-                        value={busquedaMes}
-                        onChange={(e) => { setBusquedaMes(e.target.value); setPaginaActual(1); }}
+                        value={draftBusquedaMes}
+                        onChange={(e) => setDraftBusquedaMes(e.target.value)}
                         aria-label="Filtrar por mes"
                     >
                         <option value="">MES</option>
@@ -254,11 +340,21 @@ const Galeria = () => {
                             <option key={i + 1} value={String(i + 1)}>{String(i + 1).padStart(2, '0')}</option>
                         ))}
                     </select>
+
+                    <button
+                        type="button"
+                        className="btn-header-neon"
+                        onClick={aplicarFiltros}
+                        title="Aplicar filtros a la galería"
+                    >
+                        ✅ ACEPTAR
+                    </button>
+
                     {(busqueda || busquedaAnio || busquedaMes) && (
                         <button
                             type="button"
                             className="btn-header-neon btn-fucsia-neon"
-                            onClick={() => { setBusqueda(''); setBusquedaAnio(''); setBusquedaMes(''); setPaginaActual(1); }}
+                            onClick={limpiarFiltros}
                             title="Limpiar filtros"
                         >
                             LIMPIAR
@@ -280,6 +376,9 @@ const Galeria = () => {
             <div className={`batch-action-bar ${modoSeleccion && seleccionadas.length > 0 ? 'active' : ''}`}>
                 <span className="batch-info">{seleccionadas.length} ITEMS SELECCIONADOS</span>
                 <div className="batch-buttons">
+                    <button className="btn-batch btn-action-icon-morado" style={{ border: '1px solid #7a00ff', color: '#7a00ff' }} onClick={() => setMostrarAsignarAlbum(true)}>
+                        📁 AÑADIR A ÁLBUM
+                    </button>
                     <button className="btn-batch btn-download" onClick={descargarSeleccionadas}>
                         📥 DESCARGAR
                     </button>
@@ -374,6 +473,49 @@ const Galeria = () => {
                     setBusqueda={setBusqueda}
                     onFavoritoToggle={(fAct) => setFotos(prev => prev.map(f => f.id === fAct.id ? fAct : f))}
                 />
+            )}
+
+            {/* MODAL ASIGNAR A ÁLBUM */}
+            {mostrarAsignarAlbum && (
+                <div className="modal-overlay" onClick={() => setMostrarAsignarAlbum(false)}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
+                        <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>📂 AÑADIR A ÁLBUM</h2>
+                        <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a mover {seleccionadas.length} foto(s)</p>
+                        
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '20px' }}>
+                            {albumesDisponibles.map(a => (
+                                <button key={a.id} className="btn-header-neon" style={{ display: 'block', width: '100%', marginBottom: '10px', textAlign: 'left', padding: '12px' }} onClick={() => asignarAAlbum(a.id)}>
+                                    {a.privado ? '🔒 ' : '📁 '} {a.nombre.toUpperCase()}
+                                </button>
+                            ))}
+                            {albumesDisponibles.length === 0 && <p style={{ color: '#aaa', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>No tienes álbumes creados</p>}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #333', paddingTop: '20px' }}>
+                            <h3 style={{ fontSize: '0.9rem', color: '#00f2ff', marginBottom: '15px' }}>O crear uno nuevo:</h3>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                                <input className="input-neon" value={nuevoAlbumBatch} onChange={e => setNuevoAlbumBatch(e.target.value)} placeholder="Nombre del nuevo álbum..." style={{ flex: 1 }} />
+                                <button 
+                                    className="btn-volver-neon" 
+                                    onClick={() => setNuevoAlbumBatchPrivado(!nuevoAlbumBatchPrivado)} 
+                                    title={nuevoAlbumBatchPrivado ? "Será Privado" : "Hacer Privado"} 
+                                    style={{ 
+                                        border: `1px solid ${nuevoAlbumBatchPrivado ? '#ff2d7d' : '#00f2ff'}`, 
+                                        color: nuevoAlbumBatchPrivado ? '#ff2d7d' : '#00f2ff',
+                                        boxShadow: nuevoAlbumBatchPrivado ? '0 0 10px #ff2d7d' : 'none'
+                                    }}
+                                >
+                                    {nuevoAlbumBatchPrivado ? '🔒' : '🔓'}
+                                </button>
+                                <button className="btn-volver-neon" onClick={crearAlbumYAsignar} style={{ color: '#00f2ff', borderColor: '#00f2ff' }}>+</button>
+                            </div>
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginTop: '25px' }}>
+                            <button className="btn-volver-neon" onClick={() => setMostrarAsignarAlbum(false)} style={{ borderColor: '#555', color: '#aaa' }}>✕ CANCELAR</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

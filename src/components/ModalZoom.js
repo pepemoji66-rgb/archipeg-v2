@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './modalzoom.css';
 
 const API = 'http://localhost:5001/api';
@@ -20,6 +21,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const [eventosActuales, setEventosActuales] = useState([]);
     const [nuevaPersona, setNuevaPersona] = useState('');
     const [nuevoAlbum, setNuevoAlbum] = useState('');
+    const [nuevoAlbumPrivado, setNuevoAlbumPrivado] = useState(false);
     const [nuevoEvento, setNuevoEvento] = useState('');
     const [nuevoTag, setNuevoTag] = useState('');
 
@@ -197,10 +199,11 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const crearAlbum = async () => {
         if (!nuevoAlbum.trim()) return;
         try {
-            const res = await fetch(`${API}/albumes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevoAlbum.trim() }) });
+            const res = await fetch(`${API}/albumes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevoAlbum.trim(), privado: nuevoAlbumPrivado }) });
             const nuevo = await res.json();
             setTodosAlbumes(prev => [...prev, nuevo]);
             setNuevoAlbum('');
+            setNuevoAlbumPrivado(false);
         } catch (e) { console.error(e); }
     };
 
@@ -248,7 +251,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
 
     const tags = fotoLocal.etiquetas ? fotoLocal.etiquetas.split(',').filter(t => t.trim()) : [];
 
-    return (
+    return createPortal(
         <div className="modal-overlay" onClick={onClose} onWheel={onRueda}>
             <div className="modal-contenido" onClick={e => e.stopPropagation()}>
 
@@ -364,7 +367,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                                                         : [...albumIds, a.id];
                                                     setEditData(d => ({...d, albums_ids: ids}));
                                                 }} />
-                                                {a.nombre}
+                                                {a.privado ? '🔒 ' : ''}{a.nombre}
                                             </label>
                                             <button className="modal-edit-delete-btn" onClick={() => borrarAlbum(a.id)} title="Eliminar álbum">×</button>
                                         </div>
@@ -373,6 +376,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                             </div>
                             <div className="modal-edit-create-row">
                                 <input className="modal-edit-input" value={nuevoAlbum} onChange={e => setNuevoAlbum(e.target.value)} placeholder="Nuevo álbum..." onKeyDown={e => e.key === 'Enter' && crearAlbum()} style={{flex:1}} />
+                                <button className="modal-edit-create-btn" onClick={() => setNuevoAlbumPrivado(!nuevoAlbumPrivado)} title={nuevoAlbumPrivado ? "Álbum Privado activo" : "Hacer Privado"} style={{ opacity: nuevoAlbumPrivado ? 1 : 0.4 }}>🔒</button>
                                 <button className="modal-edit-create-btn" onClick={crearAlbum}>+</button>
                             </div>
 
@@ -457,7 +461,8 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

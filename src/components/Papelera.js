@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../api';
 import './admin.css'; // Usamos el CSS maestro
 
 const API_URL_OPERACIONES = "http://localhost:5001/api/papelera/operaciones";
@@ -37,7 +38,7 @@ const Papelera = () => {
     };
 
     const cargarPapelera = () => {
-        fetch("http://localhost:5001/api/papelera")
+        apiFetch("http://localhost:5001/api/papelera")
             .then(res => res.json())
             .then(data => setFotosBorradas(data.error ? [] : data))
             .catch(err => console.error("Error al cargar papelera:", err));
@@ -51,10 +52,18 @@ const Papelera = () => {
         );
     };
 
+    const seleccionarTodo = () => {
+        if (seleccionadas.length === fotosBorradas.length && fotosBorradas.length > 0) {
+            setSeleccionadas([]);
+        } else {
+            setSeleccionadas(fotosBorradas.map(f => f.id));
+        }
+    };
+
     const restaurarSeleccionadas = async () => {
         if (!window.confirm(`¿RESTAURAR ${seleccionadas.length} ACTIVOS AL SISTEMA, HERMANO?`)) return;
         for (const id of seleccionadas) {
-            await fetch(API_URL_OPERACIONES, {
+            await apiFetch(API_URL_OPERACIONES, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, accion: 'restaurar' })
@@ -66,7 +75,7 @@ const Papelera = () => {
     const eliminarPermanente = async () => {
         if (!window.confirm(`⚠️ ADVERTENCIA CRÍTICA: SE BORRARÁN ${seleccionadas.length} ARCHIVOS DEL DISCO. ¿PROCEDER?`)) return;
         for (const id of seleccionadas) {
-            await fetch(API_URL_OPERACIONES, {
+            await apiFetch(API_URL_OPERACIONES, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, accion: 'eliminar_permanente' })
@@ -107,6 +116,15 @@ const Papelera = () => {
                                     🔥 PURGAR ({seleccionadas.length})
                                 </button>
                             </>
+                        )}
+                        {modoSeleccion && (
+                            <button
+                                onClick={seleccionarTodo}
+                                className="btn-volver-neon"
+                                style={{ borderColor: '#00ffff', color: '#00ffff' }}
+                            >
+                                {seleccionadas.length === fotosBorradas.length && fotosBorradas.length > 0 ? "☑ DESMARCAR TODO" : "☑ SELECCIONAR TODO"}
+                            </button>
                         )}
                         <button
                             onClick={() => { setModoSeleccion(!modoSeleccion); setSeleccionadas([]); }}
@@ -160,7 +178,7 @@ const Papelera = () => {
 
                                 <div style={{ marginTop: '10px' }}>
                                     <h4 className="admin-title" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {foto.titulo.toUpperCase()}
+                                        {(foto.titulo || 'SIN TÍTULO').toUpperCase()}
                                     </h4>
                                     <span className="tag-badge" style={{ fontSize: '0.6rem', color: '#ff4444', border: 'none', padding: 0 }}>
                                         ESTADO: ELIMINADO

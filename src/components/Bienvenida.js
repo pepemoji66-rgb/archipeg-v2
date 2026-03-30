@@ -57,12 +57,14 @@ export default function Bienvenida({ initialMode = 'login' }) {
                 <p className="bienvenida-subtitulo">Gestión y Archivo Fotográfico</p>
             </div>
 
-            <form className="bienvenida-formulario" onSubmit={handleSubmit}>
+            <form className="bienvenida-formulario" onSubmit={handleSubmit} autoComplete="off">
                 <h2>{modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</h2>
 
                 <input
                     className="bienvenida-input"
                     type="email"
+                    name="archipeg_user_email"
+                    autoComplete="new-password"
                     placeholder="Email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -72,6 +74,8 @@ export default function Bienvenida({ initialMode = 'login' }) {
                 <input
                     className="bienvenida-input"
                     type="password"
+                    name="archipeg_user_pass"
+                    autoComplete="new-password"
                     placeholder="Contraseña"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -81,6 +85,8 @@ export default function Bienvenida({ initialMode = 'login' }) {
                     <input
                         className="bienvenida-input"
                         type="password"
+                        name="archipeg_user_pass_confirm"
+                        autoComplete="new-password"
                         placeholder="Confirmar contraseña"
                         value={confirmar}
                         onChange={e => setConfirmar(e.target.value)}
