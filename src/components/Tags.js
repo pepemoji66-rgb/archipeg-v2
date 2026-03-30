@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './admin.css'; // Usamos el estilo maestro
 
+import { apiFetch } from '../api';
+
 const API = 'http://localhost:5001/api';
 
 const Tags = () => {
@@ -9,7 +11,7 @@ const Tags = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetch(`${API}/tags`)
+        apiFetch(`${API}/tags`)
             .then(r => r.json())
             .then(setTags)
             .catch((err) => console.error("Error en el escaneo de etiquetas:", err));

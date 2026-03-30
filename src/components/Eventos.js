@@ -2,9 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ModalZoom from './ModalZoom';
 import './admin.css'; // Usamos el CSS del admin para la consistencia neón
 
+import { apiFetch } from '../api';
+
 const API = 'http://localhost:5001/api';
 const URL_FOTOS = 'http://localhost:5001/uploads/';
-const getFotoUrl = (foto) => foto?.imagen_url ? URL_FOTOS + foto.imagen_url.trim().replace(/ /g, '%20') : '';
+const URL_FOTO_LOCAL = 'http://localhost:5001/api/foto-local?ruta=';
+
+const esRutaAbsoluta = (url) =>
+    /^[A-Za-z]:[\\\/]/.test(url) || String(url || '').startsWith('/');
+
+const getFotoUrl = (foto) => {
+    if (!foto?.imagen_url) return '';
+    const url = String(foto.imagen_url).trim();
+    if (esRutaAbsoluta(url)) {
+        return URL_FOTO_LOCAL + encodeURIComponent(url);
+    }
+    return URL_FOTOS + url.replace(/ /g, '%20').replace(/\\/g, '/');
+};
 
 const Eventos = () => {
     const [eventos, setEventos] = useState([]);
@@ -16,7 +30,7 @@ const Eventos = () => {
 
     const cargar = useCallback(async () => {
         try {
-            const res = await fetch(`${API}/eventos`);
+            const res = await apiFetch(`${API}/eventos`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             setEventos(await res.json());
         } catch (e) { console.error(e); }
@@ -26,14 +40,14 @@ const Eventos = () => {
 
     const abrirEvento = async (ev) => {
         setEventoActivo(ev);
-        const res = await fetch(`${API}/eventos/${ev.id}/fotos`);
+        const res = await apiFetch(`${API}/eventos/${ev.id}/fotos`);
         setFotosEvento(await res.json());
     };
 
     const crear = async (e) => {
         e.preventDefault();
         if (!form.nombre.trim()) return;
-        await fetch(`${API}/eventos`, {
+        await apiFetch(`${API}/eventos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(form)
@@ -45,14 +59,32 @@ const Eventos = () => {
 
     const eliminar = async (id) => {
         if (!window.confirm('¿ELIMINAR ESTE EVENTO?')) return;
-        await fetch(`${API}/eventos/${id}`, { method: 'DELETE' });
+        await apiFetch(`${API}/eventos/${id}`, { method: 'DELETE' });
         if (eventoActivo?.id === id) { setEventoActivo(null); setFotosEvento([]); }
         cargar();
     };
 
+    const autoEscanear = async () => {
+        if (!eventoActivo) return;
+        if (!window.confirm('¿Escanear la biblioteca y añadir fotos que coincidan con las fechas de este evento?')) return;
+        try {
+            const res = await apiFetch(`${API}/eventos/${eventoActivo.id}/auto-scan`, { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert(`Escaneo completado. Se añadieron ${data.asignadas} fotos al evento.`);
+                abrirEvento(eventoActivo); // Recargar fotos
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al escanear.');
+        }
+    };
+
     const navegar = (dir) => {
         if (!fotoZoom) return;
-        const idx = fotosEvento.findIndex(f => f.id === photoZoom.id);
+        const idx = fotosEvento.findIndex(f => f.id === fotoZoom.id);
         const next = dir === 'siguiente' ? (idx + 1) % fotosEvento.length : (idx - 1 + fotosEvento.length) % fotosEvento.length;
         setFotoZoom(fotosEvento[next]);
     };
@@ -75,6 +107,11 @@ const Eventos = () => {
                             )}
                         </div>
                     </div>
+                    {eventoActivo.fecha_inicio && (
+                        <button className="btn-volver-neon" style={{ border: '1px solid #00f2ff', color: '#00f2ff' }} onClick={autoEscanear}>
+                            🤖 AUTO-ESCANEAR FECHAS
+                        </button>
+                    )}
                 </header>
 
                 {fotosEvento.length === 0 ? (
@@ -100,9 +137,9 @@ const Eventos = () => {
                         onClose={() => setFotoZoom(null)}
                         onNavigate={navegar}
                         onBorrar={async (id) => {
-                            await fetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
+                            await apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
                             setFotoZoom(null);
-                            const r = await fetch(`${API}/eventos/${eventoActivo.id}/fotos`);
+                            const r = await apiFetch(`${API}/eventos/${eventoActivo.id}/fotos`);
                             setFotosEvento(await r.json());
                         }}
                         getFotoUrl={getFotoUrl}
@@ -146,7 +183,7 @@ const Eventos = () => {
                             <h3 className="admin-title" style={{ fontSize: '1.1rem', marginBottom: '5px' }}>{ev.nombre.toUpperCase()}</h3>
                             {ev.fecha_inicio && (
                                 <div style={{ fontSize: '0.72rem', color: '#00ffff', marginBottom: '10px', fontFamily: 'monospace' }}>
-                                    [{ev.fecha_inicio}] >> [{ev.fecha_fin}]
+                                    [{ev.fecha_inicio}] {'>>'} [{ev.fecha_fin}]
                                 </div>
                             )}
 

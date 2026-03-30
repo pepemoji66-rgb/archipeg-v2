@@ -58,6 +58,11 @@ const Galeria = () => {
     const [nuevoAlbumBatch, setNuevoAlbumBatch] = useState('');
     const [nuevoAlbumBatchPrivado, setNuevoAlbumBatchPrivado] = useState(false);
 
+    // Nuevos estados para asignar a evento
+    const [mostrarAsignarEvento, setMostrarAsignarEvento] = useState(false);
+    const [eventosDisponibles, setEventosDisponibles] = useState([]);
+    const [nuevoEventoBatch, setNuevoEventoBatch] = useState('');
+
     const fotosPorPagina = 15;
 
     const cargar = useCallback(async () => {
@@ -143,6 +148,27 @@ const Galeria = () => {
         }
     };
 
+    useEffect(() => {
+        if (mostrarAsignarEvento) {
+            apiFetch(`${API}/eventos`).then(r => r.json()).then(setEventosDisponibles).catch(console.error);
+        }
+    }, [mostrarAsignarEvento]);
+
+    const asignarAEvento = async (eventoId) => {
+        try {
+            await apiFetch(`${API}/eventos/${eventoId}/fotos-masivo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fotos_ids: seleccionadas })
+            });
+            setMostrarAsignarEvento(false);
+            setSeleccionadas([]);
+            setModoSeleccion(false);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const crearAlbumYAsignar = async () => {
         if (!nuevoAlbumBatch.trim()) return;
         try {
@@ -157,6 +183,22 @@ const Galeria = () => {
             setNuevoAlbumBatchPrivado(false);
             // asignarAAlbum ya llama a cargar(), que ocultará las fotos si era privado.
         } catch (e) { console.error(e); }
+    };
+
+    const crearEventoYAsignar = async () => {
+        if (!nuevoEventoBatch.trim()) return;
+        try {
+            const res = await apiFetch(`${API}/eventos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nuevoEventoBatch.trim() })
+            });
+            const nuevo = await res.json();
+            await asignarAEvento(nuevo.id);
+            setNuevoEventoBatch('');
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     useEffect(() => { cargar(); }, [cargar]);
@@ -379,6 +421,9 @@ const Galeria = () => {
                     <button className="btn-batch btn-action-icon-morado" style={{ border: '1px solid #7a00ff', color: '#7a00ff' }} onClick={() => setMostrarAsignarAlbum(true)}>
                         📁 AÑADIR A ÁLBUM
                     </button>
+                    <button className="btn-batch btn-action-icon-morado" style={{ border: '1px solid #00ffff', color: '#00ffff' }} onClick={() => setMostrarAsignarEvento(true)}>
+                        📅 AÑADIR A EVENTO
+                    </button>
                     <button className="btn-batch btn-download" onClick={descargarSeleccionadas}>
                         📥 DESCARGAR
                     </button>
@@ -478,7 +523,7 @@ const Galeria = () => {
             {/* MODAL ASIGNAR A ÁLBUM */}
             {mostrarAsignarAlbum && (
                 <div className="modal-overlay" onClick={() => setMostrarAsignarAlbum(false)}>
-                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
                         <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>📂 AÑADIR A ÁLBUM</h2>
                         <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a mover {seleccionadas.length} foto(s)</p>
                         
@@ -513,6 +558,36 @@ const Galeria = () => {
 
                         <div style={{ textAlign: 'center', marginTop: '25px' }}>
                             <button className="btn-volver-neon" onClick={() => setMostrarAsignarAlbum(false)} style={{ borderColor: '#555', color: '#aaa' }}>✕ CANCELAR</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* MODAL ASIGNAR A EVENTO */}
+            {mostrarAsignarEvento && (
+                <div className="modal-overlay" onClick={() => setMostrarAsignarEvento(false)}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
+                        <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>📅 AÑADIR A EVENTO</h2>
+                        <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a asignar {seleccionadas.length} foto(s)</p>
+                        
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '20px' }}>
+                            {eventosDisponibles.map(a => (
+                                <button key={a.id} className="btn-header-neon" style={{ display: 'block', width: '100%', marginBottom: '10px', textAlign: 'left', padding: '12px' }} onClick={() => asignarAEvento(a.id)}>
+                                    📅 {a.nombre.toUpperCase()} {a.fecha_inicio ? `(${a.fecha_inicio})` : ''}
+                                </button>
+                            ))}
+                            {eventosDisponibles.length === 0 && <p style={{ color: '#aaa', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>No tienes eventos creados</p>}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #333', paddingTop: '20px' }}>
+                            <h3 style={{ fontSize: '0.9rem', color: '#00f2ff', marginBottom: '15px' }}>O crear uno nuevo:</h3>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                                <input className="input-neon" value={nuevoEventoBatch} onChange={e => setNuevoEventoBatch(e.target.value)} placeholder="Nombre del evento (fechas luego en su gestor)" style={{ flex: 1 }} />
+                                <button className="btn-volver-neon" onClick={crearEventoYAsignar} style={{ color: '#00f2ff', borderColor: '#00f2ff' }}>+</button>
+                            </div>
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginTop: '25px' }}>
+                            <button className="btn-volver-neon" onClick={() => setMostrarAsignarEvento(false)} style={{ borderColor: '#555', color: '#aaa' }}>✕ CANCELAR</button>
                         </div>
                     </div>
                 </div>

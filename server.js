@@ -662,6 +662,66 @@ app.post('/api/eventos/:id/fotos', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
+app.post('/api/eventos/:id/fotos-masivo', async (req, res) => {
+    try {
+        const { fotos_ids } = req.body;
+        if (!Array.isArray(fotos_ids)) return res.status(400).json({ error: 'fotos_ids debe ser un array' });
+        
+        await db.run("BEGIN");
+        try {
+            for (const foto_id of fotos_ids) {
+                await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [req.params.id, foto_id]);
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json(err); }
+});
+
+app.post('/api/eventos/:id/auto-scan', async (req, res) => {
+    try {
+        const evento = await db.get("SELECT * FROM eventos WHERE id = ? AND usuario_id IS ?", [req.params.id, req.usuario?.id]);
+        if (!evento || !evento.fecha_inicio) return res.status(400).json({ error: "Evento no encontrado o sin fecha de inicio" });
+        
+        // Asumiendo formato de fecha YYYY-MM-DD
+        const [anioInicio, mesInicio, diaInicio] = evento.fecha_inicio.split('-');
+        let [anioFin, mesFin, diaFin] = (evento.fecha_fin || evento.fecha_inicio).split('-');
+        
+        if (!anioInicio || !mesInicio) return res.status(400).json({ error: "Formato de fecha de evento inválido" });
+
+        // Escanear DB: Esto depende de si tienen guardado anio y mes. Si no, habría que extraerlo de algo más elaborado o usar los campos que tenemos.
+        // Archipeg extrae "anio" y "mes" al subir/importar. Usaremos esos para coincidencia aproximada, o un escaneo preciso si implementamos fechas completas en fotos.
+        // Por ahora, como 'fotos' tiene 'anio' y 'mes', compararemos con esos:
+        let query = "SELECT id FROM fotos WHERE en_papelera = 0 AND usuario_id IS ? AND anio >= ? AND anio <= ?";
+        let bindParams = [req.usuario?.id, parseInt(anioInicio), parseInt(anioFin)];
+        
+        // Si el inicio y fin ocurren en el mismo año, podemos afinar los meses
+        if (anioInicio === anioFin) {
+            query += " AND mes >= ? AND mes <= ?";
+            bindParams.push(parseInt(mesInicio), parseInt(mesFin));
+        }
+
+        const fotosMatcheadas = await db.all(query, bindParams);
+
+        if (fotosMatcheadas.length === 0) return res.json({ asignadas: 0, mensaje: "No hay fotos en ese rango" });
+
+        await db.run("BEGIN");
+        try {
+            for (const f of fotosMatcheadas) {
+                await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [req.params.id, f.id]);
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+        res.json({ asignadas: fotosMatcheadas.length });
+    } catch (err) { res.status(500).json(err); }
+});
+
 // PERSONAS — CRUD
 app.get('/api/personas', async (req, res) => {
     try {
