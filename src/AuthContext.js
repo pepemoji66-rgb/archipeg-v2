@@ -1,15 +1,36 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { setToken } from './api';
 
 const API = 'http://localhost:5001/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [auth, setAuth] = useState({ usuario: null, token: null, esDemo: false });
+    const [auth, setAuth] = useState({ usuario: null, token: null, esDemo: false, cargando: true });
+
+    // CARGAR SESIÓN AL INICIAR
+    useEffect(() => {
+        const sesionGuardada = localStorage.getItem('archipeg_auth');
+        if (sesionGuardada) {
+            try {
+                const data = JSON.parse(sesionGuardada);
+                setToken(data.token);
+                setAuth({ ...data, esDemo: false, cargando: false });
+            } catch (e) {
+                setAuth(prev => ({ ...prev, cargando: false }));
+            }
+        } else {
+            setAuth(prev => ({ ...prev, cargando: false }));
+        }
+    }, []);
 
     function actualizarAuth(nuevoEstado) {
         setToken(nuevoEstado.token);
-        setAuth(nuevoEstado);
+        if (nuevoEstado.token) {
+            localStorage.setItem('archipeg_auth', JSON.stringify(nuevoEstado));
+        } else {
+            localStorage.removeItem('archipeg_auth');
+        }
+        setAuth({ ...nuevoEstado, cargando: false });
     }
 
     async function login(email, password) {
@@ -24,11 +45,11 @@ export function AuthProvider({ children }) {
         return data.usuario;
     }
 
-    async function registro(email, password) {
+    async function registro(email, password, systemKey = null) {
         const res = await fetch(`${API}/auth/registro`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, systemKey })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al registrarse');
@@ -46,7 +67,7 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={{ ...auth, login, registro, entrarDemo, logout }}>
-            {children}
+            {!auth.cargando && children}
         </AuthContext.Provider>
     );
 }

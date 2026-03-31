@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './admin.css'; // Usamos el mismo CSS del admin para unificar
@@ -74,12 +75,12 @@ const Albumes = () => {
                                 onChange={e => setDescripcion(e.target.value)}
                                 style={{ flex: 2 }}
                             />
-                            <button 
-                                type="button" 
-                                onClick={() => setPrivado(!privado)} 
-                                className="btn-volver-neon" 
-                                style={{ 
-                                    border: `1px solid ${privado ? '#ff0055' : '#00ffff'}`, 
+                            <button
+                                type="button"
+                                onClick={() => setPrivado(!privado)}
+                                className="btn-volver-neon"
+                                style={{
+                                    border: `1px solid ${privado ? '#ff0055' : '#00ffff'}`,
                                     color: privado ? '#ff0055' : '#00ffff',
                                     boxShadow: privado ? '0 0 10px #ff0055' : 'none'
                                 }}

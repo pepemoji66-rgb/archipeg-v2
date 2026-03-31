@@ -229,8 +229,13 @@ const AdminPanel = () => {
 
             if (!window.confirm(`¿Importar fotos de: ${dataRuta.ruta}?`)) return;
 
-            setMensaje("Motor trabajando... no cierres el panel.");
-            setProgreso(20);
+            setMensaje("🚀 Motor trabajando... Escaneando e importando. No cierres el panel.");
+            setProgreso(10); // Inicio rápido para dar feedback visual
+
+            // Simulamos un avance pequeño mientras esperamos la respuesta pesada del servidor
+            const interval = setInterval(() => {
+                setProgreso(prev => (prev < 90 ? prev + 1 : prev));
+            }, 500);
 
             const resImport = await fetch(`${API_URL}/importar-masivo`, {
                 method: 'POST',
@@ -241,19 +246,24 @@ const AdminPanel = () => {
                 body: JSON.stringify({ ruta: dataRuta.ruta })
             });
 
+            clearInterval(interval);
             const resultado = await resImport.json();
 
             if (resImport.ok) {
-                alert(`¡ÉXITO!\n- Nuevas: ${resultado.importadas}\n- Ya estaban: ${resultado.actualizadas}\n- Total: ${resultado.total}`);
-                setMensaje("✅ Importación finalizada.");
-                cargarFotos();
+                setProgreso(100);
+                setTimeout(() => {
+                    alert(`¡ÉXITO!\n- Nuevas: ${resultado.importadas}\n- Ya estaban: ${resultado.actualizadas}\n- Total: ${resultado.total}`);
+                    setMensaje("✅ Importación finalizada con éxito.");
+                    setProgreso(0);
+                    cargarFotos();
+                }, 500);
             } else {
+                setProgreso(0);
                 alert("Error: " + (resultado.error || "Fallo servidor"));
             }
-            setProgreso(0);
         } catch (error) {
-            alert("Error de conexión con el motor.");
             setProgreso(0);
+            alert("Error de conexión con el motor.");
         }
     };
 

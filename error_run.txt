@@ -1,0 +1,83 @@
+Archipeg Pro.exe : node:
+internal/modules/cjs/loa
+der:1466
+En línea: 1 Carácter: 37
++ ... E=1; $err = & "dis
+t_electron\win-unpacked\
+Archipeg Pro.exe" 
+"dist_ele ...
++                 ~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo      
+        : NotSpecified  
+  : (node:internal/mo   
+ dules/cjs/loader:14    
+66:String) [], Remo    
+teException
+    + FullyQualifiedErr 
+   orId : NativeComman  
+  dError
+ 
+  throw err;
+  ^
+
+Error: Cannot find 
+module 'express'
+Require stack:
+- C:\Users\Jose Moreno\D
+esktop\ARCHIPEG\dist_ele
+ctron\win-unpacked\resou
+rces\app.asar.unpacked\s
+erver.js
+    at 
+Module._resolveFilename 
+(node:internal/modules/c
+js/loader:1463:15)
+    at 
+defaultResolveImpl (node
+:internal/modules/cjs/lo
+ader:1073:19)
+    at 
+resolveForCJSWithHooks (
+node:internal/modules/cj
+s/loader:1078:22)
+    at Module._load (nod
+e:internal/modules/cjs/l
+oader:1249:25)
+    at c._load (node:ele
+ctron/js2c/node_init:2:1
+8047)
+    at wrapModuleLoad (n
+ode:internal/modules/cjs
+/loader:262:19)
+    at Module.require (n
+ode:internal/modules/cjs
+/loader:1563:12)
+    at require (node:int
+ernal/modules/helpers:15
+2:16)
+    at 
+Object.<anonymous> 
+(C:\Users\Jose Moreno\De
+sktop\ARCHIPEG\dist_elec
+tron\win-unpacked\resour
+ces\app.asar.unpacked\se
+rver.js:8:17)
+    at Module._compile (
+node:internal/modules/cj
+s/loader:1820:14) {
+  code: 
+'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\Jose Mor
+eno\\Desktop\\ARCHIPEG\\
+dist_electron\\win-unpac
+ked\\resources\\app.asar
+.unpacked\\server.js'
+  ]
+}
+
+Node.js v24.14.0
+

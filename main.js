@@ -1,6 +1,65 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
+const fs = require('fs');
+
+// --- MENÚ EN ESPAÑOL PARA ARCHIPEG ---
+const menuTemplate = [
+    {
+        label: 'Archivo',
+        submenu: [
+            { label: 'Salir', role: 'quit' }
+        ]
+    },
+    {
+        label: 'Edición',
+        submenu: [
+            { label: 'Deshacer', role: 'undo' },
+            { label: 'Rehacer', role: 'redo' },
+            { type: 'separator' },
+            { label: 'Cortar', role: 'cut' },
+            { label: 'Copiar', role: 'copy' },
+            { label: 'Pegar', role: 'paste' },
+            { label: 'Seleccionar todo', role: 'selectAll' }
+        ]
+    },
+    {
+        label: 'Vista',
+        submenu: [
+            { label: 'Recargar', role: 'reload' },
+            { label: 'Forzar recarga', role: 'forceReload' },
+            { label: 'Herramientas de desarrollo', role: 'toggleDevTools' },
+            { type: 'separator' },
+            { label: 'Aumentar zoom', role: 'zoomIn' },
+            { label: 'Restablecer zoom', role: 'resetZoom' },
+            { label: 'Reducir zoom', role: 'zoomOut' },
+            { type: 'separator' },
+            { label: 'Pantalla completa', role: 'togglefullscreen' }
+        ]
+    },
+    {
+        label: 'Ventana',
+        submenu: [
+            { label: 'Minimizar', role: 'minimize' },
+            { label: 'Cerrar', role: 'close' }
+        ]
+    },
+    {
+        label: 'Ayuda',
+        submenu: [
+            {
+                label: 'Acerca de ARCHIPEG',
+                click: async () => {
+                    dialog.showMessageBox({
+                        title: 'Acerca de',
+                        message: 'ARCHIPEG PRO V2.0',
+                        detail: 'Copyright © 2026 - Jose Moreno Jimenez\nGestión Fotográfica Profesional'
+                    });
+                }
+            }
+        ]
+    }
+];
 
 let serverProcess;
 
@@ -8,25 +67,52 @@ function createWindow() {
     // --- LÓGICA DE AUTO-ENCENDIDO DEL SERVIDOR ---
     const isDev = !app.isPackaged;
 
-    // Si es el .exe instalado, el server.js se ha extraído a 'app.asar.unpacked'
-    const serverScript = isDev
-        ? path.join(__dirname, 'server.js')
-        : path.join(process.resourcesPath, 'app.asar.unpacked', 'server.js');
+    // Ubicación del motor (server.js) - Ahora siempre dentro del paquete para encontrar las dependencias
+    const serverScript = path.join(__dirname, 'server.js');
 
-    console.log("Arrancando motor en:", serverScript);
-
-    // Asignamos una carpeta de documentos nativa para los datos del cliente
+    // Directorio de datos en Documentos
     const docPath = app.getPath('documents');
     const userDataStore = path.join(docPath, 'ArchipegPro');
 
+    // Aseguramos que la carpeta de destino exista antes de arrancar el motor
+    const fs = require('fs');
+    if (!fs.existsSync(userDataStore)) {
+        fs.mkdirSync(userDataStore, { recursive: true });
+    }
+
+    console.log("🚀 ARRANCANDO MOTOR ARCHIPEG...");
+    console.log("📍 Script:", serverScript);
+    console.log("💾 Datos en:", userDataStore);
+
+    if (!fs.existsSync(serverScript)) {
+        dialog.showErrorBox("Fallo de Inicio", `No se encontró el motor en: ${serverScript}`);
+    }
+
+    // Usamos stdio para capturar errores del motor y mostrarlos
     serverProcess = fork(serverScript, [], {
-        env: { ...process.env, ARCHIPEG_DATA_DIR: userDataStore }
+        env: { ...process.env, ARCHIPEG_DATA_DIR: userDataStore },
+        stdio: ['inherit', 'inherit', 'pipe', 'ipc']
+    });
+
+    let errorMensaje = "";
+    serverProcess.stderr.on('data', (data) => {
+        errorMensaje += data.toString();
+        console.error(`[MOTOR ERR] ${data}`);
     });
 
     serverProcess.on('error', (err) => {
         console.error('Fallo crítico en el motor ARCHIPEG:', err);
+        dialog.showErrorBox("Error del Motor", `El motor falló al arrancar: ${err.message}`);
     });
 
+    serverProcess.on('exit', (code) => {
+        if (code !== 0 && code !== null) {
+            const msg = errorMensaje || "Error desconocido en el proceso de fondo.";
+            dialog.showErrorBox("Motor Detenido", `El motor se cerró (Código ${code}).\n\nDetalle del error:\n${msg}`);
+        }
+    });
+
+    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
     const win = new BrowserWindow({
         width: 1300,
         height: 900,

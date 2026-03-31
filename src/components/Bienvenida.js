@@ -9,11 +9,12 @@ export default function Bienvenida({ initialMode = 'login' }) {
     const [password, setPassword] = useState('');
     const [confirmar, setConfirmar] = useState('');
     const [error, setError] = useState('');
+    const [systemKey, setSystemKey] = useState('');
     const [cargando, setCargando] = useState(false);
     const { login, registro, entrarDemo } = useAuth();
     const navigate = useNavigate();
 
-    const limpiar = () => { setError(''); setPassword(''); setConfirmar(''); };
+    const limpiar = () => { setError(''); setPassword(''); setConfirmar(''); setSystemKey(''); };
 
     const cambiarModo = (nuevoModo) => { setModo(nuevoModo); limpiar(); };
 
@@ -35,7 +36,7 @@ export default function Bienvenida({ initialMode = 'login' }) {
             if (modo === 'login') {
                 await login(email.trim(), password);
             } else {
-                await registro(email.trim(), password);
+                await registro(email.trim(), password, systemKey.trim());
             }
             navigate('/galeria-completa');
         } catch (err) {
@@ -82,16 +83,30 @@ export default function Bienvenida({ initialMode = 'login' }) {
                     required
                 />
                 {modo === 'registro' && (
-                    <input
-                        className="bienvenida-input"
-                        type="password"
-                        name="archipeg_user_pass_confirm"
-                        autoComplete="new-password"
-                        placeholder="Confirmar contraseña"
-                        value={confirmar}
-                        onChange={e => setConfirmar(e.target.value)}
-                        required
-                    />
+                    <>
+                        <input
+                            className="bienvenida-input"
+                            type="password"
+                            name="archipeg_user_pass_confirm"
+                            autoComplete="new-password"
+                            placeholder="Confirmar contraseña"
+                            value={confirmar}
+                            onChange={e => setConfirmar(e.target.value)}
+                            required
+                        />
+                        <div style={{ marginTop: '10px', fontSize: '0.8em', color: '#00f2ff', textAlign: 'left', width: '100%', paddingLeft: '5px' }}>
+                            ¿Eres Administrador? Ingresa la Clave de Sistema:
+                        </div>
+                        <input
+                            className="bienvenida-input"
+                            type="password"
+                            name="archipeg_system_key"
+                            autoComplete="new-password"
+                            placeholder="Clave de Sistema (Opcional)"
+                            value={systemKey}
+                            onChange={e => setSystemKey(e.target.value)}
+                        />
+                    </>
                 )}
 
                 {error && <div className="bienvenida-error">{error}</div>}

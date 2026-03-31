@@ -360,6 +360,80 @@
     right: 2vw; /* Para que quede simétrico en los bordes de la pantalla */
 }
 
+/* --- ESTILOS DE SUBIDA PREMIUM --- */
+.file-input-wrapper {
+    margin: 20px 0;
+    text-align: center;
+}
+
+#file-upload {
+    display: none;
+}
+
+.btn-file-morado {
+    display: inline-block;
+    background: linear-gradient(135deg, #6200ea 0%, #d500f9 100%);
+    color: white;
+    padding: 15px 40px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(213, 0, 249, 0.4), 0 0 10px rgba(0, 255, 255, 0.2);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-file-morado:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(213, 0, 249, 0.6), 0 0 20px rgba(0, 255, 255, 0.4);
+    filter: brightness(1.2);
+}
+
+.btn-file-morado:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.progreso-container-morado {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    height: 14px;
+    border-radius: 12px;
+    margin: 25px 0;
+    overflow: hidden;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.progreso-bar-morado {
+    height: 100%;
+    background: linear-gradient(90deg, #00f2ff, #ff2d7d);
+    box-shadow: 0 2px 15px rgba(0, 242, 255, 0.6);
+    transition: width 0.5s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+}
+
+.mensaje-feedback-morado {
+    text-align: center;
+    color: #00ffff;
+    font-weight: 800;
+    margin-top: 20px;
+    text-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+    animation: fadeInSlideUp 0.6s ease-out both;
+}
+
+@keyframes fadeInSlideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 900px) {
     .btn-zoom-nav-admin.right {
         right: 15px;

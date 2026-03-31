@@ -45,18 +45,15 @@ async function authMiddleware(req, res, next) {
 }
 app.use(authMiddleware);
 
-// 🟢 LA PIEZA QUE FALTABA: Servir archivos estáticos
-// Esto crea el puente entre la URL /uploads y tu carpeta física
+// 🟢 SERVIR ARCHIVOS ESTÁTICOS: El puente entre la URL /uploads y la carpeta física
 const basePath = process.env.ARCHIPEG_DATA_DIR || __dirname;
 const dirDestino = path.join(basePath, 'fotos_archipeg');
-app.use('/uploads', express.static(dirDestino));
 
-// Si no existe la carpeta, la crea automáticamente (asegurando recursividad para crear ArchipegPro)
+// Si no existe la carpeta, la crea automáticamente (asegurando recursividad)
 if (!fs.existsSync(dirDestino)) {
     fs.mkdirSync(dirDestino, { recursive: true });
 }
-
-let db;
+app.use('/uploads', express.static(dirDestino));
 
 // --- AUTENTICACIÓN ---
 const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com'];
@@ -135,11 +132,17 @@ async function inicializarMotor() {
         )
     `);
 
-    // Migraciones para columnas nuevas en fotos
+    // Migraciones para columnas nuevas en fotos (Soporte Multiusuario y Duplicados)
     await db.exec(`ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0`).catch(() => {});
     await db.exec(`ALTER TABLE fotos ADD COLUMN lugar TEXT`).catch(() => {});
+    await db.exec(`ALTER TABLE fotos ADD COLUMN usuario_id INTEGER`).catch(() => {});
+    await db.exec(`ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0`).catch(() => {});
+    
     await db.exec(`ALTER TABLE albumes ADD COLUMN privado INTEGER DEFAULT 0`).catch(() => {});
     await db.exec(`ALTER TABLE albumes ADD COLUMN usuario_id INTEGER`).catch(() => {});
+
+    await db.exec(`ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`).catch(() => {});
+    await db.exec(`ALTER TABLE personas ADD COLUMN usuario_id INTEGER`).catch(() => {});
 
     // Nuevas tablas
     await db.exec(`
@@ -231,18 +234,28 @@ async function limpiarFotosRotas(fotos, req) {
 }
 
 // --- AUTH: REGISTRO ---
+const MASTER_ADMIN_KEY = 'ARCHIPEG-PRO-2026'; // Clave de sistema solicitada por el usuario
+
 app.post('/api/auth/registro', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
-        const { email, password } = req.body;
+        const { email, password, systemKey } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        const esIntentoAdmin = ADMINS.includes(email.toLowerCase());
+        const esJose = email.toLowerCase() === 'pepemoji66@gmail.com';
+        
+        // Si intenta ser admin, validamos la clave maestra (excepto si es Jose para evitar bloqueos)
+        if (esIntentoAdmin && !esJose && systemKey !== MASTER_ADMIN_KEY) {
+            return res.status(403).json({ error: 'Clave de Sistema incorrecta para registro de Administrador' });
+        }
 
         const existente = await db.get('SELECT id FROM usuarios WHERE email = ?', [email.toLowerCase()]);
         if (existente) return res.status(409).json({ error: 'Este email ya está registrado' });
 
         const salt = crypto.randomBytes(16).toString('hex');
         const password_hash = hashPassword(password, salt);
-        const es_admin = ADMINS.includes(email.toLowerCase()) ? 1 : 0;
+        const es_admin = esIntentoAdmin ? 1 : 0;
 
         const result = await db.run(
             'INSERT INTO usuarios (email, password_hash, salt, es_admin) VALUES (?, ?, ?, ?)',
@@ -871,7 +884,8 @@ app.get('/api/seleccionar-carpeta', (req, res) => {
             res.json({ ruta: stdout.trim() });
         });
     } else if (process.platform === 'win32') {
-        const psFile = path.join(__dirname, 'selector.ps1');
+        const os = require('os');
+        const psFile = path.join(os.tmpdir(), 'archipeg_selector.ps1');
         const psCode = `
 Add-Type -AssemblyName System.Windows.Forms
 $form = New-Object System.Windows.Forms.Form
