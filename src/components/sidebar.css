@@ -42,7 +42,7 @@
 }
 
 .sidebar-brand {
-    padding: 20px 20px 15px;
+    padding: 15px 15px 10px;
     border-bottom: 1px solid var(--borde);
     display: flex;
     flex-direction: column;
@@ -70,7 +70,7 @@
 }
 
 .sidebar-search { 
-    padding: 15px 15px 10px; 
+    padding: 10px 15px 5px; 
 }
 
 .sidebar-search input {
@@ -96,9 +96,14 @@
 }
 
 .sidebar-nav {
-    padding: 10px;
+    padding: 5px 10px;
     flex: 1;
     overflow-y: auto;
+    /* Ocultar barra de scroll visualmente en navegadores webkit si no es estrictamente necesaria */
+}
+.sidebar-nav::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
 }
 
 .sidebar-section-label {
@@ -107,19 +112,19 @@
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    padding: 15px 10px 5px;
+    padding: 10px 10px 5px;
 }
 
 .sidebar-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.85rem;
     color: var(--texto-secundario);
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     text-decoration: none;
     transition: all 0.2s ease;
     border: 1px solid transparent;
@@ -162,7 +167,7 @@
 }
 
 .sidebar-bottom {
-    padding: 15px;
+    padding: 10px 15px;
     border-top: 1px solid var(--borde);
     background: rgba(0,0,0,0.2);
 }
@@ -196,8 +201,8 @@
     color: #000;
     border: none;
     border-radius: 8px;
-    padding: 12px;
-    font-size: 0.85rem;
+    padding: 10px;
+    font-size: 0.8rem;
     font-weight: 800;
     cursor: pointer;
     letter-spacing: 0.05em;
@@ -284,4 +289,19 @@
     .sidebar-bottom {
         display: none; /* O lo podemos dejar si es muy necesario, pero ocupa pantalla */
     }
+}
+
+.btn-descargar-app {
+    background: transparent;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+    transition: all 0.3s;
+}
+
+.btn-descargar-app:hover {
+    background: #00ff88;
+    color: #000;
+    box-shadow: 0 0 20px #00ff88;
+    transform: scale(1.02);
 }

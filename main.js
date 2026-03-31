@@ -8,14 +8,20 @@ function createWindow() {
     // --- LÓGICA DE AUTO-ENCENDIDO DEL SERVIDOR ---
     const isDev = !app.isPackaged;
 
-    // Si es el .exe instalado, el server.js vive en 'resources'
+    // Si es el .exe instalado, el server.js se ha extraído a 'app.asar.unpacked'
     const serverScript = isDev
         ? path.join(__dirname, 'server.js')
-        : path.join(process.resourcesPath, 'server.js');
+        : path.join(process.resourcesPath, 'app.asar.unpacked', 'server.js');
 
     console.log("Arrancando motor en:", serverScript);
 
-    serverProcess = fork(serverScript);
+    // Asignamos una carpeta de documentos nativa para los datos del cliente
+    const docPath = app.getPath('documents');
+    const userDataStore = path.join(docPath, 'ArchipegPro');
+
+    serverProcess = fork(serverScript, [], {
+        env: { ...process.env, ARCHIPEG_DATA_DIR: userDataStore }
+    });
 
     serverProcess.on('error', (err) => {
         console.error('Fallo crítico en el motor ARCHIPEG:', err);

@@ -137,8 +137,8 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.95);
     display: flex;
     justify-content: center;
@@ -150,11 +150,12 @@
     background: #050515;
     border: 2px solid #00ffff;
     display: flex;
-    max-width: 90%;
-    max-height: 85vh;
+    width: 80vw;
+    height: 75vh;
     border-radius: 15px;
     overflow: hidden;
     position: relative;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
 }
 
 .zoom-image-wrapper {
@@ -323,4 +324,47 @@
     background: #00ffff;
     color: #000;
     box-shadow: 0 0 20px #00ffff;
+}
+
+/* --- FLECHAS NAVEGADOR ZOOM ADMIN --- */
+.btn-zoom-nav-admin {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    font-size: 24px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 100000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.btn-zoom-nav-admin:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 15px #00ffff;
+}
+
+.btn-zoom-nav-admin.left {
+    left: 2vw;
+}
+
+.btn-zoom-nav-admin.right {
+    right: 2vw; /* Para que quede simétrico en los bordes de la pantalla */
+}
+
+@media (max-width: 900px) {
+    .btn-zoom-nav-admin.right {
+        right: 15px;
+    }
+    .btn-zoom-nav-admin.left {
+        left: 15px;
+    }
 }

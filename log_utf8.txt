@@ -1,0 +1,23 @@
+﻿  ÔÇó electron-builder  version=26.8.1 os=10.0.26200
+  ÔÇó loaded configuration  file=package.json ("build" field)
+  ÔÇó public/electron.js not found. Please see https://medium.com/@kitze/%EF%B8%8F-from-react-to-an-electron-app-ready-for-production-a0468ecb1da3
+  ÔÇó loaded parent configuration  preset=react-cra
+  ÔÇó executing @electron/rebuild  electronVersion=41.0.3 arch=x64 buildFromSource=false workspaceRoot=C:\Users\Jose Moreno\Desktop\ARCHIPEG projectDir=./ appDir=./
+  ÔÇó installing native dependencies  arch=x64
+  ÔÇó preparing       moduleName=sqlite3 arch=x64
+  Ô¿» Attempting to build a module with a space in the path
+
+  Ô¿» See https://github.com/nodejs/node-gyp/issues/65#issuecomment-368820565 for reasons why this may not work
+
+  Ô¿» [Error: EPERM: operation not permitted, unlink 'C:\Users\Jose Moreno\Desktop\ARCHIPEG\node_modules\sqlite3\build\Release\node_sqlite3.node'] {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'unlink',
+  path: 'C:\\Users\\Jose Moreno\\Desktop\\ARCHIPEG\\node_modules\\sqlite3\\build\\Release\\node_sqlite3.node'
+}
+
+
+  Ô¿» node-gyp failed to rebuild 'C:\Users\Jose Moreno\Desktop\ARCHIPEG\node_modules\sqlite3'  failedTask=build stackTrace=Error: node-gyp failed to rebuild 'C:\Users\Jose Moreno\Desktop\ARCHIPEG\node_modules\sqlite3'
+    at ChildProcess.<anonymous> (file:///C:/Users/Jose%20Moreno/Desktop/ARCHIPEG/node_modules/@electron/rebuild/lib/module-type/node-gyp/node-gyp.js:114:24)
+    at ChildProcess.emit (node:events:508:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)

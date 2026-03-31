@@ -47,10 +47,11 @@ app.use(authMiddleware);
 
 // 🟢 LA PIEZA QUE FALTABA: Servir archivos estáticos
 // Esto crea el puente entre la URL /uploads y tu carpeta física
-const dirDestino = path.join(__dirname, 'fotos_archipeg');
+const basePath = process.env.ARCHIPEG_DATA_DIR || __dirname;
+const dirDestino = path.join(basePath, 'fotos_archipeg');
 app.use('/uploads', express.static(dirDestino));
 
-// Si no existe la carpeta, la crea automáticamente
+// Si no existe la carpeta, la crea automáticamente (asegurando recursividad para crear ArchipegPro)
 if (!fs.existsSync(dirDestino)) {
     fs.mkdirSync(dirDestino, { recursive: true });
 }
@@ -115,7 +116,7 @@ const upload = multer({ storage: storage });
 // --- INICIALIZACIÓN DEL MOTOR SQLITE ---
 async function inicializarMotor() {
     db = await open({
-        filename: path.join(__dirname, 'archipeg_data.db'),
+        filename: path.join(basePath, 'archipeg_data.db'),
         driver: sqlite3.Database
     });
 

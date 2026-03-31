@@ -113,6 +113,15 @@ const Sidebar = () => {
             </nav>
 
             <div className="sidebar-bottom">
+                <a 
+                    href="/downloads/Archipeg_Setup.exe" 
+                    download 
+                    className="sidebar-upload-btn btn-descargar-app" 
+                    style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
+                >
+                    ⬇ DESCARGAR APP (PC)
+                </a>
+
                 {esDemo ? (
                     <>
                         <div className="sidebar-demo-info">{conteos.fotos}/{LIMITE} fotos (DEMO)</div>

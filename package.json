@@ -57,9 +57,16 @@
   "build": {
     "appId": "com.archipeg.app",
     "productName": "Archipeg Pro",
+    "npmRebuild": false,
     "extraMetadata": {
       "main": "main.js"
     },
+    "asarUnpack": [
+      "server.js",
+      "archipeg_data.db",
+      "fotos_archipeg/**/*",
+      "node_modules/sqlite3/**/*"
+    ],
     "files": [
       "build/**/*",
       "node_modules/**/*",
