@@ -82,6 +82,12 @@
       "target": "nsis",
       "icon": "public/logo_archipeg.ico"
     },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Archipeg Pro"
+    },
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity"
