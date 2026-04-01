@@ -90,7 +90,7 @@ const Indice = () => {
                 <div className="indice-auth-modal-overlay" onClick={cerrarModal}>
                     <div className="indice-auth-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
                         <button className="indice-auth-modal-close" type="button" onClick={cerrarModal} aria-label="Cerrar">✕</button>
-                        <Bienvenida initialMode={authMode} />
+                        <Bienvenida key={authMode} initialMode={authMode} />
                     </div>
                 </div>
             )}

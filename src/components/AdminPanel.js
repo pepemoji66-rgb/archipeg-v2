@@ -5,11 +5,11 @@ import { apiFetch } from '../api';
 import { useAuth } from '../AuthContext';
 
 const AdminPanel = () => {
-    const { token } = useAuth();
+    const { usuario, token } = useAuth();
 
     // --- CONFIGURACIÓN DE RED IP DIRECTA ---
-    const API_URL = "http://127.0.0.1:5001/api";
-    const URL_BASE_FOTOS = "http://127.0.0.1:5001/uploads/";
+    const API_URL = "http://localhost:5001/api";
+    const URL_BASE_FOTOS = "http://localhost:5001/uploads/";
     const URL_FOTO_LOCAL = `${API_URL}/foto-local?ruta=`;
     const PLACEHOLDER_IMG = (() => {
         const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>
@@ -466,20 +466,22 @@ const AdminPanel = () => {
                     </div>
                 </section>
 
-                {/* --- SECCIÓN DE MANTENIMIENTO (BOTÓN DE BORRAR TODO) --- */}
-                <section className="admin-card" style={{ border: '2px solid #ff0044', background: 'rgba(255, 0, 68, 0.05)', textAlign: 'center' }}>
-                    <h2 className="section-title" style={{ color: '#ff0044', justifyContent: 'center' }}>🛠️ ZONA DE MANTENIMIENTO</h2>
-                    <p style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '15px' }}>
-                        Usa estas herramientas con precaución. Son operaciones irreversibles sobre la base de datos.
-                    </p>
-                    <button
-                        onClick={ejecutarLimpiezaTotal}
-                        className="btn-archipeg-main-morado"
-                        style={{ backgroundColor: '#ff0044', fontWeight: 'bold', padding: '15px 40px', fontSize: '1rem' }}
-                    >
-                        🚨 BORRAR TODOS LOS ACTIVOS DE LA RED (RESET DB)
-                    </button>
-                </section>
+                {/* --- SECCIÓN DE MANTENIMIENTO (SÓLO ADMIN) --- */}
+                {usuario?.esAdmin && (
+                    <section className="admin-card" style={{ border: '2px solid #ff0044', background: 'rgba(255, 0, 68, 0.05)', textAlign: 'center' }}>
+                        <h2 className="section-title" style={{ color: '#ff0044', justifyContent: 'center' }}>🛠️ ZONA DE MANTENIMIENTO</h2>
+                        <p style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '15px' }}>
+                            Usa estas herramientas con precaución. Son operaciones irreversibles sobre la base de datos.
+                        </p>
+                        <button
+                            onClick={ejecutarLimpiezaTotal}
+                            className="btn-archipeg-main-morado"
+                            style={{ backgroundColor: '#ff0044', fontWeight: 'bold', padding: '15px 40px', fontSize: '1rem' }}
+                        >
+                            🚨 BORRAR TODOS MIS ACTIVOS (RESET PROPIO)
+                        </button>
+                    </section>
+                )}
             </main>
 
             {/* MODAL ZOOM CON REACT PORTAL PARA SOLUCIONAR EL CENTRADO */}

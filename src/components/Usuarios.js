@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
 import './usuarios.css';
 
-const API = 'http://127.0.0.1:5001/api';
+const API = 'http://localhost:5001/api';
 
 export default function Usuarios() {
     const navigate = useNavigate();

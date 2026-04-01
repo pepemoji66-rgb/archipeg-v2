@@ -13,8 +13,9 @@ export default function Bienvenida({ initialMode = 'login' }) {
     const [cargando, setCargando] = useState(false);
     const { login, registro, entrarDemo } = useAuth();
     const navigate = useNavigate();
+    const [mensajeExito, setMensajeExito] = useState('');
 
-    const limpiar = () => { setError(''); setPassword(''); setConfirmar(''); setSystemKey(''); };
+    const limpiar = () => { setError(''); setMensajeExito(''); setPassword(''); setConfirmar(''); setSystemKey(''); };
 
     const cambiarModo = (nuevoModo) => { setModo(nuevoModo); limpiar(); };
 
@@ -35,10 +36,16 @@ export default function Bienvenida({ initialMode = 'login' }) {
         try {
             if (modo === 'login') {
                 await login(email.trim(), password);
+                navigate('/galeria-completa');
             } else {
-                await registro(email.trim(), password, systemKey.trim());
+                const resData = await registro(email.trim(), password, systemKey.trim());
+                if (resData && !resData.token) { // Si no hay token, es que está pendiente de aprobación
+                    setMensajeExito(resData.message || 'Registro completado. Un administrador debe aprobar tu cuenta.');
+                    setEmail(''); setPassword(''); setConfirmar(''); setSystemKey('');
+                } else {
+                    navigate('/galeria-completa');
+                }
             }
-            navigate('/galeria-completa');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -110,6 +117,21 @@ export default function Bienvenida({ initialMode = 'login' }) {
                 )}
 
                 {error && <div className="bienvenida-error">{error}</div>}
+                {mensajeExito && (
+                    <div style={{
+                        marginTop: '15px',
+                        padding: '12px',
+                        background: 'rgba(0, 255, 128, 0.1)',
+                        border: '1px solid #00ff80',
+                        color: '#00ff80',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        textAlign: 'center',
+                        boxShadow: '0 0 10px rgba(0, 255, 128, 0.2)'
+                    }}>
+                        {mensajeExito}
+                    </div>
+                )}
 
                 <button className="bienvenida-btn-primary" type="submit" disabled={cargando}>
                     {cargando ? 'Cargando...' : modo === 'login' ? 'INICIAR SESIÓN' : 'REGISTRARSE'}

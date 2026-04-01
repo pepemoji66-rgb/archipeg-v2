@@ -60,7 +60,7 @@ function AppRoutes() {
             <Route path="/anio/:anio" element={<VistaAnioL />} />
             <Route path="/galeria/:anio" element={<VistaAnioL />} />
             <Route path="/duplicados" element={<DuplicadosL />} />
-            <Route path="/admin" element={<RutaAdmin><AdminL /></RutaAdmin>} />
+            <Route path="/admin" element={<AdminL />} />
             <Route path="/usuarios" element={<RutaAdmin><UsuariosL /></RutaAdmin>} />
             <Route path="/papelera" element={<PapeleraL />} />
             <Route path="/albumes" element={<AlbumesL />} />

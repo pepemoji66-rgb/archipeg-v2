@@ -65,8 +65,25 @@ export function AuthProvider({ children }) {
         actualizarAuth({ usuario: null, token: null, esDemo: false });
     }
 
+    // NUEVO: Sincronizar el perfil con el servidor (ver si ya ha sido aprobado)
+    async function refrescarPerfil() {
+        if (!auth.token || auth.esDemo) return;
+        try {
+            const res = await fetch(`${API}/auth/perfil`, {
+                headers: { 'Authorization': `Bearer ${auth.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Si el estado de aprobación ha cambiado, actualizamos localmente
+                if (data.usuario && data.usuario.aprobado !== auth.usuario?.aprobado) {
+                    actualizarAuth({ ...auth, usuario: data.usuario });
+                }
+            }
+        } catch (e) { console.error("Error al refrescar perfil:", e); }
+    }
+
     return (
-        <AuthContext.Provider value={{ ...auth, login, registro, entrarDemo, logout }}>
+        <AuthContext.Provider value={{ ...auth, login, registro, entrarDemo, logout, refrescarPerfil }}>
             {!auth.cargando && children}
         </AuthContext.Provider>
     );

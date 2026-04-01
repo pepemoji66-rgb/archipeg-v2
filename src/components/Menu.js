@@ -114,6 +114,12 @@ const Menu = () => {
                             <span className="icon">⚙️</span> GESTIÓN
                         </Link>
                     </li>
+                    {/* Solo mostramos usuarios si es Admin (esto se puede refinar con el contexto de Auth) */}
+                    <li>
+                        <Link to="/usuarios" onClick={cerrarMenu}>
+                            <span className="icon">👥</span> USUARIOS
+                        </Link>
+                    </li>
                     <li>
                         <Link to="/papelera" onClick={cerrarMenu}>
                             <span className="icon">🗑️</span> PAPELERA

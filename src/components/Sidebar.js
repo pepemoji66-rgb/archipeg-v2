@@ -9,11 +9,15 @@ const API = 'http://localhost:5001/api';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { usuario, esDemo, logout } = useAuth();
+    const { usuario, esDemo, logout, refrescarPerfil } = useAuth();
     const [conteos, setConteos] = useState({ fotos: 0, favoritos: 0, albumes: 0, eventos: 0, personas: 0 });
     const [busqueda, setBusqueda] = useState('');
 
     useEffect(() => {
+        if (!usuario && !esDemo) return;
+        // Refrescar perfil para ver si ya ha sido aprobado
+        if (usuario && !usuario.aprobado) refrescarPerfil();
+
         const cargar = async () => {
             try {
                 const [fotos, favs, albs, evs, pers] = await Promise.all([
@@ -97,15 +101,13 @@ const Sidebar = () => {
                 </Link>
 
                 <div className="sidebar-section-label">Sistema</div>
+                <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
+                    <span className="sidebar-item-icon">⚙️</span> Gestión
+                </Link>
                 {usuario?.esAdmin && (
-                    <>
-                        <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
-                            <span className="sidebar-item-icon">👥</span> Usuarios
-                        </Link>
-                        <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
-                            <span className="sidebar-item-icon">⚙️</span> Gestión
-                        </Link>
-                    </>
+                    <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
+                        <span className="sidebar-item-icon">👥</span> Usuarios
+                    </Link>
                 )}
                 <Link to="/papelera" className={`sidebar-item ${isActive('/papelera') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🗑️</span> Papelera
@@ -113,14 +115,23 @@ const Sidebar = () => {
             </nav>
 
             <div className="sidebar-bottom">
-                <a 
-                    href="/downloads/Archipeg_Setup.exe" 
-                    download 
-                    className="sidebar-upload-btn btn-descargar-app" 
-                    style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
-                >
-                    ⬇ DESCARGAR APP (PC)
-                </a>
+                {usuario && !usuario.aprobado && (
+                    <div className="sidebar-demo-warning" style={{ backgroundColor: 'rgba(255, 68, 0, 0.2)', border: '1px solid #ff4400', padding: '10px', borderRadius: '4px', marginBottom: '15px', textAlign: 'center', fontSize: '0.75rem', color: '#ffcc00' }}>
+                        ⚠️ MODO DEMO: ESPERANDO ACTIVACIÓN
+                        <br/>(Límite: 50 fotos)
+                    </div>
+                )}
+
+                {(esDemo || (usuario && usuario.aprobado)) && (
+                    <a 
+                        href="/downloads/Archipeg_Setup.exe" 
+                        download 
+                        className="sidebar-upload-btn btn-descargar-app" 
+                        style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
+                    >
+                        ⬇ DESCARGAR APP (PC)
+                    </a>
+                )}
 
                 {esDemo ? (
                     <>
@@ -132,9 +143,9 @@ const Sidebar = () => {
                 ) : (
                     <div className="sidebar-demo-info">{conteos.fotos} fotos</div>
                 )}
-                {usuario?.esAdmin && (
+                {usuario && (
                     <button className="sidebar-upload-btn" onClick={() => navigate('/admin')}>
-                        + SUBIR FOTOS
+                        + GESTIÓN VISUAL
                     </button>
                 )}
                 {usuario && (
