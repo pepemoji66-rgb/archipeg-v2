@@ -53,6 +53,7 @@ const Sidebar = () => {
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
+                <img src="logo_archipeg_principal.png" alt="Logo" style={{ width: '40px', height: '40px', marginBottom: '10px', objectFit: 'contain' }} />
                 <div className="sidebar-brand-name">ARCHIPEG<span className="sidebar-brand-dot"> ·</span></div>
                 {esDemo && <div className="sidebar-brand-version">DEMO</div>}
             </div>

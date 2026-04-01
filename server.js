@@ -57,8 +57,14 @@ if (!fs.existsSync(dirDestino)) {
 app.use('/uploads', express.static(dirDestino));
 
 // 🔵 SERVIR DESCARGAS: El puente para el instalador
-const dirDescargas = path.join(__dirname, 'downloads');
-if (!fs.existsSync(dirDescargas)) fs.mkdirSync(dirDescargas, { recursive: true });
+const dirDescargas = path.join(basePath, 'downloads');
+if (!fs.existsSync(dirDescargas)) {
+    try {
+        fs.mkdirSync(dirDescargas, { recursive: true });
+    } catch (e) {
+        console.error("Error al crear carpeta downloads:", e);
+    }
+}
 app.use('/downloads', express.static(dirDescargas));
 
 // 🚀 SERVIR FRONTEND (REACT BUILD) - Para producción en Render
@@ -262,8 +268,21 @@ async function inicializarMotor() {
 
     console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y archivos estáticos listos.");
 }
+
+// LOG DE EMERGENCIA: Si el motor falla, escribimos un archivo en la carpeta de datos
+const logFile = path.join(basePath, 'error_motor.txt');
+process.on('uncaughtException', (err) => {
+    const errorText = `[${new Date().toISOString()}] ERROR NO CONTROLADO: ${err.stack}\n`;
+    fs.appendFileSync(logFile, errorText);
+    console.error(errorText);
+    process.exit(1);
+});
+
 inicializarMotor().catch(err => {
-    console.error("❌ ERROR CRÍTICO AL INICIAR EL MOTOR:", err);
+    const errorText = `[${new Date().toISOString()}] ERROR CRÍTICO AL INICIAR EL MOTOR: ${err.stack}\n`;
+    fs.appendFileSync(logFile, errorText);
+    console.error(errorText);
+    process.exit(1);
 });
 
 // --- LIMPIEZA AUTOMÁTICA DE FOTOS ROTAS (OPCIÓN A) ---

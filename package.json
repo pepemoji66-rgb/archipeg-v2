@@ -75,14 +75,14 @@
       "server.js",
       "archipeg_data.db",
       "package.json",
-      "public/logo_archipeg.ico"
+      "public/logo_archipeg_principal.png"
     ],
     "directories": {
       "output": "dist_electron"
     },
     "win": {
       "target": "nsis",
-      "icon": "public/logo_archipeg.ico"
+      "icon": "public/logo_archipeg_principal.png"
     },
     "nsis": {
       "oneClick": true,

@@ -47,6 +47,9 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
 
     return (
         <div className="indice-auth-content">
+            <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                <img src="logo_archipeg_principal.png" alt="Archipeg" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+            </div>
             <h2 className="landing-hero-title" style={{ fontSize: '1.5rem', marginBottom: '10px', textAlign: 'center' }}>
                 {modo === 'login' ? 'INICIAR SESIÓN' : 'CREAR CUENTA'}
             </h2>
