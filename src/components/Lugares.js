@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './admin.css'; // Unificamos con el estilo maestro
 
-const API = 'http://localhost:5001/api';
+import { API_BASE_URL } from '../config';
+
+const API = `${API_BASE_URL}/api`;
 
 const Lugares = () => {
     const [lugares, setLugares] = useState([]);

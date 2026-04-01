@@ -14,6 +14,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { exec } = require('child_process');
+const ExifParser = require('exif-parser');
 
 const app = express();
 
@@ -60,6 +61,12 @@ const dirDescargas = path.join(__dirname, 'downloads');
 if (!fs.existsSync(dirDescargas)) fs.mkdirSync(dirDescargas, { recursive: true });
 app.use('/downloads', express.static(dirDescargas));
 
+// 🚀 SERVIR FRONTEND (REACT BUILD) - Para producción en Render
+const buildPath = path.join(__dirname, 'build');
+if (fs.existsSync(buildPath)) {
+    app.use(express.static(buildPath));
+}
+
 // --- AUTENTICACIÓN ---
 const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com'];
 
@@ -76,6 +83,54 @@ const LIMITE_DEMO = 50;
 
 // --- IMPORTACIÓN MASIVA ---
 const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
+
+function extraerMetadata(ruta) {
+    const info = { lat: null, lon: null, anio: null, mes: null };
+    let fd;
+    try {
+        // OPTIMIZACIÓN PRO: Solo leemos los primeros 64KB del archivo (donde reside el EXIF)
+        // Esto evita cargar archivos de 5MB+ en memoria, acelerando el proceso x100
+        const buffer = Buffer.alloc(65535);
+        fd = fs.openSync(ruta, 'r');
+        fs.readSync(fd, buffer, 0, 65535, 0);
+        
+        const parser = ExifParser.create(buffer);
+        const result = parser.parse();
+        
+        if (result.tags) {
+            if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
+                info.lat = result.tags.GPSLatitude;
+                info.lon = result.tags.GPSLongitude;
+            }
+            if (result.tags.DateTimeOriginal) {
+                const date = new Date(result.tags.DateTimeOriginal * 1000);
+                if (!isNaN(date.getFullYear())) {
+                    info.anio = date.getFullYear();
+                    info.mes = date.getMonth() + 1;
+                }
+            }
+        }
+    } catch (e) {
+        // console.error("Error EXIF:", e.message);
+    } finally {
+        if (fd !== undefined) {
+            try { fs.closeSync(fd); } catch(e){}
+        }
+    }
+    
+    // Si falla EXIF, intentamos por FS (lo que ya teníamos)
+    if (!info.anio) {
+        try {
+            const s = fs.statSync(ruta);
+            const d = new Date(Math.min(s.mtimeMs, s.ctimeMs, s.birthtimeMs || Infinity));
+            if (!isNaN(d.getFullYear())) {
+                info.anio = d.getFullYear();
+                info.mes = d.getMonth() + 1;
+            }
+        } catch (e) {}
+    }
+    return info;
+}
 
 const MIME_TIPOS = {
     '.jpg': 'image/jpeg',
@@ -292,13 +347,22 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
         const { email, password } = req.body;
+        console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
-        const usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.toLowerCase()]);
-        if (!usuario) return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+        const usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
+        if (!usuario) {
+            console.log(`❌ ERROR: El email [${email}] no existe en la base de datos local.`);
+            return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+        }
 
         const hash = hashPassword(password, usuario.salt);
-        if (hash !== usuario.password_hash) return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+        console.log(`🔎 LOGIN DEBUG -> Generado: ${hash} | Guardado: ${usuario.password_hash}`);
+
+        if (hash !== usuario.password_hash) {
+            console.log(`❌ ERROR: La contraseña no coincide para [${email}]`);
+            return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+        }
 
         // Permitimos login aunque no esté aprobado (entrará en modo demo)
 
@@ -359,9 +423,12 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
         }
 
         for (const file of archivos) {
+            const rutaImagen = path.join(dirDestino, file.filename);
+            const meta = extraerMetadata(rutaImagen);
+            
             await db.run(
-                "INSERT INTO fotos (titulo, anio, descripcion, etiquetas, imagen_url, en_papelera, usuario_id) VALUES (?, ?, ?, ?, ?, 0, ?)",
-                [titulo, anio, descripcion, etiquetas || "", file.filename, req.usuario?.id]
+                "INSERT INTO fotos (titulo, anio, mes, descripcion, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
+                [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, etiquetas || "", file.filename, meta.lat, meta.lon, req.usuario?.id]
             );
         }
         res.json({ message: "✅ Guardado en ARCHIPEG local" });
@@ -393,6 +460,57 @@ app.post('/api/sistema/limpiar-todo', async (req, res) => {
         res.json({ message: "Reset de tus datos completado" });
     } catch (err) {
         res.status(500).json({ error: "Fallo al vaciar la DB" });
+    }
+});
+
+app.post('/api/sistema/rescan-gps', async (req, res) => {
+    try {
+        if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
+        
+        // Obtenemos todas las fotos del usuario que NO tienen latitud
+        const fotos = await db.all("SELECT id, imagen_url FROM fotos WHERE usuario_id = ? AND (latitud IS NULL OR latitud = 0)", [req.usuario.id]);
+        
+        let actualizadas = 0;
+        
+        // --- OPTIMIZACIÓN CRÍTICA: Usar una transacción para evitar 5.700 escrituras individuales ---
+        await db.run("BEGIN TRANSACTION");
+        try {
+            for (const f of fotos) {
+                let rutaAbsoluta = f.imagen_url;
+                if (!path.isAbsolute(rutaAbsoluta)) {
+                    rutaAbsoluta = path.join(dirDestino, rutaAbsoluta);
+                }
+                
+                if (fs.existsSync(rutaAbsoluta)) {
+                    const meta = extraerMetadata(rutaAbsoluta);
+                    if (meta.lat && meta.lon) {
+                        await db.run("UPDATE fotos SET latitud = ?, longitud = ? WHERE id = ?", [meta.lat, meta.lon, f.id]);
+                        actualizadas++;
+                    }
+                }
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+
+        res.json({ message: `Re-escaneo completado. Se han geolocalizado ${actualizadas} fotos nuevas en el mapa satelital.`, actualizadas });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error en el re-escaneo masivo." });
+    }
+});
+
+// NUEVO: Endpoint VIP para obtener una sola foto (acelera el salto desde el mapa)
+app.get('/api/fotos/:id', async (req, res) => {
+    try {
+        if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
+        const foto = await db.get("SELECT * FROM fotos WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario.id]);
+        if (!foto) return res.status(404).json({ error: "Foto no encontrada" });
+        res.json({ ...foto, etiquetas: foto.etiquetas || "" });
+    } catch (err) {
+        res.status(500).json({ error: "Fallo al obtener la foto" });
     }
 });
 
@@ -914,20 +1032,13 @@ app.post('/api/importar-masivo', async (req, res) => {
                 continue;
             }
 
-            let anioExtraido = null;
-            let mesExtraido = null;
-            try {
-                const s = fs.statSync(rutaImagen);
-                const d = new Date(Math.min(s.mtimeMs, s.ctimeMs, s.birthtimeMs || Infinity));
-                if (!isNaN(d.getFullYear())) {
-                    anioExtraido = d.getFullYear();
-                    mesExtraido = d.getMonth() + 1;
-                }
-            } catch (e) {}
+            const meta = extraerMetadata(rutaImagen);
+            const anioFinal = meta.anio;
+            const mesFinal = meta.mes;
 
             await db.run(
-                "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes) VALUES (?, 0, ?, ?, ?)",
-                [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioExtraido, mesExtraido]
+                "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
+                [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
             );
 
             importadas++;
@@ -996,9 +1107,19 @@ $form.Dispose()
     }
 });
 
+// RUTA COMODÍN: Para que React Router funcione en producción
+app.get('*', (req, res) => {
+    const indexPath = path.join(__dirname, 'build', 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send('Frontend no construido. Ejecuta npm run build.');
+    }
+});
+
 // --- LANZAMIENTO ---
-const PORT = 5001;
-app.listen(PORT, () => {
-    console.log(`🚀 ARCHIPEG PRO: Operando en http://localhost:${PORT}`);
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 ARCHIPEG PRO: Operando en puerto ${PORT}`);
     console.log(`📂 Almacén de fotos: ${dirDestino}`);
 });

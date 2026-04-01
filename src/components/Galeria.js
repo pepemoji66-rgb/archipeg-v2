@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { apiFetch } from '../api';
 import ModalZoom from './ModalZoom';
 import './galeria.css';
-import { apiFetch } from '../api';
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
 
-const API = 'http://localhost:5001/api';
-const URL_FOTOS = 'http://localhost:5001/uploads/';
-const URL_FOTO_LOCAL = 'http://localhost:5001/api/foto-local?ruta=';
+const API = `${API_BASE_URL}/api`;
+const URL_FOTOS = UPLOADS_URL;
+const URL_FOTO_LOCAL = FOTO_LOCAL_URL;
+const IS_LOCAL = window.location.hostname === 'localhost';
 
 const esRutaAbsoluta = (url) =>
     /^[A-Za-z]:[\\\/]/.test(url) || url.startsWith('/');
@@ -30,6 +32,7 @@ const Galeria = () => {
     const qInicial = params.get('q') || '';
     const anioInicial = params.get('anio') || '';
     const mesInicial = params.get('mes') || '';
+    const fotoIdUrl = params.get('fotoId');
 
     const [fotos, setFotos] = useState([]);
     const [busqueda, setBusqueda] = useState(qInicial);
@@ -64,6 +67,23 @@ const Galeria = () => {
     const [nuevoEventoBatch, setNuevoEventoBatch] = useState('');
 
     const fotosPorPagina = 15;
+
+    const fotosFiltradas = React.useMemo(() => {
+        return fotos.filter(f => {
+            const bq = normalizar(busqueda).trim();
+            const matchTexto = !bq || [f.titulo, f.anio, f.descripcion, f.etiquetas, f.lugar].some(c => normalizar(c).includes(bq));
+            const matchMes = !busquedaMes || f.mes?.toString() === busquedaMes;
+            
+            const bAnioStr = busquedaAnio ? busquedaAnio.toString() : "";
+            const rutaNorm = (f.imagen_url || "").replace(/\\/g, "/").toLowerCase();
+            const matchAnio = !bAnioStr || f.anio?.toString() === bAnioStr || rutaNorm.includes(bAnioStr);
+            
+            return matchTexto && matchMes && matchAnio;
+        });
+    }, [fotos, busqueda, busquedaMes, busquedaAnio]);
+
+    const totalPaginas = Math.ceil(fotosFiltradas.length / fotosPorPagina);
+    const fotosPaginadas = fotosFiltradas.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina);
 
     const cargar = useCallback(async () => {
         try {
@@ -201,20 +221,24 @@ const Galeria = () => {
         }
     };
 
-    useEffect(() => { cargar(); }, [cargar]);
-    useEffect(() => {
-        // Mantener URL sincronizada con filtros (para copiar/pegar enlaces)
-        const p = new URLSearchParams();
-        if (busqueda.trim()) p.set('q', busqueda.trim());
-        if (busquedaAnio) p.set('anio', busquedaAnio);
-        if (busquedaMes) p.set('mes', busquedaMes);
-        const qs = p.toString();
-        const destino = `/galeria-completa${qs ? `?${qs}` : ''}`;
-        const actual = `/galeria-completa${location.search || ''}`;
-        if (destino !== actual) {
-            navigate(destino, { replace: true });
+    const navegarFoto = (direccion) => {
+        const idx = fotosFiltradas.findIndex(f => f.id === fotoZoom?.id);
+        if (idx === -1) return;
+        if (direccion === 'siguiente' && idx < fotosFiltradas.length - 1) setFotoZoom(fotosFiltradas[idx + 1]);
+        else if (direccion === 'anterior' && idx > 0) setFotoZoom(fotosFiltradas[idx - 1]);
+    };
+
+    const manejarClicFoto = (foto) => {
+        if (modoSeleccion) {
+            setSeleccionadas(prev =>
+                prev.includes(foto.id)
+                    ? prev.filter(id => id !== foto.id)
+                    : [...prev, foto.id]
+            );
+        } else {
+            setFotoZoom(foto);
         }
-    }, [busqueda, busquedaAnio, busquedaMes, navigate, location.search]);
+    };
 
     const borrarFoto = async (id) => {
         if (!window.confirm('¿Mover esta foto a la papelera?')) return;
@@ -225,26 +249,33 @@ const Galeria = () => {
         } catch (e) { console.error(e); }
     };
 
-    const navegarFoto = (direccion) => {
-        const idx = fotosFiltradas.findIndex(f => f.id === fotoZoom?.id);
-        if (idx === -1) return;
-        if (direccion === 'siguiente' && idx < fotosFiltradas.length - 1) setFotoZoom(fotosFiltradas[idx + 1]);
-        else if (direccion === 'anterior' && idx > 0) setFotoZoom(fotosFiltradas[idx - 1]);
-    };
-
-    // LÓGICA DE CLIC: Seleccionar o Zoom
-    const manejarClicFoto = (foto) => {
-        if (modoSeleccion) {
-            setSeleccionadas(prev =>
-                prev.includes(foto.id)
-                    ? prev.filter(id => id !== foto.id)
-                    : [...prev, foto.id]
-            );
-        } else {
-            // Solo abrimos zoom si NO estamos seleccionando
-            setFotoZoom(foto);
+    useEffect(() => {
+        if (fotoIdUrl && (!fotoZoom || String(fotoZoom.id) !== String(fotoIdUrl))) {
+            apiFetch(`${API}/fotos/${fotoIdUrl}`)
+                .then(r => r.json())
+                .then(f => {
+                    if (f && f.id) {
+                        setFotoZoom(f);
+                        setModoSeleccion(false);
+                    }
+                })
+                .catch(err => console.error("Error en túnel VIP:", err));
         }
-    };
+    }, [fotoIdUrl]);
+
+    useEffect(() => {
+        cargar(); 
+    }, [cargar]);
+
+    useEffect(() => {
+        if (fotoIdUrl && fotos.length > 0 && fotoZoom) {
+            const idx = fotosFiltradas.findIndex(x => x.id === fotoZoom.id);
+            if (idx !== -1) {
+                const pag = Math.floor(idx / fotosPorPagina) + 1;
+                if (pag !== paginaActual) setPaginaActual(pag);
+            }
+        }
+    }, [fotos, fotoZoom, fotoIdUrl, fotosFiltradas, paginaActual]);
 
     // FUNCIÓN DE DESCARGA MAESTRA (Forzada por Blob)
     const descargarSeleccionadas = async () => {
@@ -309,21 +340,6 @@ const Galeria = () => {
             }
         }
     };
-
-    const fotosFiltradas = fotos.filter(f => {
-        const bq = normalizar(busqueda).trim();
-        const matchTexto = !bq || [f.titulo, f.anio, f.descripcion, f.etiquetas, f.lugar].some(c => normalizar(c).includes(bq));
-        const matchMes = !busquedaMes || f.mes?.toString() === busquedaMes;
-        
-        const bAnioStr = busquedaAnio ? busquedaAnio.toString() : "";
-        const rutaNorm = (f.imagen_url || "").replace(/\\/g, "/").toLowerCase();
-        const matchAnio = !bAnioStr || f.anio?.toString() === bAnioStr || rutaNorm.includes(bAnioStr);
-        
-        return matchTexto && matchMes && matchAnio;
-    });
-
-    const totalPaginas = Math.ceil(fotosFiltradas.length / fotosPorPagina);
-    const fotosPaginadas = fotosFiltradas.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina);
 
     const aplicarFiltros = () => {
         setBusqueda(draftBusqueda);
@@ -433,32 +449,34 @@ const Galeria = () => {
                 </div>
             </div>
 
-            {/* BARRA DE IMPORTACIÓN MASIVA */}
-            <div className="import-bar">
-                <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
-                    📂 SELECCIONAR DISCO/CARPETA
-                </button>
-                {rutaImport && (
-                    <span className="import-ruta" title={rutaImport}>{rutaImport}</span>
-                )}
-                {rutaImport && (
-                    <button
-                        className="btn-import btn-import-action"
-                        onClick={importarMasivo}
-                        disabled={importando}
-                    >
-                        {importando ? '⏳ Importando...' : '⚡ IMPORTAR TODAS'}
+            {/* BARRA DE IMPORTACIÓN MASIVA - SOLO EN LOCAL */}
+            {IS_LOCAL && (
+                <div className="import-bar">
+                    <button className="btn-import" onClick={seleccionarCarpeta} disabled={importando}>
+                        📂 SELECCIONAR DISCO/CARPETA
                     </button>
-                )}
-                {resultadoImport && !resultadoImport.error && (
-                    <span className="import-resultado">
-                        ✅ {resultadoImport.importadas} importadas · {resultadoImport.actualizadas} actualizadas · {resultadoImport.ignoradas} ignoradas
-                    </span>
-                )}
-                {resultadoImport?.error && (
-                    <span className="import-error">❌ {resultadoImport.error}</span>
-                )}
-            </div>
+                    {rutaImport && (
+                        <span className="import-ruta" title={rutaImport}>{rutaImport}</span>
+                    )}
+                    {rutaImport && (
+                        <button
+                            className="btn-import btn-import-action"
+                            onClick={importarMasivo}
+                            disabled={importando}
+                        >
+                            {importando ? '⏳ Importando...' : '⚡ IMPORTAR TODAS'}
+                        </button>
+                    )}
+                    {resultadoImport && !resultadoImport.error && (
+                        <span className="import-resultado">
+                            ✅ {resultadoImport.importadas} importadas · {resultadoImport.actualizadas} actualizadas · {resultadoImport.ignoradas} ignoradas
+                        </span>
+                    )}
+                    {resultadoImport?.error && (
+                        <span className="import-error">❌ {resultadoImport.error}</span>
+                    )}
+                </div>
+            )}
 
             <main className="masonry-grid">
                 {fotosPaginadas.map(foto => {

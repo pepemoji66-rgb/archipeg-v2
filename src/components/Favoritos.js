@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ModalZoom from './ModalZoom';
 import './galeria.css';
 
-const API = 'http://localhost:5001/api';
-const URL_FOTOS = 'http://localhost:5001/uploads/';
+import { API_BASE_URL, UPLOADS_URL } from '../config';
+
+const API = `${API_BASE_URL}/api`;
+const URL_FOTOS = UPLOADS_URL;
 const getFotoUrl = (foto) => foto?.imagen_url ? URL_FOTOS + foto.imagen_url.trim().replace(/ /g,'%20') : '';
 
 const Favoritos = () => {

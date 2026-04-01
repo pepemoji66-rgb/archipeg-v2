@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import './admin.css';
 import { apiFetch } from '../api';
 import { useAuth } from '../AuthContext';
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
+
+const IS_LOCAL = window.location.hostname === 'localhost';
 
 const AdminPanel = () => {
     const { usuario, token } = useAuth();
 
-    // --- CONFIGURACIÓN DE RED IP DIRECTA ---
-    const API_URL = "http://localhost:5001/api";
-    const URL_BASE_FOTOS = "http://localhost:5001/uploads/";
-    const URL_FOTO_LOCAL = `${API_URL}/foto-local?ruta=`;
+    // --- CONFIGURACIÓN DE RED ---
+    const API_URL = `${API_BASE_URL}/api`;
+    const URL_BASE_FOTOS = UPLOADS_URL;
+    const URL_FOTO_LOCAL_BASE = FOTO_LOCAL_URL;
     const PLACEHOLDER_IMG = (() => {
         const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>
             <rect x='2' y='2' width='96' height='96' rx='8' ry='8' fill='#0a0a1a' stroke='#00ffff' stroke-width='2'/>
@@ -62,7 +66,7 @@ const AdminPanel = () => {
         const url = String(foto.imagen_url).trim();
         if (esRutaAbsoluta(url)) {
             // Si la BD guarda ruta absoluta, usamos el endpoint que lee desde disco.
-            return `${URL_FOTO_LOCAL}${encodeURIComponent(url)}`;
+            return `${URL_FOTO_LOCAL_BASE}${encodeURIComponent(url)}`;
         }
 
         // Si no es ruta absoluta, asumimos que `imagen_url` es el nombre relativo al directorio servido en `/uploads`.
@@ -267,6 +271,39 @@ const AdminPanel = () => {
         }
     };
 
+    const ejecutarRescanGPS = async () => {
+        if (!window.confirm("🛰️ ¿Quieres re-escanear tus 5.700 fotos para buscar coordenadas GPS?\n\nEsto no borrará nada, solo añadirá los puntos al mapa.")) return;
+        
+        try {
+            setMensaje("🚀 Iniciando radar EXIF... Leyendo archivos del disco.");
+            setProgreso(5);
+            
+            const res = await fetch(`${API_URL}/sistema/rescan-gps`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                setProgreso(100);
+                setTimeout(() => {
+                    alert(`🛰️ ¡Radar completado!\n\nSe han geolocalizado ${data.actualizadas} fotos nuevas.`);
+                    setMensaje("✅ Escaneo GPS finalizado.");
+                    setProgreso(0);
+                    cargarFotos();
+                }, 500);
+            } else {
+                setProgreso(0);
+                alert("Error al ejecutar el radar.");
+            }
+        } catch (error) {
+            setProgreso(0);
+            alert("Error de conexión con el motor.");
+        }
+    };
+
     const fotosFiltradas = fotos.filter(foto => {
         const bAnio = busquedaAnio.toString().trim();
         const bMes = busquedaMes.toString().trim();
@@ -364,9 +401,14 @@ const AdminPanel = () => {
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center' }}>
-                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 40px' }}>💾 GUARDAR DB</button>
-                            <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 40px', backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
+                        <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>💾 GUARDAR DB</button>
+                            {IS_LOCAL && (
+                                <>
+                                    <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
+                                    <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#ffaa00', color: '#000' }} onClick={ejecutarRescanGPS}>🛰️ RE-ESCANEAR GPS</button>
+                                </>
+                            )}
                         </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
                     </form>

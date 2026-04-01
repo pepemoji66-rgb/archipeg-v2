@@ -8,7 +8,8 @@
   "license": "Proprietary",
   "private": true,
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node server.js",
+    "dev": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -26,6 +27,7 @@
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
+    "exif-parser": "^0.1.12",
     "express": "^4.22.1",
     "leaflet": "^1.9.4",
     "multer": "^2.1.1",

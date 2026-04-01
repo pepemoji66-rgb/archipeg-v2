@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
 import './admin.css'; // Usamos el CSS maestro
 
-const API_URL_OPERACIONES = "http://localhost:5001/api/papelera/operaciones";
-const URL_BASE_FOTOS = "http://localhost:5001/uploads/";
-const URL_FOTO_LOCAL = "http://localhost:5001/api/foto-local?ruta=";
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
+
+const API_URL_OPERACIONES = `${API_BASE_URL}/api/papelera/operaciones`;
+const URL_BASE_FOTOS = UPLOADS_URL;
+const URL_FOTO_LOCAL = FOTO_LOCAL_URL;
 
 const esRutaAbsoluta = (url) =>
     /^[A-Za-z]:[\\\/]/.test(url) || String(url || '').startsWith('/');
@@ -38,7 +40,7 @@ const Papelera = () => {
     };
 
     const cargarPapelera = () => {
-        apiFetch("http://localhost:5001/api/papelera")
+        apiFetch(`${API_BASE_URL}/api/papelera`)
             .then(res => res.json())
             .then(data => setFotosBorradas(data.error ? [] : data))
             .catch(err => console.error("Error al cargar papelera:", err));

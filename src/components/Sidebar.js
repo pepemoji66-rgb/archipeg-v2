@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import './sidebar.css';
 import { useAuth } from '../AuthContext';
 import { apiFetch } from '../api';
+import { API_BASE_URL } from '../config';
 
-const API = 'http://localhost:5001/api';
+const API = `${API_BASE_URL}/api`;
 
 const Sidebar = () => {
     const location = useLocation();
@@ -96,6 +96,9 @@ const Sidebar = () => {
                 </Link>
 
                 <div className="sidebar-section-label">Explorar</div>
+                <Link to="/mapa" className={`sidebar-item ${isActive('/mapa') ? 'active' : ''}`}>
+                    <span className="sidebar-item-icon">📍</span> Mapa Satelital
+                </Link>
                 <Link to="/tags" className={`sidebar-item ${isActive('/tags') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🏷️</span> Tags
                 </Link>

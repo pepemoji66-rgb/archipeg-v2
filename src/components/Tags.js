@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './admin.css'; // Usamos el estilo maestro
+import { API_BASE_URL } from '../config';
 
-import { apiFetch } from '../api';
-
-const API = 'http://localhost:5001/api';
+const API = `${API_BASE_URL}/api`;
 
 const Tags = () => {
     const [tags, setTags] = useState([]);

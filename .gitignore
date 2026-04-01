@@ -1,29 +1,29 @@
-# --- ARCHIPEG v2.0 GITIGNORE ---
+# --- ARCHIPEG PRO: SEGURIDAD TOTAL ---
 
-# Dependencias (NUNCA se suben, pesan demasiado)
+# 📸 EXCLUSIÓN DE DATOS PRIVADOS (¡MUY IMPORTANTE!)
+# Nunca subirás tus fotos ni la base de datos real a GitHub
+fotos_archipeg/
+archipeg_data.db
+
+# Dependencias y Producción
 node_modules/
-
-# Producción y empaquetado (se generan con comandos)
 build/
 dist/
 dist_electron/
 
-# Base de datos local (Opcional: súbela solo si quieres que otros tengan tus datos de prueba)
-# archipeg_data.db
+# Variables de Entorno (Contraseñas, Rutas)
+.env
+.env.local
 
-# Logs y temporales
+# Logs y Temporales
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 firebase-debug.log
-*.log
-
-# Variables de entorno (Seguridad: rutas, contraseñas)
-.env
-.env.local
-
-# Archivos de sistema y editores
-.vscode/
-.idea/
 .DS_Store
 Thumbs.db
+
+# Editores
+.vscode/
+.idea/

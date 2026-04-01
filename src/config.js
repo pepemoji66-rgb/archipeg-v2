@@ -1,0 +1,7 @@
+// src/config.js
+// Si estamos en desarrollo (localhost), usamos el puerto 5001.
+// En producción (Render), las peticiones son relativas al mismo dominio.
+const isDev = window.location.hostname === 'localhost';
+export const API_BASE_URL = isDev ? 'http://localhost:5001' : '';
+export const UPLOADS_URL = `${API_BASE_URL}/uploads/`;
+export const FOTO_LOCAL_URL = `${API_BASE_URL}/api/foto-local?ruta=`;

@@ -4,9 +4,11 @@ import ModalZoom from './ModalZoom';
 import './galeria.css';
 import { apiFetch } from '../api';
 
-const API = 'http://localhost:5001/api';
-const URL_FOTOS = 'http://localhost:5001/uploads/';
-const URL_FOTO_LOCAL = 'http://localhost:5001/api/foto-local?ruta=';
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
+
+const API = `${API_BASE_URL}/api`;
+const URL_FOTOS = UPLOADS_URL;
+const URL_FOTO_LOCAL = FOTO_LOCAL_URL;
 
 const esRutaAbsoluta = (url) =>
     /^[A-Za-z]:[\\\/]/.test(url) || String(url || '').startsWith('/');

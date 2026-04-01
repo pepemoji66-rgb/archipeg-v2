@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import './modalzoom.css';
+import { API_BASE_URL } from '../config';
 
-const API = 'http://localhost:5001/api';
+const API = `${API_BASE_URL}/api`;
 
 const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqueda, onFavoritoToggle }) => {
+    const navigate = useNavigate();
     const [escala, setEscala] = useState(1);
     const [rotacion, setRotacion] = useState(0); // Nuevo estado para el giro
     const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -272,9 +275,12 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                         src={getFotoUrl(fotoLocal)}
                         alt=""
                         draggable="false"
+                        onDragStart={e => e.preventDefault()}
                         style={{
                             transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
-                            transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                            transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            userSelect: 'none',
+                            WebkitUserDrag: 'none'
                         }}
                     />
 
@@ -438,6 +444,12 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                         <button className="btn-accion-modal" onClick={() => setModoEdicion(m => !m)}>
                             {modoEdicion ? '✕ Cancelar' : '✏️ Editar'}
                         </button>
+                        
+                        {(fotoLocal.latitud && fotoLocal.longitud) && (
+                            <button className="btn-accion-modal" onClick={() => navigate(`/mapa?fotoId=${fotoLocal.id}`)} style={{background: 'rgba(255, 170, 0, 0.4)', color: '#ffaa00', border: '1px solid #ffaa00'}}>
+                                📍 Ver en Mapa
+                            </button>
+                        )}
 
                         <button className="btn-accion-modal" onClick={toggleFav}>
                             {fotoLocal.favorito ? '⭐ Favorito' : '☆ Favorito'}

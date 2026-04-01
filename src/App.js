@@ -16,6 +16,7 @@ import Tags from './components/Tags';
 import './App.css';
 import Duplicados from './components/Duplicados';
 import Usuarios from './components/Usuarios';
+import Mapa from './components/Mapa';
 
 const withLayout = (Component) => (props) => (
     <Layout><Component {...props} /></Layout>
@@ -33,6 +34,7 @@ const FavoritosL = withLayout(Favoritos);
 const TagsL = withLayout(Tags);
 const DuplicadosL = withLayout(Duplicados);
 const UsuariosL = withLayout(Usuarios);
+const MapaL = withLayout(Mapa);
 
 function RutaAdmin({ children }) {
     const { usuario } = useAuth();
@@ -56,6 +58,7 @@ function AppRoutes() {
     return (
         <Routes>
             <Route path="/" element={<Indice />} />
+            <Route path="/galeria" element={<GaleriaL />} />
             <Route path="/galeria-completa" element={<GaleriaL />} />
             <Route path="/anio/:anio" element={<VistaAnioL />} />
             <Route path="/galeria/:anio" element={<VistaAnioL />} />
@@ -69,6 +72,7 @@ function AppRoutes() {
             <Route path="/personas" element={<PersonasL />} />
             <Route path="/favoritos" element={<FavoritosL />} />
             <Route path="/tags" element={<TagsL />} />
+            <Route path="/mapa" element={<MapaL />} />
         </Routes>
     );
 }

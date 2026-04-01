@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
-import './usuarios.css';
+import { API_BASE_URL } from '../config';
 
-const API = 'http://localhost:5001/api';
+const API = `${API_BASE_URL}/api`;
 
 export default function Usuarios() {
     const navigate = useNavigate();

@@ -11,13 +11,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './menu.css';
+import { API_BASE_URL } from '../config';
 
 const Menu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [anios, setAnios] = useState([]);
 
     useEffect(() => {
-        axios.get('http://localhost:5001/api/anios')
+        axios.get(`${API_BASE_URL}/api/anios`)
             .then(res => {
                 const aniosUnicos = res.data.map(item => item.anio).sort((a, b) => b - a);
                 setAnios(aniosUnicos);
