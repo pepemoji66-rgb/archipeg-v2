@@ -959,13 +959,35 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-// --- GESTIÓN DE USUARIOS (ADMIN ONLY) ---
+// --- GESTIÓN DE USUARIOS (ADMIN ONLY) con Paginación Real ---
 app.get('/api/usuarios', async (req, res) => {
     try {
         if (!req.esAdmin) return res.status(403).json({ error: 'Acceso denegado' });
-        const usuarios = await db.all("SELECT id, email, es_admin, aprobado, creado_en FROM usuarios ORDER BY id ASC");
-        res.json(usuarios);
-    } catch (err) { res.status(500).json(err); }
+        
+        // Parámetros de paginación
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        // 1. Obtener el total para calcular páginas en el frontend
+        const { count } = await db.get("SELECT COUNT(*) as count FROM usuarios");
+        
+        // 2. Obtener solo los de esta página
+        const usuarios = await db.all(
+            "SELECT id, email, es_admin, aprobado, creado_en FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?",
+            [limit, offset]
+        );
+
+        res.json({
+            usuarios,
+            total: count,
+            pagina: page,
+            paginas: Math.ceil(count / limit)
+        });
+    } catch (err) { 
+        console.error("Error en paginación de usuarios:", err);
+        res.status(500).json(err); 
+    }
 });
 
 app.patch('/api/usuarios/:id/aprobar', async (req, res) => {

@@ -1,213 +1,261 @@
 .usuarios-container {
     padding: 2.5rem;
     min-height: 100vh;
-    background: #050505;
+    background: #020205; /* Blacker background for more contrast */
     color: #e0e0e0;
+    font-family: 'Poppins', sans-serif;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .usuarios-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2.5rem;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-    padding-bottom: 1rem;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+    background: linear-gradient(90deg, transparent, rgba(0, 242, 255, 0.03), transparent);
 }
 
 .usuarios-title {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin: 0;
     color: #fff;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    letter-spacing: 4px;
+    font-weight: 600;
+    text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+    position: relative;
+}
+
+.usuarios-title::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background: #00f2ff;
+    box-shadow: 0 0 10px #00f2ff;
 }
 
 .usuarios-card {
-    background: #0a0a1a;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.05);
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 242, 255, 0.1);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
-/* Tabla nativa premium */
+/* Tabla Nativa Premium */
 .table-responsive {
     overflow-x: auto;
     width: 100%;
+    margin-top: 1rem;
 }
 
 .usuarios-table {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 10px;
+    border-spacing: 0 12px; /* Separation between rows */
 }
 
 .usuarios-table th {
     text-align: left;
-    padding: 15px;
-    color: #cf00f1;
+    padding: 1.2rem 1.5rem;
+    color: #00f2ff;
     font-weight: 600;
-    letter-spacing: 1px;
-    border-bottom: 1px solid rgba(207, 0, 241, 0.3);
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    opacity: 0.8;
 }
 
 .usuarios-table td {
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.2rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
     vertical-align: middle;
     color: #fff;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
 }
 
+/* Bordes redondeados por fila */
 .usuarios-table tr td:first-child {
     border-left: 1px solid rgba(255, 255, 255, 0.05);
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
 }
 
 .usuarios-table tr td:last-child {
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 
+/* Efecto Hover en Fila */
 .usuarios-table tr:hover td {
-    background: rgba(0, 255, 255, 0.05);
-    border-color: rgba(0, 255, 255, 0.2);
-    transition: all 0.3s ease;
+    background: rgba(0, 242, 255, 0.07);
+    border-top-color: rgba(0, 242, 255, 0.2);
+    border-bottom-color: rgba(0, 242, 255, 0.2);
+    transform: scale(1.005);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Badges */
+.usuarios-table tr:hover td:first-child { border-left-color: rgba(0, 242, 255, 0.2); }
+.usuarios-table tr:hover td:last-child { border-right-color: rgba(0, 242, 255, 0.2); }
+
+/* Badges de Estado */
 .badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 6px; /* Squarer for more professional look */
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     display: inline-block;
 }
 
 .badge-green {
-    background: rgba(0, 255, 128, 0.1);
+    background: rgba(0, 255, 128, 0.08);
     color: #00ff80;
-    border: 1px solid #00ff80;
-    box-shadow: 0 0 8px rgba(0, 255, 128, 0.2);
+    border: 1px solid rgba(0, 255, 128, 0.4);
+    box-shadow: inset 0 0 10px rgba(0, 255, 128, 0.1);
 }
 
 .badge-red {
-    background: rgba(255, 0, 68, 0.1);
-    color: #ff0044;
-    border: 1px solid #ff0044;
-    box-shadow: 0 0 8px rgba(255, 0, 68, 0.2);
+    background: rgba(255, 68, 68, 0.08);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.4);
 }
 
 .badge-role {
-    background: rgba(207, 0, 241, 0.1);
-    color: #cf00f1;
-    border: 1px solid #cf00f1;
+    background: rgba(188, 0, 255, 0.08);
+    color: #bc00ff;
+    border: 1px solid rgba(188, 0, 255, 0.4);
+    box-shadow: 0 0 10px rgba(188, 0, 255, 0.1);
 }
 
 .badge-role-user {
-    background: rgba(0, 255, 255, 0.1);
-    color: #00ffff;
-    border: 1px solid #00ffff;
+    background: rgba(0, 242, 255, 0.08);
+    color: #00f2ff;
+    border: 1px solid rgba(0, 242, 255, 0.4);
 }
 
-/* Buttons */
+/* Botones de Acción (Acciones de Poder) */
 .td-acciones {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .btn-usr-action {
-    background: transparent;
-    border: 1px solid #00ffff;
-    color: #00ffff;
-    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    padding: 8px 14px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8rem;
-    transition: 0.3s ease;
+    font-size: 0.7rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    font-weight: bold;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .btn-usr-action:hover:not(:disabled) {
-    background: #00ffff;
-    color: #000;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
-}
-
-.btn-usr-action.danger {
-    border-color: #ff0044;
-    color: #ff0044;
+    background: rgba(0, 242, 255, 0.15);
+    border-color: #00f2ff;
+    color: #00f2ff;
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .btn-usr-action.danger:hover:not(:disabled) {
-    background: #ff0044;
-    color: #fff;
-    box-shadow: 0 0 15px rgba(255, 0, 68, 0.4);
-}
-
-.btn-usr-action.purple {
-    border-color: #cf00f1;
-    color: #cf00f1;
+    background: rgba(255, 68, 68, 0.2);
+    border-color: #ff4444;
+    color: #ff4444;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
 }
 
 .btn-usr-action.purple:hover:not(:disabled) {
-    background: #cf00f1;
-    color: #fff;
-    box-shadow: 0 0 15px rgba(207, 0, 241, 0.4);
+    background: rgba(188, 0, 255, 0.2);
+    border-color: #bc00ff;
+    color: #bc00ff;
+    box-shadow: 0 0 15px rgba(188, 0, 255, 0.3);
 }
 
 .btn-usr-action:disabled {
-    opacity: 0.5;
+    opacity: 0.3;
     cursor: not-allowed;
-    border-color: #555;
-    color: #555;
+    filter: grayscale(1);
 }
 
-/* Paginación */
+/* Botón Volver Neon */
+.btn-volver-neon {
+    background: transparent;
+    border: 1px solid #00f2ff;
+    color: #00f2ff;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+}
+
+.btn-volver-neon:hover {
+    background: #00f2ff;
+    color: #000;
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.6);
+}
+
+/* Paginación Futura */
 .paginacion-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
-    margin-top: 2rem;
+    gap: 20px;
+    margin-top: 3rem;
+    padding: 1rem;
 }
 
 .paginacion-btn {
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid #00ffff;
-    color: #00ffff;
-    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px 20px;
     border-radius: 8px;
     cursor: pointer;
     transition: 0.3s;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 .paginacion-btn:hover:not(:disabled) {
-    background: #00ffff;
+    background: #00f2ff;
     color: #000;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
-}
-
-.paginacion-btn:disabled {
-    opacity: 0.3;
-    border-color: #555;
-    color: #555;
-    cursor: not-allowed;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
 }
 
 .paginacion-info {
-    color: #fff;
-    font-size: 0.9rem;
+    color: #888;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+}
+
+/* ID Highlight */
+.usuarios-table strong {
+    color: #00f2ff;
     font-family: monospace;
+    font-size: 1.1rem;
+    margin-right: 5px;
 }

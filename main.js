@@ -131,7 +131,7 @@ function createWindow() {
     win.loadFile(indexPath);
 
     // Abrimos consola para cazar errores en vivo
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
 
     win.on('closed', () => {
         if (serverProcess) serverProcess.kill();

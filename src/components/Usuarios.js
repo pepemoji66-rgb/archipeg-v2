@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
 import { API_BASE_URL } from '../config';
+import './usuarios.css';
 
 const API = `${API_BASE_URL}/api`;
 
@@ -9,18 +10,21 @@ export default function Usuarios() {
     const navigate = useNavigate();
     const [usuarios, setUsuarios] = useState([]);
     const [cargando, setCargando] = useState(false);
+    const [totalUsuarios, setTotalUsuarios] = useState(0); // Para saber cuántos hay en total
     
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1);
     const limite = 10;
 
-    const cargarUsuarios = async () => {
+    const cargarUsuarios = async (page = 1) => {
         setCargando(true);
         try {
-            const res = await apiFetch(`${API}/usuarios`);
+            // Ahora le pedimos al servidor solo la página que queremos
+            const res = await apiFetch(`${API}/usuarios?page=${page}&limit=${limite}`);
             if (res.ok) {
                 const data = await res.json();
-                setUsuarios(Array.isArray(data) ? data : []);
+                setUsuarios(data.usuarios || []); // Guardamos solo los de esta página
+                setTotalUsuarios(data.total || 0); // Guardamos cuantos hay en TOTAL
             }
         } catch (error) {
             console.error("Error al cargar usuarios:", error);
@@ -30,8 +34,11 @@ export default function Usuarios() {
     };
 
     useEffect(() => {
-        cargarUsuarios();
-    }, []);
+        cargarUsuarios(paginaActual);
+    }, [paginaActual]);
+
+    // --- ACCIONES (Mantienen la lógica pero recargan la página actual si es necesario) ---
+    // (Opcional: Si eliminas un usuario, podrías volver a cargarUsuarios(paginaActual))
 
     const toggleAprobacion = async (id, actual) => {
         try {
@@ -39,12 +46,8 @@ export default function Usuarios() {
             if (res.ok) {
                 const { aprobado } = await res.json();
                 setUsuarios(prev => prev.map(u => u.id === id ? { ...u, aprobado } : u));
-            } else {
-                alert("Error al cambiar la aprobación.");
             }
-        } catch (_) {
-            alert("Error de red.");
-        }
+        } catch (_) {}
     };
 
     const toggleAdmin = async (id, actual) => {
@@ -56,35 +59,24 @@ export default function Usuarios() {
             if (res.ok) {
                 const { es_admin } = await res.json();
                 setUsuarios(prev => prev.map(u => u.id === id ? { ...u, es_admin } : u));
-            } else {
-                alert("Error al cambiar el rol.");
             }
-        } catch (_) {
-            alert("Error de red.");
-        }
+        } catch (_) {}
     };
 
     const borrarUsuario = async (id) => {
-        if (!window.confirm("¿Seguro que deseas eliminar definitivamente a este usuario? Esta acción no se puede deshacer.")) return;
+        if (!window.confirm("¿Seguro que deseas eliminar definitivamente a este usuario?")) return;
         try {
             const res = await apiFetch(`${API}/usuarios/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                setUsuarios(prev => prev.filter(u => u.id !== id));
-            } else {
-                const err = await res.json();
-                alert(err.error || "Error al eliminar usuario.");
+                // Si borramos, mejor recargamos la página para que la lista se reorganice
+                cargarUsuarios(paginaActual);
             }
-        } catch (_) {
-            alert("Error de red.");
-        }
+        } catch (_) {}
     };
 
-    // Cálculos de Paginación
-    const totalPaginas = Math.ceil(usuarios.length / limite);
-    const paginados = useMemo(() => {
-        const inicio = (paginaActual - 1) * limite;
-        return usuarios.slice(inicio, inicio + limite);
-    }, [usuarios, paginaActual, limite]);
+    // Cálculos de Paginación REAL (Basados en el total que nos da el servidor)
+    const totalPaginas = Math.ceil(totalUsuarios / limite);
+    const paginados = usuarios; // Ahora 'usuarios' YA viene filtrado por el servidor
 
     return (
         <div className="usuarios-container">
