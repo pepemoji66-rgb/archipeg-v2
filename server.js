@@ -1,9 +1,4 @@
-/**
- * =============================================================================
- * SOFTWARE: ARCHIPEG PRO - MOTOR INTEGRAL AUTÓNOMO
- * COPYRIGHT © 2026 - JOSE MORENO JIMENEZ
- * =============================================================================
- */
+console.log("🚀 ARCHIPEG PRO: Motor Integral arrancando...");
 
 const express = require('express');
 const sqlite3 = require('sqlite3');
@@ -51,19 +46,23 @@ const basePath = process.env.ARCHIPEG_DATA_DIR || __dirname;
 const dirDestino = path.join(basePath, 'fotos_archipeg');
 
 // Si no existe la carpeta, la crea automáticamente (asegurando recursividad)
-if (!fs.existsSync(dirDestino)) {
-    fs.mkdirSync(dirDestino, { recursive: true });
+try {
+    if (!fs.existsSync(dirDestino)) {
+        fs.mkdirSync(dirDestino, { recursive: true });
+    }
+} catch (e) {
+    console.warn("⚠️ Advertencia: No se pudo crear fotos_archipeg (puede ser solo lectura)");
 }
 app.use('/uploads', express.static(dirDestino));
 
 // 🔵 SERVIR DESCARGAS: El puente para el instalador
 const dirDescargas = path.join(basePath, 'downloads');
-if (!fs.existsSync(dirDescargas)) {
-    try {
+try {
+    if (!fs.existsSync(dirDescargas)) {
         fs.mkdirSync(dirDescargas, { recursive: true });
-    } catch (e) {
-        console.error("Error al crear carpeta downloads:", e);
     }
+} catch (e) {
+    console.warn("⚠️ Advertencia: No se pudo crear downloads");
 }
 app.use('/downloads', express.static(dirDescargas));
 
