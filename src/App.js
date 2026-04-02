@@ -12,7 +12,6 @@ import AlbumDetalle from './components/AlbumDetalle';
 import Eventos from './components/Eventos';
 import Personas from './components/Personas';
 import Favoritos from './components/Favoritos';
-import Tags from './components/Tags';
 import './App.css';
 import Duplicados from './components/Duplicados';
 import Usuarios from './components/Usuarios';
@@ -31,7 +30,6 @@ const AlbumDetalleL = withLayout(AlbumDetalle);
 const EventosL = withLayout(Eventos);
 const PersonasL = withLayout(Personas);
 const FavoritosL = withLayout(Favoritos);
-const TagsL = withLayout(Tags);
 const DuplicadosL = withLayout(Duplicados);
 const UsuariosL = withLayout(Usuarios);
 const MapaL = withLayout(Mapa);
@@ -71,7 +69,6 @@ function AppRoutes() {
             <Route path="/eventos" element={<EventosL />} />
             <Route path="/personas" element={<PersonasL />} />
             <Route path="/favoritos" element={<FavoritosL />} />
-            <Route path="/tags" element={<TagsL />} />
             <Route path="/mapa" element={<MapaL />} />
         </Routes>
     );

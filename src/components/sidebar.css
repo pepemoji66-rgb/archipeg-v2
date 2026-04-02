@@ -305,3 +305,52 @@
     box-shadow: 0 0 20px #00ff88;
     transform: scale(1.02);
 }
+
+/* =========================================================
+   TOP BAR - NAVEGACIÓN GLOBAL
+   ========================================================= */
+.app-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 30px;
+    background: rgba(10, 11, 46, 0.6);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--borde);
+    z-index: 99;
+}
+
+.top-bar-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--borde);
+    color: var(--texto-secundario);
+    padding: 6px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.top-bar-btn:hover {
+    background: var(--hover-elevado);
+    color: var(--acento);
+    border-color: var(--acento);
+    box-shadow: 0 0 10px var(--acento-suave);
+}
+
+.top-bar-spacer {
+    flex: 1;
+}
+
+.top-bar-brand {
+    font-size: 0.75rem;
+    color: var(--acento);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+}

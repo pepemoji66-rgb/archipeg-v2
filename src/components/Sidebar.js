@@ -69,11 +69,19 @@ const Sidebar = () => {
             </div>
 
             <nav className="sidebar-nav">
-                <div className="sidebar-section-label">Biblioteca</div>
+                <div className="sidebar-section-label">General</div>
                 <Link to="/galeria-completa" className={`sidebar-item ${isActive('/galeria-completa') ? 'active' : ''}`}>
-                    <span className="sidebar-item-icon">🖼️</span> Todas las fotos
-                    <span className="sidebar-item-badge">{conteos.fotos}</span>
+                    <span className="sidebar-item-icon">🏠</span> Inicio / Galería
                 </Link>
+                <button 
+                    className="sidebar-item" 
+                    style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}
+                    onClick={() => window.location.reload()}
+                >
+                    <span className="sidebar-item-icon">🔄</span> Refrescar Sistema
+                </button>
+
+                <div className="sidebar-section-label">Biblioteca</div>
                 <Link to="/duplicados" className={`sidebar-item ${isActive('/duplicados') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🧬</span> Duplicados
                 </Link>
@@ -99,9 +107,6 @@ const Sidebar = () => {
                 <div className="sidebar-section-label">Explorar</div>
                 <Link to="/mapa" className={`sidebar-item ${isActive('/mapa') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">📍</span> Mapa Satelital
-                </Link>
-                <Link to="/tags" className={`sidebar-item ${isActive('/tags') ? 'active' : ''}`}>
-                    <span className="sidebar-item-icon">🏷️</span> Tags
                 </Link>
 
                 <div className="sidebar-section-label">Sistema</div>

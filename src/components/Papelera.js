@@ -93,20 +93,12 @@ const Papelera = () => {
     };
 
     return (
-        <div className="admin-container">
-            {/* MARGEN PARA EL MENÚ LATERAL */}
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-
-                <header className="admin-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <button onClick={() => navigate('/galeria-completa')} className="btn-volver-neon">
-                            ⬅ VOLVER
-                        </button>
-                        <div>
-                            <h1 className="admin-title">🗑️ PAPELERA DE RECICLAJE</h1>
-                            <span className="section-title" style={{ fontSize: '0.65rem', color: '#ff4444' }}>ZONA DE ELIMINACIÓN TEMPORAL</span>
-                        </div>
-                    </div>
+        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
+            <header className="admin-header">
+                <div>
+                    <h1 className="admin-title">🗑️ PAPELERA DE RECICLAJE</h1>
+                    <span className="section-title" style={{ fontSize: '0.65rem', color: '#ff4444' }}>ZONA DE ELIMINACIÓN TEMPORAL</span>
+                </div>
 
                     <div style={{ display: 'flex', gap: '10px' }}>
                         {seleccionadas.length > 0 && (
@@ -208,7 +200,6 @@ const Papelera = () => {
                     )}
                 </main>
             </div>
-        </div>
     );
 };
 

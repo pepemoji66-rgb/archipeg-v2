@@ -2,11 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ModalZoom from './ModalZoom';
 import './galeria.css';
 
-import { API_BASE_URL, UPLOADS_URL } from '../config';
+import { apiFetch } from '../api';
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
 
 const API = `${API_BASE_URL}/api`;
 const URL_FOTOS = UPLOADS_URL;
-const getFotoUrl = (foto) => foto?.imagen_url ? URL_FOTOS + foto.imagen_url.trim().replace(/ /g,'%20') : '';
+const URL_FOTO_LOCAL = FOTO_LOCAL_URL;
+
+const esRutaAbsoluta = (url) =>
+    /^[A-Za-z]:[\\\/]/.test(url) || url.startsWith('/');
+
+const getFotoUrl = (foto) => {
+    if (!foto?.imagen_url) return '';
+    const url = foto.imagen_url.trim();
+    if (esRutaAbsoluta(url)) {
+        return URL_FOTO_LOCAL + encodeURIComponent(url);
+    }
+    return URL_FOTOS + url.replace(/ /g, '%20').replace(/\\/g, '/');
+};
 
 const Favoritos = () => {
     const [fotos, setFotos] = useState([]);
@@ -14,7 +27,7 @@ const Favoritos = () => {
 
     const cargar = useCallback(async () => {
         try {
-            const res = await fetch(`${API}/favoritos`);
+            const res = await apiFetch(`${API}/favoritos`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             setFotos(await res.json());
         } catch (e) { console.error(e); }
@@ -24,7 +37,7 @@ const Favoritos = () => {
 
     const borrar = async (id) => {
         if (!window.confirm('¿Mover a la papelera?')) return;
-        await fetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
+        await apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
         setFotoZoom(null);
         cargar();
     };
@@ -37,8 +50,9 @@ const Favoritos = () => {
     };
 
     return (
-        <div className="galeria-layout">
+        <div className="galeria-layout" style={{ padding: '0 20px 20px' }}>
             <header className="galeria-header">
+                <button className="btn-header-neon" onClick={() => window.history.back()}>⬅ ATRÁS</button>
                 <h1 className="galeria-titulo">⭐ Favoritos</h1>
             </header>
 

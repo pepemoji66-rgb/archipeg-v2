@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../api';
 import { API_BASE_URL } from '../config';
 
 const API = `${API_BASE_URL}/api`;
@@ -9,18 +12,21 @@ const Tags = () => {
     useEffect(() => {
         apiFetch(`${API}/tags`)
             .then(r => r.json())
-            .then(setTags)
-            .catch((err) => console.error("Error en el escaneo de etiquetas:", err));
+            .then(data => {
+                if (Array.isArray(data)) setTags(data);
+                else setTags([]);
+            })
+            .catch((err) => {
+                console.error("Error en el escaneo de etiquetas:", err);
+                setTags([]);
+            });
     }, []);
 
     const maxTotal = tags[0]?.total || 1;
 
     return (
-        <div className="admin-container">
-            {/* MARGEN PARA EL MENÚ LATERAL */}
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-
-                <header className="admin-header">
+        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
+            <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">🏷️ TAGS</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>INDEXACIÓN DE METADATOS</span>
@@ -91,7 +97,6 @@ const Tags = () => {
                     </div>
                 )}
             </div>
-        </div>
     );
 };
 

@@ -507,9 +507,16 @@ const Galeria = () => {
                             )}
 
                             {!modoSeleccion && (
-                                <button className="foto-card-fav" onClick={e => toggleFavorito(e, foto)}>
-                                    {foto.favorito ? '⭐' : '☆'}
-                                </button>
+                                <div className="foto-card-actions">
+                                    <button className="foto-card-fav" onClick={e => toggleFavorito(e, foto)} title={foto.favorito ? "Quitar de favoritos" : "Añadir a favoritos"}>
+                                        {foto.favorito ? '⭐' : '☆'}
+                                    </button>
+                                    {foto.latitud && (
+                                        <button className="foto-card-map" onClick={e => { e.stopPropagation(); navigate(`/mapa?fotoId=${foto.id}`); }} title="Ver en Mapa">
+                                            📍
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     );

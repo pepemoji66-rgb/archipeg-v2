@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ModalZoom from './ModalZoom';
-import './admin.css'; // Unificamos con el estilo neón del admin
-
-import { API_BASE_URL, UPLOADS_URL } from '../config';
+import { apiFetch } from '../api';
+import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
+import './admin.css';
 
 const API = `${API_BASE_URL}/api`;
 const URL_FOTOS = UPLOADS_URL;
-const getFotoUrl = (foto) => foto?.imagen_url ? URL_FOTOS + foto.imagen_url.trim().replace(/ /g, '%20') : '';
+const URL_FOTO_LOCAL = FOTO_LOCAL_URL;
+
+const esRutaAbsoluta = (url) =>
+    /^[A-Za-z]:[\\\/]/.test(url) || String(url || '').startsWith('/');
+
+const getFotoUrl = (foto) => {
+    if (!foto?.imagen_url) return '';
+    const url = String(foto.imagen_url).trim();
+    if (esRutaAbsoluta(url)) return URL_FOTO_LOCAL + encodeURIComponent(url);
+    return URL_FOTOS + url.replace(/ /g, '%20').replace(/\\/g, '/');
+};
 
 const Personas = () => {
     const [personas, setPersonas] = useState([]);
@@ -18,7 +28,7 @@ const Personas = () => {
 
     const cargar = useCallback(async () => {
         try {
-            const res = await fetch(`${API}/personas`);
+            const res = await apiFetch(`${API}/personas`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             setPersonas(await res.json());
         } catch (e) { console.error(e); }
@@ -28,14 +38,14 @@ const Personas = () => {
 
     const abrirPersona = async (persona) => {
         setPersonaActiva(persona);
-        const res = await fetch(`${API}/personas/${persona.id}/fotos`);
+        const res = await apiFetch(`${API}/personas/${persona.id}/fotos`);
         setFotos(await res.json());
     };
 
     const crear = async (e) => {
         e.preventDefault();
         if (!nombre.trim()) return;
-        await fetch(`${API}/personas`, {
+        await apiFetch(`${API}/personas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre: nombre.trim() })
@@ -45,7 +55,7 @@ const Personas = () => {
 
     const eliminar = async (id) => {
         if (!window.confirm('¿ELIMINAR ESTE REGISTRO BIOMÉTRICO?')) return;
-        await fetch(`${API}/personas/${id}`, { method: 'DELETE' });
+        await apiFetch(`${API}/personas/${id}`, { method: 'DELETE' });
         if (personaActiva?.id === id) { setPersonaActiva(null); setFotos([]); }
         cargar();
     };
@@ -59,19 +69,13 @@ const Personas = () => {
 
     // VISTA DETALLE: FOTOS DE LA PERSONA
     if (personaActiva) return (
-        <div className="admin-container">
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-                <header className="admin-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <button className="btn-volver-neon" onClick={() => { setPersonaActiva(null); setFotos([]); }}>
-                            ⬅ VOLVER
-                        </button>
-                        <div>
-                            <h1 className="admin-title">👤 {personaActiva.nombre.toUpperCase()}</h1>
-                            <span className="section-title" style={{ fontSize: '0.65rem' }}>SUJETO IDENTIFICADO</span>
-                        </div>
-                    </div>
-                </header>
+        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
+            <header className="admin-header">
+                <div>
+                    <h1 className="admin-title">👤 {personaActiva.nombre.toUpperCase()}</h1>
+                    <span className="section-title" style={{ fontSize: '0.65rem' }}>SUJETO IDENTIFICADO</span>
+                </div>
+            </header>
 
                 {fotos.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '100px', opacity: 0.5 }}>
@@ -95,9 +99,9 @@ const Personas = () => {
                         onClose={() => setFotoZoom(null)}
                         onNavigate={navegar}
                         onBorrar={async (id) => {
-                            await fetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
+                            await apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' });
                             setFotoZoom(null);
-                            const r = await fetch(`${API}/personas/${personaActiva.id}/fotos`);
+                            const r = await apiFetch(`${API}/personas/${personaActiva.id}/fotos`);
                             setFotos(await r.json());
                         }}
                         getFotoUrl={getFotoUrl}
@@ -105,14 +109,12 @@ const Personas = () => {
                     />
                 )}
             </div>
-        </div>
     );
 
     // VISTA PRINCIPAL: LISTADO DE PERSONAS
     return (
-        <div className="admin-container">
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-                <header className="admin-header">
+        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
+            <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">👤 PERSONAS</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>BASE DE DATOS DE SUJETOS</span>
@@ -164,7 +166,6 @@ const Personas = () => {
                     </div>
                 )}
             </div>
-        </div>
     );
 };
 

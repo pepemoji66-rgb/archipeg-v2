@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useSearchParams } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
@@ -19,12 +19,53 @@ const neonIcon = new L.DivIcon({
     iconAnchor: [10, 10]
 });
 
-// Componente para ajustar la vista al cargar fotos
-function ChangeView({ center, zoom }) {
+// Icono neón para la foto seleccionada (más grande y color diferente)
+const activeNeonIcon = new L.DivIcon({
+    className: 'custom-div-icon',
+    html: "<div class='custom-marker-neon active-marker'></div>",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
+
+// Componente para ajustar la vista al cargar fotos o ir a una específica
+function MapController({ center, zoom, fotoId, markersRef }) {
     const map = useMap();
+    
     useEffect(() => {
-        if (center) map.setView(center, zoom);
-    }, [center, zoom, map]);
+        if (!center) return;
+        
+        if (fotoId) {
+            // Vuelo suave (flyTo) si venimos buscando una foto concreta
+            map.flyTo(center, 18, { animate: true, duration: 1.5 });
+            
+            // Retraso pequeño para que el vuelo termine o empiece antes de abrir el popup
+            const timer = setTimeout(() => {
+                const marker = markersRef.current[fotoId];
+                if (marker) {
+                    marker.openPopup();
+                }
+            }, 1600);
+            return () => clearTimeout(timer);
+        } else {
+            map.setView(center, zoom);
+        }
+    }, [center, zoom, map, fotoId, markersRef]);
+    
+    return null;
+}
+
+// NUEVO: Componente para detectar el área visible y filtrar marcadores
+function ViewportNotifier({ onBoundsChange }) {
+    const map = useMapEvents({
+        moveend: () => onBoundsChange(map.getBounds()),
+        zoomend: () => onBoundsChange(map.getBounds())
+    });
+    
+    // Al montar (primera carga), notificamos el área inicial
+    useEffect(() => {
+        onBoundsChange(map.getBounds());
+    }, []);
+
     return null;
 }
 
@@ -37,6 +78,10 @@ const Mapa = () => {
     const [cargando, setCargando] = useState(true);
     const [centro, setCentro] = useState([40.4168, -3.7038]); // Madrid por defecto
     const [zoom, setZoom] = useState(5);
+    const [visibleBounds, setVisibleBounds] = useState(null);
+    
+    // Referencias para los marcadores para poder abrir los popups programáticamente
+    const markersRef = React.useRef({});
 
     useEffect(() => {
         apiFetch(`${API}/fotos-mapa`)
@@ -76,8 +121,8 @@ const Mapa = () => {
     };
 
     return (
-        <div className="admin-container">
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
+        <div className="admin-container" style={{ padding: 0 }}>
+            <div style={{ width: '100%', padding: '20px' }}>
                 <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">🛰️ MAPA SATELITAL PRO</h1>
@@ -96,8 +141,10 @@ const Mapa = () => {
                             zoom={zoom} 
                             className="mapa-leaflet-container"
                             zoomControl={true}
+                            preferCanvas={false} // Cambiado a false para poder usar Refs en los marcadores con Popup automáticos
                         >
-                            <ChangeView center={centro} zoom={zoom} />
+                            <MapController center={centro} zoom={zoom} fotoId={fotoIdUrl} markersRef={markersRef} />
+                            <ViewportNotifier onBoundsChange={setVisibleBounds} />
                             
                             {/* CAPA DE SATÉLITE (ESRI WORLD IMAGERY) */}
                             <TileLayer
@@ -105,14 +152,23 @@ const Mapa = () => {
                                 attribution='&copy; <a href="https://www.esri.com/">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
                             />
 
-                            {fotos.map(foto => {
+                            {fotos
+                                .filter(f => {
+                                    if (!visibleBounds) return true; // Si no hay bounds aún, mostramos todo
+                                    // Comprobar si la foto está dentro del área visible (viewport filtering)
+                                    return visibleBounds.contains([f.latitud, f.longitud]);
+                                })
+                                .slice(0, 800) // Límite de seguridad: máximo 800 marcadores simultáneos
+                                .map(foto => {
                                 const tituloFinal = foto.titulo || (foto.imagen_url ? foto.imagen_url.split(/[\\/]/).pop() : 'FOTO SIN NOMBRE');
                                 const urlFinal = getFotoUrl(foto);
                                 return (
                                     <Marker 
                                         key={foto.id} 
                                         position={[foto.latitud, foto.longitud]}
-                                        icon={neonIcon}
+                                        icon={String(foto.id) === String(fotoIdUrl) ? activeNeonIcon : neonIcon}
+                                        ref={el => { if (el) markersRef.current[foto.id] = el; }}
+                                        zIndexOffset={String(foto.id) === String(fotoIdUrl) ? 1000 : 0}
                                     >
                                         <Popup minWidth={220} className="map-photo-popup">
                                             <div className="map-popup-card" style={{minHeight: '200px'}}>

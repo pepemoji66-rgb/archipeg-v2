@@ -90,6 +90,41 @@ const LIMITE_DEMO = 50;
 // --- IMPORTACIÓN MASIVA ---
 const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
 
+/**
+ * ESCÁNER QUIRÚRGICO DE BYTES (FALLBACK)
+ * Busca el tag 0x9C9E (XPKeywords) directamente en el buffer si el parser falla.
+ */
+function deepScanKeywords(buffer) {
+    try {
+        // Buscamos la secuencia del tag XPKeywords: 0x9C 0x9E (Little Endian en el IFD)
+        // Pero en el buffer del JPG, el tag se identifica por 9E 9C (ID del Tag)
+        for (let i = 0; i < buffer.length - 12; i++) {
+            if (buffer[i] === 0x9e && buffer[i+1] === 0x9c) {
+                // Encontrado posible tag XPKeywords
+                // Los siguientes bytes suelen ser: Tipo(1 byte), Componentes(4 bytes), Valor...
+                // XPKeywords es tipo 1 (Byte) o 7 (Undefined) y contiene UCS2
+                const type = buffer.readUInt16LE(i + 2);
+                const count = buffer.readUInt32LE(i + 4);
+                if (count > 2 && count < 2000) {
+                    const offset = buffer.readUInt32LE(i + 8);
+                    // Si el offset es pequeño, el valor está "inline" (en los 4 bytes del offset)
+                    // Si no, está en la posición 'offset'. Como solo leemos 64KB, el offset debe estar dentro.
+                    let data;
+                    if (count <= 4) data = buffer.slice(i + 8, i + 8 + count);
+                    else if (offset < buffer.length) data = buffer.slice(offset, Math.min(offset + count, buffer.length));
+                    
+                    if (data) {
+                        // Decodificar UCS-2 (UTF-16LE) y limpiar carácteres nulos
+                        const decoded = data.toString('utf16le').replace(/\0/g, '').trim();
+                        if (decoded.length > 1) return decoded.split(';').map(s => s.trim());
+                    }
+                }
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
 function extraerMetadata(ruta) {
     const info = { lat: null, lon: null, anio: null, mes: null };
     let fd;
@@ -114,6 +149,28 @@ function extraerMetadata(ruta) {
                     info.anio = date.getFullYear();
                     info.mes = date.getMonth() + 1;
                 }
+            }
+            // --- NUEVO: SOPORTE PARA TAGS AUTOMÁTICOS ---
+            const tagsEncontrados = [];
+            // XPKeywords (Windows), Keywords (Nikon/Canon), UserComment
+            if (result.tags.XPKeywords) tagsEncontrados.push(...result.tags.XPKeywords.split(';').map(t => t.trim()));
+            if (result.tags.Keywords) {
+                if (Array.isArray(result.tags.Keywords)) tagsEncontrados.push(...result.tags.Keywords);
+                else tagsEncontrados.push(...result.tags.Keywords.split(',').map(t => t.trim()));
+            }
+            if (result.tags.UserComment) {
+                 const comment = result.tags.UserComment.toString();
+                 if (comment.includes('#')) { // Tratamos de capturar hashtags si existen
+                     const matches = comment.match(/#[^\s,]+/g);
+                     if (matches) tagsEncontrados.push(...matches.map(m => m.replace('#','')));
+                 }
+            }
+            if (tagsEncontrados.length > 0) {
+                info.etiquetas = [...new Set(tagsEncontrados)].filter(t => t.length > 1).join(', ');
+            } else {
+                // --- FALLBACK: ESCANEO PROFUNDO DE BYTES ---
+                const deepTags = deepScanKeywords(buffer);
+                if (deepTags) info.etiquetas = deepTags.join(', ');
             }
         }
     } catch (e) {
@@ -448,9 +505,16 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
                 const rutaImagen = path.join(dirDestino, file.filename);
                 const meta = extraerMetadata(rutaImagen);
                 
+                // Combinar etiquetas de usuario con etiquetas EXIF si existen
+                let tagsFinales = etiquetas || "";
+                if (meta.etiquetas) {
+                    const setTags = new Set((tagsFinales.split(',').concat(meta.etiquetas.split(','))).map(t => t.trim().toLowerCase()).filter(t => t));
+                    tagsFinales = Array.from(setTags).join(', ');
+                }
+
                 await db.run(
                     "INSERT INTO fotos (titulo, anio, mes, descripcion, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, etiquetas || "", file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
+                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, tagsFinales, file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
                 );
             }
             await db.run("COMMIT");
@@ -526,6 +590,53 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Error en el re-escaneo masivo." });
+    }
+});
+
+// NUEVO: ESCANEAR ETIQUETAS MASIVO
+app.post('/api/sistema/rescan-tags', async (req, res) => {
+    try {
+        if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
+        
+        const fotos = await db.all("SELECT id, imagen_url, etiquetas FROM fotos WHERE usuario_id = ?", [req.usuario.id]);
+        let totalTagsEncontrados = 0;
+        let fotosActualizadas = 0;
+
+        await db.run("BEGIN TRANSACTION");
+        try {
+            for (const f of fotos) {
+                let rutaAbsoluta = f.imagen_url;
+                if (!path.isAbsolute(rutaAbsoluta)) {
+                    rutaAbsoluta = path.join(dirDestino, rutaAbsoluta);
+                }
+                
+                if (fs.existsSync(rutaAbsoluta)) {
+                    const meta = extraerMetadata(rutaAbsoluta);
+                    if (meta.etiquetas) {
+                        // Mezclar con los que ya tenía
+                        const tagsExistentes = f.etiquetas ? f.etiquetas.split(',') : [];
+                        const tagsNuevos = meta.etiquetas.split(',');
+                        const setTags = new Set([...tagsExistentes, ...tagsNuevos].map(t => t.trim()).filter(t => t));
+                        
+                        if (setTags.size > tagsExistentes.length) {
+                            const resultTags = Array.from(setTags).join(', ');
+                            await db.run("UPDATE fotos SET etiquetas = ? WHERE id = ?", [resultTags, f.id]);
+                            totalTagsEncontrados += (setTags.size - tagsExistentes.length);
+                            fotosActualizadas++;
+                        }
+                    }
+                }
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+
+        res.json({ message: `Indexación completada. Se han descubierto e integrado ${totalTagsEncontrados} etiquetas nuevas en ${fotosActualizadas} activos.`, actualizadas: totalTagsEncontrados });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error en la indexación masiva." });
     }
 });
 

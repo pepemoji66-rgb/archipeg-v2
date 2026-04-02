@@ -129,24 +129,54 @@
     object-fit: cover;
 }
 
-/* Favoritos (Estrella) */
-.foto-card-fav {
+/* Contenedor de acciones (Favorito/Mapa) */
+.foto-card-actions {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: rgba(0, 0, 0, 0.6) !important;
-    border: none;
-    color: #ffeb3b !important;
-    font-size: 1.2rem;
-    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     z-index: 5;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.foto-card:hover .foto-card-actions {
+    opacity: 1;
+}
+
+.foto-card-fav, .foto-card-map {
+    background: rgba(0, 0, 0, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff !important;
+    font-size: 1rem;
+    cursor: pointer;
     border-radius: 50%;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.foto-card-fav {
+    color: #ffeb3b !important;
     text-shadow: 0 0 10px #ffeb3b;
+}
+
+.foto-card-fav:hover {
+    transform: scale(1.1);
+    border-color: #ffeb3b;
+    box-shadow: 0 0 10px #ffeb3b;
+}
+
+.foto-card-map:hover {
+    transform: scale(1.1);
+    border-color: var(--cian-neon);
+    box-shadow: 0 0 10px var(--cian-neon);
 }
 
 /* Overlay Info */

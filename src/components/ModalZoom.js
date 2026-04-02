@@ -47,16 +47,16 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     }, [foto]);
 
     useEffect(() => {
-        fetch(`${API}/fotos/${foto.id}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
+        apiFetch(`${API}/fotos/${foto.id}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
     }, [foto.id]);
 
     useEffect(() => {
         Promise.all([
-            fetch(`${API}/albumes`).then(r => r.json()),
-            fetch(`${API}/eventos`).then(r => r.json()),
-            fetch(`${API}/personas`).then(r => r.json()),
-            fetch(`${API}/fotos/${foto.id}/albumes`).then(r => r.json()),
-            fetch(`${API}/fotos/${foto.id}/eventos`).then(r => r.json()),
+            apiFetch(`${API}/albumes`).then(r => r.json()),
+            apiFetch(`${API}/eventos`).then(r => r.json()),
+            apiFetch(`${API}/personas`).then(r => r.json()),
+            apiFetch(`${API}/fotos/${foto.id}/albumes`).then(r => r.json()),
+            apiFetch(`${API}/fotos/${foto.id}/eventos`).then(r => r.json()),
         ]).then(([albumes, eventos, personas, albumsFoto, eventosFoto]) => {
             setTodosAlbumes(albumes);
             setTodosEventos(eventos);
@@ -112,7 +112,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const guardarEdicion = async () => {
         try {
             // 1. Actualizar campos básicos
-            await fetch(`${API}/fotos/${fotoLocal.id}`, {
+            await apiFetch(`${API}/fotos/${fotoLocal.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -127,7 +127,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
 
             // 2. Actualizar personas (el endpoint reemplaza todas)
             const personasSelIds = editData.personas_ids || personas.map(p => p.id);
-            await fetch(`${API}/fotos/${fotoLocal.id}/personas`, {
+            await apiFetch(`${API}/fotos/${fotoLocal.id}/personas`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ persona_ids: personasSelIds })
@@ -137,28 +137,28 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
             const albumsAntes = albumsActuales.map(a => a.id);
             const albumsDespues = editData.albums_ids || albumsAntes;
             for (const id of albumsDespues.filter(id => !albumsAntes.includes(id))) {
-                await fetch(`${API}/albumes/${id}/fotos`, {
+                await apiFetch(`${API}/albumes/${id}/fotos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ foto_id: fotoLocal.id })
                 });
             }
             for (const id of albumsAntes.filter(id => !albumsDespues.includes(id))) {
-                await fetch(`${API}/albumes/${id}/fotos/${fotoLocal.id}`, { method: 'DELETE' });
+                await apiFetch(`${API}/albumes/${id}/fotos/${fotoLocal.id}`, { method: 'DELETE' });
             }
 
             // 4. Actualizar eventos
             const eventosAntes = eventosActuales.map(e => e.id);
             const eventosDespues = editData.eventos_ids || eventosAntes;
             for (const id of eventosDespues.filter(id => !eventosAntes.includes(id))) {
-                await fetch(`${API}/eventos/${id}/fotos`, {
+                await apiFetch(`${API}/eventos/${id}/fotos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ foto_id: fotoLocal.id })
                 });
             }
             for (const id of eventosAntes.filter(id => !eventosDespues.includes(id))) {
-                await fetch(`${API}/eventos/${id}/fotos/${fotoLocal.id}`, { method: 'DELETE' });
+                await apiFetch(`${API}/eventos/${id}/fotos/${fotoLocal.id}`, { method: 'DELETE' });
             }
 
             // 5. Actualizar estado local
@@ -175,7 +175,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
             setEventosActuales(todosEventos.filter(e => (editData.eventos_ids || eventosAntes).includes(e.id)));
 
             // Recargar personas
-            const nuevasPersonas = await fetch(`${API}/fotos/${fotoLocal.id}/personas`).then(r => r.json());
+            const nuevasPersonas = await apiFetch(`${API}/fotos/${fotoLocal.id}/personas`).then(r => r.json());
             setPersonas(nuevasPersonas);
 
             setModoEdicion(false);
@@ -185,7 +185,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const crearPersona = async () => {
         if (!nuevaPersona.trim()) return;
         try {
-            const res = await fetch(`${API}/personas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevaPersona.trim() }) });
+            const res = await apiFetch(`${API}/personas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevaPersona.trim() }) });
             const nueva = await res.json();
             setTodasPersonas(prev => [...prev, nueva]);
             setNuevaPersona('');
@@ -195,7 +195,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const borrarPersona = async (id) => {
         if (!window.confirm('¿Eliminar esta persona del sistema? Se quitará de todas las fotos.')) return;
         try {
-            await fetch(`${API}/personas/${id}`, { method: 'DELETE' });
+            await apiFetch(`${API}/personas/${id}`, { method: 'DELETE' });
             setTodasPersonas(prev => prev.filter(p => p.id !== id));
             setEditData(d => ({ ...d, personas_ids: (d.personas_ids !== undefined ? d.personas_ids : personas.map(p => p.id)).filter(pid => pid !== id) }));
         } catch (e) { console.error(e); }
@@ -235,7 +235,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const borrarAlbum = async (id) => {
         if (!window.confirm('¿Eliminar este álbum del sistema? Las fotos no se borrarán.')) return;
         try {
-            await fetch(`${API}/albumes/${id}`, { method: 'DELETE' });
+            await apiFetch(`${API}/albumes/${id}`, { method: 'DELETE' });
             setTodosAlbumes(prev => prev.filter(a => a.id !== id));
             setEditData(d => ({ ...d, albums_ids: (d.albums_ids !== undefined ? d.albums_ids : albumsActuales.map(a => a.id)).filter(aid => aid !== id) }));
         } catch (e) { console.error(e); }
@@ -287,7 +287,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const borrarEvento = async (id) => {
         if (!window.confirm('¿Eliminar este evento del sistema? Las fotos no se borrarán.')) return;
         try {
-            await fetch(`${API}/eventos/${id}`, { method: 'DELETE' });
+            await apiFetch(`${API}/eventos/${id}`, { method: 'DELETE' });
             setTodosEventos(prev => prev.filter(e => e.id !== id));
             setEditData(d => ({ ...d, eventos_ids: (d.eventos_ids !== undefined ? d.eventos_ids : eventosActuales.map(e => e.id)).filter(eid => eid !== id) }));
         } catch (e) { console.error(e); }
@@ -571,7 +571,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                             <button onClick={() => { setEscala(1); setPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔍 Restaurar Zoom</button>
                             <button onClick={() => { girar(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔄 Girar 90°</button>
                             {fotoLocal.latitud && (
-                                <button onClick={() => { navigate(`/mapa-interactivo?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, #00f2ff)' }}>📍 Ver en Mapa</button>
+                                <button onClick={() => { navigate(`/mapa?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, #00f2ff)' }}>📍 Ver en Mapa</button>
                             )}
                             <button onClick={() => { toggleFav(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">
                                 {fotoLocal.favorito ? "⭐ Quitar Favorito" : "🌑 Marcar Favorito"}

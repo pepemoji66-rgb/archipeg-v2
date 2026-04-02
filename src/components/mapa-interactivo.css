@@ -77,6 +77,23 @@
     100% { transform: scale(1); box-shadow: 0 0 10px #ffaa00; }
 }
 
+/* MARCADOR ACTIVO (EL QUE SE SELECCIONA) */
+.custom-marker-neon.active-marker {
+    background: #00f2ff; /* Cian brillante */
+    border: 3px solid #ff00ff; /* Borde fucsia */
+    width: 25px; /* Más grande */
+    height: 25px;
+    box-shadow: 0 0 20px #00f2ff, 0 0 40px #ff00ff;
+    animation: pulse-active 1.5s infinite;
+    z-index: 1000 !important;
+}
+
+@keyframes pulse-active {
+    0% { transform: scale(1); box-shadow: 0 0 15px #00f2ff; }
+    50% { transform: scale(1.3); box-shadow: 0 0 30px #00f2ff, 0 0 60px #ff00ff; }
+    100% { transform: scale(1); box-shadow: 0 0 15px #00f2ff; }
+}
+
 /* NUEVAS CLASES PARA EL BOCADILLO (POPUP) PRO */
 .map-popup-card {
     width: 220px;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './admin.css'; // Unificamos con el estilo maestro
-
+import { apiFetch } from '../api';
 import { API_BASE_URL } from '../config';
+import './admin.css';
 
 const API = `${API_BASE_URL}/api`;
 
@@ -11,18 +11,15 @@ const Lugares = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetch(`${API}/lugares`)
+        apiFetch(`${API}/lugares`)
             .then(r => r.json())
             .then(setLugares)
             .catch((err) => console.error("Error cargando coordenadas:", err));
     }, []);
 
     return (
-        <div className="admin-container">
-            {/* MARGEN PARA EL MENÚ LATERAL */}
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-
-                <header className="admin-header">
+        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
+            <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">📍 LUGARES</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>GEOLOCALIZACIÓN DE ACTIVOS</span>
@@ -84,7 +81,6 @@ const Lugares = () => {
                     </div>
                 )}
             </div>
-        </div>
     );
 };
 
