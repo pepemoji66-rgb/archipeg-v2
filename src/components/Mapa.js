@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { apiFetch } from '../api';
 import { useAuth } from '../AuthContext';
@@ -70,6 +70,7 @@ function ViewportNotifier({ onBoundsChange }) {
 }
 
 const Mapa = () => {
+    const navigate = useNavigate();
     const { usuario } = useAuth();
     const [searchParams] = useSearchParams();
     const fotoIdUrl = searchParams.get('fotoId');
@@ -124,9 +125,18 @@ const Mapa = () => {
         <div className="admin-container" style={{ padding: 0 }}>
             <div style={{ width: '100%', padding: '20px' }}>
                 <header className="admin-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: '100%' }}>
                         <h1 className="admin-title">🛰️ MAPA SATELITAL PRO</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>VISTA GEOGRÁFICA DE ACTIVOS</span>
+                        <div style={{ marginLeft: 'auto' }}>
+                            <button 
+                                className="map-close-floating" 
+                                onClick={() => navigate(-1)}
+                                title="Cerrar Mapa"
+                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
                 </header>
 

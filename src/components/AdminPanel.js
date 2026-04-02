@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ModalZoom from './ModalZoom';
 import './admin.css';
 import { apiFetch } from '../api';
@@ -21,6 +21,8 @@ const IS_LOCAL = window.location.hostname === 'localhost';
 
 const AdminPanel = () => {
     const { usuario, token } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const pUrl = searchParams.get('p') || '1';
 
     // --- CONFIGURACIÓN DE RED ---
     const API_URL = `${API_BASE_URL}/api`;
@@ -60,8 +62,19 @@ const AdminPanel = () => {
     const [busquedaMes, setBusquedaMes] = useState("");
     const [busquedaTitulo, setBusquedaTitulo] = useState("");
     const [aniosDb, setAniosDb] = useState([]);
-    const [paginaActual, setPaginaActual] = useState(1);
-    const [inputPage, setInputPage] = useState("1");
+    const [paginaActual, setPaginaActual] = useState(parseInt(pUrl) || 1);
+
+    // Sincronizar la URL con la página actual
+    useEffect(() => {
+        const p = searchParams.get('p');
+        if (p !== String(paginaActual)) {
+            searchParams.set('p', paginaActual);
+            // navigate({ search: searchParams.toString() }, { replace: true });
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [paginaActual, searchParams, setSearchParams]);
+
+    const [inputPage, setInputPage] = useState(pUrl);
     const fotosPorPagina = 12;
 
     const [fotoEnZoom, setFotoEnZoom] = useState(null);

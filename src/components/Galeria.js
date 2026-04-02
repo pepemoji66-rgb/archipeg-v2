@@ -33,6 +33,7 @@ const Galeria = () => {
     const anioInicial = params.get('anio') || '';
     const mesInicial = params.get('mes') || '';
     const fotoIdUrl = params.get('fotoId');
+    const pUrl = params.get('p') || '1';
 
     const [fotos, setFotos] = useState([]);
     const [busqueda, setBusqueda] = useState(qInicial);
@@ -46,7 +47,7 @@ const Galeria = () => {
     
     const [aniosDb, setAniosDb] = useState([]);
 
-    const [paginaActual, setPaginaActual] = useState(1);
+    const [paginaActual, setPaginaActual] = useState(parseInt(pUrl) || 1);
     const [saltoInput, setSaltoInput] = useState('');
     const [seleccionadas, setSeleccionadas] = useState([]);
     const [modoSeleccion, setModoSeleccion] = useState(false);
@@ -67,6 +68,15 @@ const Galeria = () => {
     const [nuevoEventoBatch, setNuevoEventoBatch] = useState('');
 
     const fotosPorPagina = 15;
+
+    // Sincronizar la URL con la página actual
+    useEffect(() => {
+        const p = params.get('p');
+        if (p !== String(paginaActual)) {
+            params.set('p', paginaActual);
+            navigate({ search: params.toString() }, { replace: true });
+        }
+    }, [paginaActual, navigate, params]);
 
     const fotosFiltradas = React.useMemo(() => {
         return fotos.filter(f => {
