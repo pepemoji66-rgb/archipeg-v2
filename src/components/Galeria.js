@@ -198,6 +198,11 @@ const Galeria = () => {
                 body: JSON.stringify({ nombre: nuevoAlbumBatch.trim(), privado: nuevoAlbumBatchPrivado })
             });
             const nuevo = await res.json();
+            // Actualizar lista local de álbumes disponibles
+            setAlbumesDisponibles(prev => {
+                if (prev.some(a => a.id === nuevo.id)) return prev;
+                return [nuevo, ...prev];
+            });
             await asignarAAlbum(nuevo.id);
             setNuevoAlbumBatch('');
             setNuevoAlbumBatchPrivado(false);
@@ -214,6 +219,11 @@ const Galeria = () => {
                 body: JSON.stringify({ nombre: nuevoEventoBatch.trim() })
             });
             const nuevo = await res.json();
+            // Actualizar lista local de eventos disponibles
+            setEventosDisponibles(prev => {
+                if (prev.some(e => e.id === nuevo.id)) return prev;
+                return [nuevo, ...prev];
+            });
             await asignarAEvento(nuevo.id);
             setNuevoEventoBatch('');
         } catch (e) {

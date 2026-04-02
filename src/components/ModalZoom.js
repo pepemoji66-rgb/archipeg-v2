@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './modalzoom.css';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../api';
 
 const API = `${API_BASE_URL}/api`;
 
@@ -27,6 +28,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const [nuevoAlbumPrivado, setNuevoAlbumPrivado] = useState(false);
     const [nuevoEvento, setNuevoEvento] = useState('');
     const [nuevoTag, setNuevoTag] = useState('');
+    const [menuOpcionesAbierto, setMenuOpcionesAbierto] = useState(false);
 
     useEffect(() => {
         setFotoLocal(foto);
@@ -87,7 +89,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
 
     const toggleFav = async () => {
         try {
-            const res = await fetch(`${API}/fotos/${fotoLocal.id}/favorito`, { method: 'PATCH' });
+            const res = await apiFetch(`${API}/fotos/${fotoLocal.id}/favorito`, { method: 'PATCH' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const { favorito } = await res.json();
             const actualizada = { ...fotoLocal, favorito };
@@ -202,9 +204,29 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const crearAlbum = async () => {
         if (!nuevoAlbum.trim()) return;
         try {
-            const res = await fetch(`${API}/albumes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevoAlbum.trim(), privado: nuevoAlbumPrivado }) });
+            const res = await apiFetch(`${API}/albumes`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ nombre: nuevoAlbum.trim(), privado: nuevoAlbumPrivado }) 
+            });
             const nuevo = await res.json();
-            setTodosAlbumes(prev => [...prev, nuevo]);
+            
+            // ASOCIACIÓN AUTOMÁTICA
+            await apiFetch(`${API}/albumes/${nuevo.id}/fotos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto_id: fotoLocal.id })
+            });
+
+            // Evitar duplicados en la lista local si el álbum ya existía
+            setTodosAlbumes(prev => {
+                if (prev.some(a => a.id === nuevo.id)) return prev;
+                // Lo ponemos al principio para que el usuario lo vea inmediatamente
+                return [nuevo, ...prev];
+            });
+
+            const r = await apiFetch(`${API}/fotos/${fotoLocal.id}/albumes`);
+            setAlbumsActuales(await r.json());
             setNuevoAlbum('');
             setNuevoAlbumPrivado(false);
         } catch (e) { console.error(e); }
@@ -222,10 +244,43 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const crearEvento = async () => {
         if (!nuevoEvento.trim()) return;
         try {
-            const res = await fetch(`${API}/eventos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: nuevoEvento.trim() }) });
+            const res = await apiFetch(`${API}/eventos`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ nombre: nuevoEvento.trim() }) 
+            });
             const nuevo = await res.json();
-            setTodosEventos(prev => [...prev, nuevo]);
+            
+            // ASOCIACIÓN AUTOMÁTICA
+            await apiFetch(`${API}/eventos/${nuevo.id}/fotos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto_id: fotoLocal.id })
+            });
+
+            // Evitar duplicados en la lista local
+            setTodosEventos(prev => {
+                if (prev.some(e => e.id === nuevo.id)) return prev;
+                // Lo ponemos al principio para visibilidad inmediata
+                return [nuevo, ...prev];
+            });
+
+            const r = await apiFetch(`${API}/fotos/${fotoLocal.id}/eventos`);
+            setEventosActuales(await r.json());
             setNuevoEvento('');
+        } catch (e) { console.error(e); }
+    };
+
+    const añadirAEventoRapido = async (eventoId) => {
+        if (!eventoId) return;
+        try {
+            await apiFetch(`${API}/eventos/${eventoId}/fotos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto_id: fotoLocal.id })
+            });
+            const r = await apiFetch(`${API}/fotos/${fotoLocal.id}/eventos`);
+            setEventosActuales(await r.json());
         } catch (e) { console.error(e); }
     };
 
@@ -417,6 +472,60 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                             </button>
                         </div>
                     )}
+  
+                    {/* ORGANIZACIÓN RÁPIDA (ÁLBUMES) - FUERA DE EDICIÓN PARA MÁS VELOCIDAD */}
+                    {/* ORGANIZACIÓN RÁPIDA (ÁLBUMES Y EVENTOS) - REFACTORIZADO */}
+                    {!modoEdicion && (
+                        <div className="modal-info-box" style={{ background: 'rgba(0, 255, 255, 0.05)', border: '1px solid rgba(0, 255, 255, 0.2)', padding:'12px', borderRadius:'10px' }}>
+                            <div className="organizador-zoom-box">
+                                {/* ÁLBUMES */}
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div className="modal-panel-label" style={{ color: 'var(--acento, #00f2ff)', marginBottom: '5px', fontSize:'0.7rem' }}>📁 ÁLBUM</div>
+                                    <select 
+                                        className="modal-edit-input" 
+                                        style={{ width: '100%', marginBottom: '5px' }}
+                                        onChange={async (e) => {
+                                            const albumId = e.target.value;
+                                            if (!albumId) return;
+                                            await apiFetch(`${API}/albumes/${albumId}/fotos`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ foto_id: fotoLocal.id })
+                                            });
+                                            const r = await apiFetch(`${API}/fotos/${fotoLocal.id}/albumes`);
+                                            setAlbumsActuales(await r.json());
+                                        }}
+                                        value=""
+                                    >
+                                        <option value="" disabled>Seleccionar álbum...</option>
+                                        {todosAlbumes.map(a => <option key={a.id} value={a.id}>{a.nombre.toUpperCase()}</option>)}
+                                    </select>
+                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                        <input className="modal-edit-input" style={{ flex: 1, fontSize: '0.75rem' }} placeholder="Nuevo álbum..." value={nuevoAlbum} onChange={e => setNuevoAlbum(e.target.value)} onKeyDown={e => e.key === 'Enter' && crearAlbum()} />
+                                        <button className="modal-edit-create-btn" onClick={crearAlbum}>+</button>
+                                    </div>
+                                </div>
+
+                                {/* EVENTOS */}
+                                <div>
+                                    <div className="modal-panel-label" style={{ color: '#ff00ff', marginBottom: '5px', fontSize:'0.7rem' }}>🎭 EVENTO</div>
+                                    <select 
+                                        className="modal-edit-input" 
+                                        style={{ width: '100%', marginBottom: '5px' }}
+                                        onChange={(e) => añadirAEventoRapido(e.target.value)}
+                                        value=""
+                                    >
+                                        <option value="" disabled>Seleccionar evento...</option>
+                                        {todosEventos.map(ev => <option key={ev.id} value={ev.id}>{ev.nombre.toUpperCase()}</option>)}
+                                    </select>
+                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                        <input className="modal-edit-input" style={{ flex: 1, fontSize: '0.75rem' }} placeholder="Nuevo evento..." value={nuevoEvento} onChange={e => setNuevoEvento(e.target.value)} onKeyDown={e => e.key === 'Enter' && crearEvento()} />
+                                        <button className="modal-edit-create-btn" onClick={crearEvento} style={{background:'#ff00ff'}}>+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {fotoLocal.descripcion && (
                         <div className="modal-info-box">
@@ -425,53 +534,58 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                         </div>
                     )}
 
-                    {(tags.length > 0 || personas.length > 0) && (
+                    {(tags.length > 0 || personas.length > 0 || albumsActuales.length > 0 || eventosActuales.length > 0) && (
                         <div className="modal-info-box">
-                            <div className="modal-panel-label">Tags / Personas</div>
+                            <div className="modal-panel-label">Categorías / Tags</div>
                             <div className="modal-tags">
-                                {tags.map((tag, i) => (
-                                    <button key={i} className="modal-tag" onClick={() => { setBusqueda(tag.trim()); onClose(); }}>
-                                        #{tag.trim()}
-                                    </button>
-                                ))}
+                                {albumsActuales.map(a => <span key={a.id} className="modal-tag" style={{ border: '1px solid #00ff55', color: '#00ff55' }}>📁 {a.nombre}</span>)}
+                                {eventosActuales.map(ev => <span key={ev.id} className="modal-tag" style={{ border: '1px solid #ff00ff', color: '#ff00ff' }}>🎭 {ev.nombre}</span>)}
+                                {tags.map((tag, i) => <button key={i} className="modal-tag" onClick={() => { setBusqueda(tag.trim()); onClose(); }}>#{tag.trim()}</button>)}
                                 {personas.map(p => <span key={p.id} className="modal-tag">👤 {p.nombre}</span>)}
                             </div>
                         </div>
                     )}
 
-                    {/* ACCIONES - ADIÓS AL FEO, HOLA NEÓN */}
-                    <div className="modal-acciones">
-                        <button className="btn-accion-modal" onClick={() => setModoEdicion(m => !m)}>
-                            {modoEdicion ? '✕ Cancelar' : '✏️ Editar'}
-                        </button>
-                        
-                        {(fotoLocal.latitud && fotoLocal.longitud) && (
-                            <button className="btn-accion-modal" onClick={() => navigate(`/mapa?fotoId=${fotoLocal.id}`)} style={{background: 'rgba(255, 170, 0, 0.4)', color: '#ffaa00', border: '1px solid #ffaa00'}}>
-                                📍 Ver en Mapa
-                            </button>
-                        )}
-
-                        <button className="btn-accion-modal" onClick={toggleFav}>
-                            {fotoLocal.favorito ? '⭐ Favorito' : '☆ Favorito'}
-                        </button>
-
-                        <button className="btn-accion-modal" onClick={girar}>
-                            🔄 Girar 90°
-                        </button>
-
-                        <button className="btn-accion-modal" onClick={descargar}>
-                            📥 Descargar
-                        </button>
-
-                        <button className="btn-accion-modal btn-borrar-modal" onClick={e => onBorrar(fotoLocal.id, e)}>
-                            🗑️ Borrar
-                        </button>
-                    </div>
-
-                    <div className="modal-zoom-info">
-                        ZOOM: {Math.round(escala * 100)}% · ID: {fotoLocal.id}
+                    <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.5, fontSize: '0.7rem' }}>
+                        Usa la rueda para zoom · Flechas para navegar
                     </div>
                 </div>
+            </div>
+
+            {/* LAS ACCIONES FLOTANTES (REEMPLAZO DE LA BARRA DE BOTONES) */}
+            <div className="modal-floating-actions" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10000 }}>
+                 <div style={{ position: 'relative' }}>
+                    <button 
+                        className="btn-cerrar-modal" 
+                        style={{ position: 'static', background: 'rgba(10,11,46,0.8)', border: '1px solid #00ffff', boxShadow: '0 0 10px rgba(0,255,255,0.2)' }}
+                        onClick={(e) => { e.stopPropagation(); setMenuOpcionesAbierto(!menuOpcionesAbierto); }}
+                    >
+                        ⋮
+                    </button>
+                    
+                    {menuOpcionesAbierto && (
+                        <div className="zoom-floating-menu" 
+                             onClick={e => e.stopPropagation()} 
+                             style={{ position: 'absolute', top: '50px', left: 0, background: '#0a0a1a', border: '1px solid #00ffff', borderRadius: '8px', zIndex: 10001, minWidth: '180px', padding: '5px', boxShadow: '0 0 20px rgba(0,255,255,0.4)', animation: 'fadeInScale 0.2s ease-out' }}
+                        >
+                            <button onClick={() => { setEscala(1); setPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔍 Restaurar Zoom</button>
+                            <button onClick={() => { girar(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔄 Girar 90°</button>
+                            {fotoLocal.latitud && (
+                                <button onClick={() => { navigate(`/mapa-interactivo?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, #00f2ff)' }}>📍 Ver en Mapa</button>
+                            )}
+                            <button onClick={() => { toggleFav(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">
+                                {fotoLocal.favorito ? "⭐ Quitar Favorito" : "🌑 Marcar Favorito"}
+                            </button>
+                            <button onClick={() => { setModoEdicion(true); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">✏️ Editar Datos</button>
+                            <button onClick={() => { descargar(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">📥 Descargar</button>
+                            <button onClick={() => { onBorrar(fotoLocal.id); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: '#ff0044' }}>🗑️ Borrar Activo</button>
+                        </div>
+                    )}
+                 </div>
+            </div>
+            
+            <div className="modal-zoom-info">
+                ZOOM: {Math.round(escala * 100)}% · ID: {fotoLocal.id}
             </div>
         </div>,
         document.body

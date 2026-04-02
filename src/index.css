@@ -185,3 +185,48 @@ body {
         font-size: 16px;
     }
 }
+
+/* --- ESTILOS NUEVOS: MENÚ FLOTANTE Y ORGANIZADOR --- */
+.floating-menu-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--texto-light);
+    padding: 10px 15px;
+    text-align: left;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 4px;
+}
+
+.floating-menu-btn:hover {
+    background: var(--acento-turquesa-ho);
+    color: var(--acento-turquesa);
+}
+
+.zoom-floating-menu {
+    animation: fadeInScale 0.2s ease-out;
+    transform-origin: top right;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.9) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.organizador-zoom-box select, 
+.organizador-zoom-box input {
+    background: rgba(0,0,0,0.4) !important;
+    border: 1px solid rgba(0, 242, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.organizador-zoom-box select:focus, 
+.organizador-zoom-box input:focus {
+    border-color: var(--acento-turquesa) !important;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+}

@@ -428,7 +428,7 @@ app.post('/api/auth/verificar-password', async (req, res) => {
 // 0. SUBIR FOTOS
 app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
     try {
-        const { titulo, anio, descripcion, etiquetas } = req.body;
+        const { titulo, anio, mes, descripcion, etiquetas, lugar } = req.body;
         const archivos = req.files;
         if (!archivos || archivos.length === 0) return res.status(400).json({ message: "Sin fotos" });
 
@@ -441,14 +441,22 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
             }
         }
 
-        for (const file of archivos) {
-            const rutaImagen = path.join(dirDestino, file.filename);
-            const meta = extraerMetadata(rutaImagen);
-            
-            await db.run(
-                "INSERT INTO fotos (titulo, anio, mes, descripcion, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
-                [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, etiquetas || "", file.filename, meta.lat, meta.lon, req.usuario?.id]
-            );
+        // --- OPTIMIZACIÓN CRÍTICA: Transacción SQL para que 5.000+ fotos entren de un plumazo ---
+        await db.run("BEGIN TRANSACTION");
+        try {
+            for (const file of archivos) {
+                const rutaImagen = path.join(dirDestino, file.filename);
+                const meta = extraerMetadata(rutaImagen);
+                
+                await db.run(
+                    "INSERT INTO fotos (titulo, anio, mes, descripcion, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, etiquetas || "", file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
+                );
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
         }
         res.json({ message: "✅ Guardado en ARCHIPEG local" });
     } catch (err) {
@@ -726,6 +734,17 @@ app.post('/api/albumes', async (req, res) => {
     try {
         const { nombre, descripcion, privado } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
+        
+        // --- EVITAR DUPLICADOS ---
+        const existente = await db.get(
+            "SELECT id FROM albumes WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", 
+            [nombre.trim(), req.usuario?.id]
+        );
+        
+        if (existente) {
+            return res.json({ id: existente.id, nombre, descripcion, privado, ya_existia: true });
+        }
+
         const valPrivado = privado ? 1 : 0;
         const result = await db.run("INSERT INTO albumes (nombre, descripcion, usuario_id, privado) VALUES (?, ?, ?, ?)", [nombre, descripcion || "", req.usuario?.id, valPrivado]);
         res.json({ id: result.lastID, nombre, descripcion, privado: valPrivado });
@@ -801,6 +820,17 @@ app.post('/api/eventos', async (req, res) => {
     try {
         const { nombre, fecha_inicio, fecha_fin, descripcion } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
+
+        // --- EVITAR DUPLICADOS ---
+        const existente = await db.get(
+            "SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", 
+            [nombre.trim(), req.usuario?.id]
+        );
+
+        if (existente) {
+            return res.json({ id: existente.id, nombre, fecha_inicio, fecha_fin, descripcion, ya_existia: true });
+        }
+
         const result = await db.run("INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, descripcion, usuario_id) VALUES (?, ?, ?, ?, ?)", [nombre, fecha_inicio || "", fecha_fin || "", descripcion || "", req.usuario?.id]);
         res.json({ id: result.lastID, nombre });
     } catch (err) { res.status(500).json(err); }
@@ -1056,34 +1086,42 @@ app.post('/api/importar-masivo', async (req, res) => {
             fotosActuales = count;
         }
 
-        for (const rutaImagen of imagenes) {
-            // Buscamos si ya existe por ruta y usuario
-            const existente = await db.get(
-                req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
-                req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
-            );
+        // --- OPTIMIZACIÓN CRÍTICA: Transacción para procesar miles de archivos en segundos ---
+        await db.run("BEGIN TRANSACTION");
+        try {
+            for (const rutaImagen of imagenes) {
+                // Buscamos si ya existe por ruta y usuario
+                const existente = await db.get(
+                    req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
+                    req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
+                );
 
-            if (existente) {
-                actualizadas++;
-                continue;
+                if (existente) {
+                    actualizadas++;
+                    continue;
+                }
+
+                if (esBajoDemo && fotosActuales >= LIMITE_DEMO) {
+                    ignoradas++;
+                    continue;
+                }
+
+                const meta = extraerMetadata(rutaImagen);
+                const anioFinal = meta.anio;
+                const mesFinal = meta.mes;
+
+                await db.run(
+                    "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
+                    [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
+                );
+
+                importadas++;
+                if (esBajoDemo) fotosActuales++;
             }
-
-            if (esBajoDemo && fotosActuales >= LIMITE_DEMO) {
-                ignoradas++;
-                continue;
-            }
-
-            const meta = extraerMetadata(rutaImagen);
-            const anioFinal = meta.anio;
-            const mesFinal = meta.mes;
-
-            await db.run(
-                "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
-                [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
-            );
-
-            importadas++;
-            if (esBajoDemo) fotosActuales++;
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
         }
 
         res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });

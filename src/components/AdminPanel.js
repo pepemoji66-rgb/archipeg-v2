@@ -6,6 +6,16 @@ import { apiFetch } from '../api';
 import { useAuth } from '../AuthContext';
 import { API_BASE_URL, UPLOADS_URL, FOTO_LOCAL_URL } from '../config';
 
+const IS_ELECTRON = window.navigator.userAgent.indexOf('Electron') !== -1;
+let electron = null;
+if (IS_ELECTRON) {
+    try {
+        electron = window.require('electron');
+    } catch (e) {
+        console.error("Error cargando Electron IPC:", e);
+    }
+}
+
 const IS_LOCAL = window.location.hostname === 'localhost';
 
 const AdminPanel = () => {
@@ -56,6 +66,17 @@ const AdminPanel = () => {
     const [fotoEnZoom, setFotoEnZoom] = useState(null);
     const [rotacion, setRotacion] = useState(0);
     const [escalaZoom, setEscalaZoom] = useState(1);
+    const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [nuevoAlbumRapido, setNuevoAlbumRapido] = useState("");
+    const [albumesParaZoom, setAlbumesParaZoom] = useState([]);
+    
+    // NUEVOS ESTADOS PARA EVENTOS Y UI
+    const [eventosParaZoom, setEventosParaZoom] = useState([]);
+    const [nuevoEventoRapido, setNuevoEventoRapido] = useState("");
+    const [menuOpcionesAbierto, setMenuOpcionesAbierto] = useState(false);
+
     const zoomWrapperRef = useRef(null);
     // Las variables y función para la navegación de zoom se declaran más abajo para tener acceso a fotosFiltradas
 
@@ -82,19 +103,23 @@ const AdminPanel = () => {
 
     useEffect(() => {
         cargarFotos();
+        cargarCatalogosZoom();
         apiFetch(`${API_URL}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
         apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
+        apiFetch(`${API_URL}/eventos`).then(r => r.json()).then(setEventosParaZoom).catch(() => { });
         apiFetch(`${API_URL}/anios`).then(r => r.json()).then(data => setAniosDb(data.map(a => a.anio).filter(Boolean))).catch(() => { });
     }, []);
 
     // Bloquear el scroll del fondo cuando el modal de zoom esté abierto
     useEffect(() => {
-        const bodyRoot = document.querySelector('body');
+        const bodyRoot = document.getElementById('root') || document.querySelector('body');
         const mainScroll = document.querySelector('.admin-container');
         
         if (fotoEnZoom) {
             bodyRoot.style.overflow = 'hidden';
             if (mainScroll) mainScroll.style.overflow = 'hidden';
+            // REFRESCO AUTOMÁTICO DE ÁLBUMES AL ABRIR EL ZOOM PARA NO PERDER NUEVOS ÁLBUMES
+            cargarCatalogosZoom();
         } else {
             bodyRoot.style.overflow = 'auto';
             if (mainScroll) mainScroll.style.overflow = '';
@@ -126,6 +151,96 @@ const AdminPanel = () => {
     }, [fotoEnZoom]);
 
     const girarFoto = () => setRotacion(prev => (prev + 90) % 360);
+
+    const onZoomMouseDown = (e) => {
+        if (escalaZoom > 1) {
+            setIsDragging(true);
+            setDragStart({ x: e.clientX - zoomPos.x, y: e.clientY - zoomPos.y });
+        }
+    };
+
+    const onZoomMouseMove = (e) => {
+        if (isDragging) {
+            setZoomPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+        }
+    };
+
+    const onZoomMouseUp = () => setIsDragging(false);
+
+    const cargarCatalogosZoom = () => {
+        apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumesParaZoom).catch(() => { });
+        apiFetch(`${API_URL}/eventos`).then(r => r.json()).then(setEventosParaZoom).catch(() => { });
+    };
+
+    const añadirAAlbumRapido = async (albumId) => {
+        if (!fotoEnZoom || !albumId) return;
+        try {
+            const res = await apiFetch(`${API_URL}/albumes/${albumId}/fotos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto_id: fotoEnZoom.id })
+            });
+            if (res.ok) {
+                setMensaje("✅ Activo añadido al álbum.");
+                setTimeout(() => setMensaje(""), 2000);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const crearAlbumRapido = async () => {
+        if (!nuevoAlbumRapido.trim()) return;
+        try {
+            const res = await apiFetch(`${API_URL}/albumes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nuevoAlbumRapido.trim() })
+            });
+            if (res.ok) {
+                const nuevo = await res.json();
+                setAlbumesParaZoom(prev => {
+                    if (prev.some(a => a.id === nuevo.id)) return prev;
+                    return [...prev, nuevo];
+                });
+                await añadirAAlbumRapido(nuevo.id);
+                setNuevoAlbumRapido("");
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const añadirAEventoRapido = async (eventoId) => {
+        if (!fotoEnZoom || !eventoId) return;
+        try {
+            const res = await apiFetch(`${API_URL}/eventos/${eventoId}/fotos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto_id: fotoEnZoom.id })
+            });
+            if (res.ok) {
+                setMensaje("✅ Activo añadido al evento.");
+                setTimeout(() => setMensaje(""), 2000);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const crearEventoRapido = async () => {
+        if (!nuevoEventoRapido.trim()) return;
+        try {
+            const res = await apiFetch(`${API_URL}/eventos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nuevoEventoRapido.trim() })
+            });
+            if (res.ok) {
+                const nuevo = await res.json();
+                setEventosParaZoom(prev => {
+                    if (prev.some(e => e.id === nuevo.id)) return prev;
+                    return [...prev, nuevo];
+                });
+                await añadirAEventoRapido(nuevo.id);
+                setNuevoEventoRapido("");
+            }
+        } catch (e) { console.error(e); }
+    };
 
     const manejarCambioArchivos = (e) => {
         setArchivos(Array.from(e.target.files).filter(f => f.type.startsWith('image/')));
@@ -160,56 +275,49 @@ const AdminPanel = () => {
         }
     };
 
-    const manejarSubida = (e) => {
+    const manejarSubida = async (e) => {
         e.preventDefault();
         if (archivos.length === 0) return alert("Selecciona fotos válidas, hermano");
 
-        const formData = new FormData();
-        archivos.forEach(f => formData.append('foto', f));
-        formData.append('titulo', titulo);
-        formData.append('anio', anio);
-        formData.append('etiquetas', etiquetas);
-        formData.append('descripcion', descripcion);
-        formData.append('lugar', lugar);
+        const batchSize = 200; // Lote más grande ahora que tenemos transacciones estables en el server
+        const totalLotes = Math.ceil(archivos.length / batchSize);
+        setProgreso(1);
+        setMensaje(`🚀 Iniciando carga por lotes (0/${archivos.length})`);
 
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `${API_URL}/fotos/subir`, true);
-        if (token) {
-            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        for (let i = 0; i < totalLotes; i++) {
+            const batch = archivos.slice(i * batchSize, (i + 1) * batchSize);
+            const formData = new FormData();
+            batch.forEach(f => formData.append('foto', f));
+            formData.append('titulo', titulo);
+            formData.append('anio', anio);
+            formData.append('mes', busquedaMes);
+            formData.append('etiquetas', etiquetas);
+            formData.append('descripcion', descripcion);
+            formData.append('lugar', lugar);
+
+            try {
+                setMensaje(`📤 Cargando lote ${i + 1} de ${totalLotes}...`);
+                const res = await fetch(`${API_URL}/fotos/subir`, {
+                    method: 'POST',
+                    headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error("Fallo en el lote " + (i + 1));
+                setProgreso(Math.round(((i + 1) / totalLotes) * 100));
+            } catch (error) {
+                alert("❌ Falló la subida en el lote " + (i + 1));
+                setMensaje("⚠️ Error en la subida masiva.");
+                return;
+            }
         }
 
-        xhr.upload.addEventListener("progress", (event) => {
-            if (event.lengthComputable) setProgreso(Math.round((event.loaded * 100) / event.total));
-        });
-
-        xhr.onreadystatechange = async () => {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                setMensaje("¡Éxito! Activos guardados en ARCHIPEG");
-                const res = await apiFetch(`${API_URL}/imagenes`);
-                const actualizadas = await res.json();
-                const nuevas = actualizadas.slice(0, archivos.length);
-
-                for (const foto of nuevas) {
-                    if (personasSeleccionadas.length > 0) {
-                        await apiFetch(`${API_URL}/fotos/${foto.id}/personas`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ persona_ids: personasSeleccionadas })
-                        });
-                    }
-                    if (albumSeleccionado) {
-                        await apiFetch(`${API_URL}/albumes/${albumSeleccionado}/fotos`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ foto_id: foto.id })
-                        });
-                    }
-                }
-                setTitulo(""); setEtiquetas(""); setLugar(""); setPersonasSeleccionadas([]); setAlbumSeleccionado(""); setArchivos([]); setProgreso(0);
-                cargarFotos();
-            }
-        };
-        xhr.send(formData);
+        setMensaje("¡Éxito! Todos los activos guardados en ARCHIPEG");
+        setProgreso(100);
+        setTimeout(() => {
+            setTitulo(""); setEtiquetas(""); setLugar(""); setPersonasSeleccionadas([]); setAlbumSeleccionado(""); setArchivos([]); setProgreso(0);
+            cargarFotos();
+        }, 1000);
     };
 
     const borrarFoto = async (id) => {
@@ -222,19 +330,28 @@ const AdminPanel = () => {
 
     const ejecutarImportacionDesdeDisco = async () => {
         try {
-            setMensaje("Abriendo selector de Windows...");
-            const resRuta = await fetch(`${API_URL}/seleccionar-carpeta`);
-            const dataRuta = await resRuta.json();
+            setMensaje("Abriendo selector nativo...");
+            let rutaSeleccionada = null;
 
-            if (!dataRuta.ruta) {
+            if (electron) {
+                // Usamos el diálogo NATIVO de Electron (mucho más rápido y fiable)
+                rutaSeleccionada = await electron.ipcRenderer.invoke('seleccionar-carpeta');
+            } else {
+                // Fallback para web/dev
+                const resRuta = await fetch(`${API_URL}/seleccionar-carpeta`);
+                const dataRuta = await resRuta.json();
+                rutaSeleccionada = dataRuta.ruta;
+            }
+
+            if (!rutaSeleccionada) {
                 setMensaje("Operación cancelada.");
                 return;
             }
 
-            if (!window.confirm(`¿Importar fotos de: ${dataRuta.ruta}?`)) return;
+            if (!window.confirm(`¿Importar fotos de: ${rutaSeleccionada}?`)) return;
 
-            setMensaje("🚀 Motor trabajando... Escaneando e importando. No cierres el panel.");
-            setProgreso(10); // Inicio rápido para dar feedback visual
+            setMensaje("🚀 Motor ARCHIPEG trabajando al máximo... No cierres el panel.");
+            setProgreso(10);
 
             // Simulamos un avance pequeño mientras esperamos la respuesta pesada del servidor
             const interval = setInterval(() => {
@@ -247,11 +364,16 @@ const AdminPanel = () => {
                     'Content-Type': 'application/json',
                     'Authorization': token ? `Bearer ${token}` : ''
                 },
-                body: JSON.stringify({ ruta: dataRuta.ruta })
+                body: JSON.stringify({ ruta: rutaSeleccionada })
             });
 
             clearInterval(interval);
-            const resultado = await resImport.json();
+            let resultado;
+            try {
+                resultado = await resImport.json();
+            } catch (e) {
+                resultado = { error: "Respuesta del servidor no válida" };
+            }
 
             if (resImport.ok) {
                 setProgreso(100);
@@ -263,11 +385,13 @@ const AdminPanel = () => {
                 }, 500);
             } else {
                 setProgreso(0);
-                alert("Error: " + (resultado.error || "Fallo servidor"));
+                alert("❌ ERROR EN EL MOTOR: " + (resultado.error || "Fallo crítico en la importación"));
+                setMensaje("⚠️ Falló la importación.");
             }
         } catch (error) {
             setProgreso(0);
-            alert("Error de conexión con el motor.");
+            console.error(error);
+            alert("❌ ERROR DE CONEXIÓN: No se pudo contactar con el motor de ARCHIPEG.");
         }
     };
 
@@ -353,8 +477,8 @@ const AdminPanel = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button onClick={() => window.location.href = '/'} className="btn-volver-neon">⬅ VOLVER</button>
                     <div>
-                        <h1 className="admin-title">GESTIÓN DE ACTIVOS</h1>
-                        <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.0</span>
+                        <h1 className="admin-title">GESTIÓN DE ACTIVOS V2.1-FIX</h1>
+                        <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.1 - OPTIMIZADO</span>
                     </div>
                 </div>
                 <span className="tag-badge">{fotos.length} ACTIVOS EN RED</span>
@@ -403,12 +527,8 @@ const AdminPanel = () => {
 
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>💾 GUARDAR DB</button>
-                            {IS_LOCAL && (
-                                <>
-                                    <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
-                                    <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#ffaa00', color: '#000' }} onClick={ejecutarRescanGPS}>🛰️ RE-ESCANEAR GPS</button>
-                                </>
-                            )}
+                            <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
+                            <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#ffaa00', color: '#000' }} onClick={ejecutarRescanGPS}>🛰️ RE-ESCANEAR GPS</button>
                         </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
                     </form>
@@ -528,39 +648,106 @@ const AdminPanel = () => {
 
             {/* MODAL ZOOM CON REACT PORTAL PARA SOLUCIONAR EL CENTRADO */}
             {fotoEnZoom && createPortal(
-                <div className="archipeg-zoom-overlay" onClick={() => { setFotoEnZoom(null); setRotacion(0); setEscalaZoom(1); }}>
+                <div className="archipeg-zoom-overlay" onClick={() => { setFotoEnZoom(null); setRotacion(0); setEscalaZoom(1); setZoomPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }}>
                     
                     {prevFoto && (
-                        <button className="btn-zoom-nav-admin left" onClick={(e) => navegarZoom(e, prevFoto)}>◀</button>
+                        <button className="btn-zoom-nav-admin left" onClick={(e) => { e.stopPropagation(); setZoomPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); navegarZoom(e, prevFoto); }}>◀</button>
                     )}
 
                     {nextFoto && (
-                        <button className="btn-zoom-nav-admin right" onClick={(e) => navegarZoom(e, nextFoto)}>▶</button>
+                        <button className="btn-zoom-nav-admin right" onClick={(e) => { e.stopPropagation(); setZoomPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); navegarZoom(e, nextFoto); }}>▶</button>
                     )}
 
                     <div className="archipeg-zoom-content" onClick={e => e.stopPropagation()}>
-                        <button className="btn-zoom-close-neon" onClick={() => { setFotoEnZoom(null); setRotacion(0); setEscalaZoom(1); }}>✕</button>
+                        <button className="btn-zoom-close-neon" onClick={() => { setFotoEnZoom(null); setRotacion(0); setEscalaZoom(1); setZoomPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }}>✕</button>
 
-                        <div className="zoom-image-wrapper" ref={zoomWrapperRef}>
+                        <div 
+                            className="zoom-image-wrapper" 
+                            ref={zoomWrapperRef}
+                            onMouseDown={onZoomMouseDown}
+                            onMouseMove={onZoomMouseMove}
+                            onMouseUp={onZoomMouseUp}
+                            onMouseLeave={onZoomMouseUp}
+                            style={{ cursor: escalaZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+                        >
                             <img 
                                 src={getFotoUrl(fotoEnZoom)} 
                                 alt="Preview" 
-                                style={{ transform: `rotate(${rotacion}deg) scale(${escalaZoom})`, transition: 'transform 0.1s ease-out', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                                draggable="false"
+                                onDragStart={e => e.preventDefault()}
+                                style={{ 
+                                    transform: `translate(${zoomPos.x}px, ${zoomPos.y}px) rotate(${rotacion}deg) scale(${escalaZoom})`, 
+                                    transition: isDragging ? 'none' : 'transform 0.1s ease-out', 
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%', 
+                                    objectFit: 'contain',
+                                    userSelect: 'none',
+                                    WebkitUserDrag: 'none'
+                                }} 
                             />
                         </div>
 
                         <div className="zoom-sidebar-info">
-                            <h3 className="admin-title">{fotoEnZoom.titulo || "S/T"}</h3>
-                            <div className="mini-tags-display">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <h3 className="admin-title" style={{ margin: 0 }}>{fotoEnZoom.titulo || "S/T"}</h3>
+                                
+                                {/* MENÚ DE OPCIONES FLOTANTE (...) */}
+                                <div style={{ position: 'relative' }}>
+                                    <button 
+                                        className="btn-zoom-more-options" 
+                                        onClick={() => setMenuOpcionesAbierto(!menuOpcionesAbierto)}
+                                        style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', padding: '0 5px' }}
+                                    >
+                                        ⋮
+                                    </button>
+                                    
+                                    {menuOpcionesAbierto && (
+                                        <div className="zoom-floating-menu" style={{ position: 'absolute', top: '100%', right: 0, background: '#0a0a1a', border: '1px solid #00ffff', borderRadius: '8px', zIndex: 1000, minWidth: '150px', padding: '5px', boxShadow: '0 0 15px rgba(0,255,255,0.3)' }}>
+                                            <button onClick={() => { setEscalaZoom(1); setZoomPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔍 Restaurar</button>
+                                            <button onClick={() => { girarFoto(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔄 Girar 90°</button>
+                                            <button onClick={() => { forzarDescarga(getFotoUrl(fotoEnZoom), fotoEnZoom.titulo); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">📥 Descargar</button>
+                                            <button onClick={() => { borrarFoto(fotoEnZoom.id); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: '#ff0044' }}>🗑️ Borrar</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="mini-tags-display" style={{ marginBottom: '15px', marginTop: '5px' }}>
                                 {fotoEnZoom.etiquetas ? fotoEnZoom.etiquetas.split(',').map((tag, i) => <span key={i} className="tag-badge">{tag.trim()}</span>) : <span className="tag-badge">S/E</span>}
                             </div>
-                            <p className="zoom-desc" style={{ marginTop: '15px', color: '#fff' }}>{fotoEnZoom.descripcion || "Sin descripción."}</p>
-                            <div className="zoom-actions-vertical">
-                                <span style={{color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center'}}>Usa la rueda del ratón para hacer zoom</span>
-                                <button onClick={(e) => { e.stopPropagation(); setEscalaZoom(1); }} className="btn-archipeg-action">🔍 RESTAURAR ZOOM</button>
-                                <button onClick={girarFoto} className="btn-archipeg-action">🔄 GIRAR</button>
-                                <button onClick={() => forzarDescarga(getFotoUrl(fotoEnZoom), fotoEnZoom.titulo)} className="btn-archipeg-action">📥 DESCARGAR</button>
-                                <button onClick={() => borrarFoto(fotoEnZoom.id)} className="btn-archipeg-action btn-dangerous">🗑️ BORRAR</button>
+
+                            {/* --- ORGANIZACIÓN RÁPIDA (ÁLBUMES Y EVENTOS) --- */}
+                            <div className="organizador-zoom-box" style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(0,255,255,0.1)' }}>
+                                
+                                <div style={{ marginBottom: '12px' }}>
+                                    <label className="modal-panel-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.65rem', color: '#00ffff' }}>📁 ÁLBUM</label>
+                                    <select className="admin-select" style={{ width: '100%', marginBottom: '5px' }} onChange={(e) => añadirAAlbumRapido(e.target.value)} defaultValue="">
+                                        <option value="" disabled>Elegir álbum...</option>
+                                        {albumesParaZoom.map(a => <option key={a.id} value={a.id}>{a.nombre.toUpperCase()}</option>)}
+                                    </select>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <input type="text" placeholder="+ Nuevo..." className="admin-input" style={{ fontSize: '0.7rem', flex: 1 }} value={nuevoAlbumRapido} onChange={e => setNuevoAlbumRapido(e.target.value)} onKeyDown={e => e.key === 'Enter' && crearAlbumRapido()} />
+                                        <button onClick={crearAlbumRapido} className="btn-action-icon-morado" style={{ padding: '0 8px' }}>+</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="modal-panel-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.65rem', color: '#ff00ff' }}>🎭 EVENTO</label>
+                                    <select className="admin-select" style={{ width: '100%', marginBottom: '5px' }} onChange={(e) => añadirAEventoRapido(e.target.value)} defaultValue="">
+                                        <option value="" disabled>Elegir evento...</option>
+                                        {eventosParaZoom.map(ev => <option key={ev.id} value={ev.id}>{ev.nombre.toUpperCase()}</option>)}
+                                    </select>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <input type="text" placeholder="+ Nuevo..." className="admin-input" style={{ fontSize: '0.7rem', flex: 1 }} value={nuevoEventoRapido} onChange={e => setNuevoEventoRapido(e.target.value)} onKeyDown={e => e.key === 'Enter' && crearEventoRapido()} />
+                                        <button onClick={crearEventoRapido} className="btn-action-icon-morado" style={{ padding: '0 8px', background: '#ff00ff' }}>+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="zoom-desc" style={{ marginTop: '10px', color: '#ccc', fontSize: '0.85rem', lineHeight: '1.4' }}>{fotoEnZoom.descripcion || "Sin descripción técnica."}</p>
+                            
+                            <div style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.6, fontSize: '0.7rem', borderTop: '1px solid #222', paddingTop: '10px' }}>
+                                Rueda: Zoom · Clic: Mover · Esc: Salir
                             </div>
                         </div>
                     </div>
