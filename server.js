@@ -335,20 +335,13 @@ async function inicializarMotor() {
     }
 }
 
-// LOG DE EMERGENCIA: Si el motor falla, escribimos un archivo en la carpeta de datos
-const logFile = path.join(basePath, 'error_motor.txt');
+// LOG DE EMERGENCIA: Desactivado en Vercel para evitar bloqueos de solo lectura
 process.on('uncaughtException', (err) => {
-    const errorText = `[${new Date().toISOString()}] ERROR NO CONTROLADO: ${err.stack}\n`;
-    fs.appendFileSync(logFile, errorText);
-    console.error(errorText);
-    process.exit(1);
+    console.error(`[ERROR NO CONTROLADO]: ${err.stack}`);
 });
 
 inicializarMotor().catch(err => {
-    const errorText = `[${new Date().toISOString()}] ERROR CRÍTICO AL INICIAR EL MOTOR: ${err.stack}\n`;
-    fs.appendFileSync(logFile, errorText);
-    console.error(errorText);
-    process.exit(1);
+    console.error(`[ERROR CRÍTICO AL INICIAR EL MOTOR]: ${err.stack}`);
 });
 
 // --- LIMPIEZA AUTOMÁTICA DE FOTOS ROTAS (OPCIÓN A) ---
@@ -383,6 +376,16 @@ async function limpiarFotosRotas(fotos, req) {
     });
     return fotos;
 }
+
+// --- TEST ENDPOINT ---
+app.get('/api/test', (req, res) => {
+    res.json({ 
+        status: 'online', 
+        message: 'ARCHIPEG BACKEND IS ALIVE', 
+        vercel: !!process.env.VERCEL,
+        dbStatus: !!db ? 'connected' : 'not initialization'
+    });
+});
 
 // --- AUTH: REGISTRO ---
 const MASTER_ADMIN_KEY = 'ARCHIPEG-PRO-2026'; // Clave de sistema solicitada por el usuario
