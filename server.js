@@ -1310,7 +1310,14 @@ app.get('*', (req, res) => {
 
 // --- LANZAMIENTO ---
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 ARCHIPEG PRO: Operando en puerto ${PORT}`);
-    console.log(`📂 Almacén de fotos: ${dirDestino}`);
-});
+
+// Solo escuchamos en el puerto si NO estamos en Vercel (entorno serverless)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 ARCHIPEG PRO: Operando en puerto ${PORT}`);
+        console.log(`📂 Almacén de fotos: ${dirDestino}`);
+    });
+}
+
+// Exportamos la app para que Vercel la pueda usar como Bridge
+module.exports = app;
