@@ -8,25 +8,27 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "build" }
+      "config": {
+        "distDir": "build"
+      }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "source": "/api/(.*)",
+      "destination": "/server.js"
     },
     {
-      "src": "/uploads/(.*)",
-      "dest": "/server.js"
+      "source": "/uploads/(.*)",
+      "destination": "/server.js"
     },
     {
-      "src": "/downloads/(.*)",
-      "dest": "/server.js"
+      "source": "/downloads/(.*)",
+      "destination": "/server.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!static|.*\\..*).*)",
+      "destination": "/index.html"
     }
   ]
 }
