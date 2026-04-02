@@ -1322,7 +1322,7 @@ $form.Dispose()
             res.json({ ruta: ruta });
         });
     } else {
-        res.status(501).json({ error: 'Plataforma no soportada' });
+        res.status(400).json({ error: 'La selección de carpetas nativa requiere ARCHIPEG PC (Versión Local). En la web, usa el botón "📂 CARPETA" para subir archivos.' });
     }
 });
 

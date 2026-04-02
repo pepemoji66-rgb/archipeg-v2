@@ -152,6 +152,53 @@ const Indice = () => {
                 </div>
             </section>
 
+            {/* THE ARCHIPEG MANIFESTO: CLOUD VS LOCAL */}
+            <section className="landing-magic-explanation">
+                <div className="magic-card">
+                    <div className="magic-header">
+                        <span className="magic-icon">✨</span>
+                        <h2>LA MAGIA DE ARCHIPEG: ¿NUBE O DISCO?</h2>
+                    </div>
+                    <div className="magic-grid">
+                        <div className="magic-item web">
+                            <div className="magic-badge">ESTÁS AQUÍ: ESCAPARATE WEB</div>
+                            <h3>Versión Demo / Nube</h3>
+                            <p>
+                                Esta web en Render es nuestro <b>Showroom Interactivo</b>. 
+                                Sirve para que pruebes la potencia de la interfaz, el mapa y la organización.
+                            </p>
+                            <ul className="magic-list">
+                                <li>⚠️ Las fotos viajan por internet.</li>
+                                <li>🌐 Ideal para compartir álbumes puntuales.</li>
+                                <li>☁️ Almacenamiento gestionado por Render.</li>
+                            </ul>
+                        </div>
+
+                        <div className="magic-divider">VS</div>
+
+                        <div className="magic-item local">
+                            <div className="magic-badge active">LA VERDADERA MAGIA: VERSIÓN PC</div>
+                            <h3>Soberanía Digital Total</h3>
+                            <p>
+                                La esencia de Archipeg es la <b>Privacidad Absoluta</b>. 
+                                Al descargar la aplicación en tu casa, el sistema se vuelve ciego para el mundo exterior.
+                            </p>
+                            <ul className="magic-list">
+                                <li>🔒 <b>CERO SUBIDAS</b>: Tus fotos nunca salen de tu disco.</li>
+                                <li>🚀 <b>MÁXIMA VELOCIDAD</b>: Sin depender de tu conexión de fibra.</li>
+                                <li>💎 <b>PROPIEDAD</b>: Tú eres el dueño físico de tus datos.</li>
+                            </ul>
+                            <button className="btn-primary-neon" style={{marginTop: '20px', width: '100%', fontSize: '0.9rem'}} onClick={() => alert("Próximamente: Enlace de descarga de ARCHIPEG PC")}>
+                                DESCARGAR ARCHIPEG PC ⬇️
+                            </button>
+                        </div>
+                    </div>
+                    <div className="magic-footer">
+                        "Si no quieres que tus recuerdos estén en internet, no los subas. Úsalos en tu casa con Archipeg PC."
+                    </div>
+                </div>
+            </section>
+
             {/* DATA PROTECTION & REPORT SECTION */}
             <section className="landing-legal-report">
                 <div className="report-card">

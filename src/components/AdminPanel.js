@@ -312,19 +312,29 @@ const AdminPanel = () => {
 
     const ejecutarImportacionDesdeDisco = async () => {
         try {
-            setMensaje("Abriendo selector nativo...");
+            // --- ADVERTENCIA DE SOBERANÍA DE DATOS ---
+            if (!electron && !IS_LOCAL) {
+                const mensajeWeb = `⚠️ ATENCIÓN: ESTÁS EN LA VERSIÓN WEB (RENDER)\n\nLa magia de ARCHIPEG es la privacidad total en tu disco duro local.\nSi importas fotos aquí, se subirán a internet (nube de Render).\n\nPara máxima soberanía, te recomendamos usar ARCHIPEG PC.\n¿Quieres continuar con la subida a la nube?`;
+                if (!window.confirm(mensajeWeb)) return;
+            }
+
+            setMensaje("Abriendo selector...");
             let rutaSeleccionada = null;
 
             if (electron) {
-                // Usamos el diálogo NATIVO de Electron (mucho más rápido y fiable)
                 rutaSeleccionada = await electron.ipcRenderer.invoke('seleccionar-carpeta');
-            } else {
-                // Fallback para web/dev
+            } else if (IS_LOCAL) {
+                // Solo intentamos el selector del servidor si estamos en LOCAL
                 const resRuta = await fetch(`${API_URL}/seleccionar-carpeta`);
                 const dataRuta = await resRuta.json();
                 rutaSeleccionada = dataRuta.ruta;
+            } else {
+                // En Render/Web, el selector del servidor fallará (501). 
+                // Avisamos al usuario que use el nuevo botón de Carpeta Web.
+                alert("El selector de carpetas nativo solo funciona en la Versión PC.\n\nUsa el nuevo botón '📂 CARPETA' que hemos añadido arriba para subir carpetas completas desde la web.");
+                setMensaje("Usa el botón de CARPETA WEB arriba.");
+                return;
             }
-
             if (!rutaSeleccionada) {
                 setMensaje("Operación cancelada.");
                 return;
@@ -552,9 +562,12 @@ const AdminPanel = () => {
                             </div>
                         )}
 
-                        <div className="file-input-wrapper">
+                        <div className="file-input-wrapper" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <input id="file-upload" type="file" onChange={manejarCambioArchivos} multiple accept="image/*" />
-                            <label htmlFor="file-upload" className="btn-file-morado">📂 SELECCIONAR ({archivos.length})</label>
+                            <label htmlFor="file-upload" className="btn-file-morado">🖼️ FOTOS ({archivos.length})</label>
+                            
+                            <input id="folder-upload" type="file" onChange={manejarCambioArchivos} webkitdirectory="" directory="" multiple accept="image/*" style={{ display: 'none' }} />
+                            <label htmlFor="folder-upload" className="btn-file-morado" style={{ background: 'linear-gradient(135deg, #0088ff 0%, #00f2ff 100%)' }}>📂 CARPETA</label>
                         </div>
 
                         {progreso > 0 && (
@@ -573,8 +586,20 @@ const AdminPanel = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>💾 GUARDAR DB</button>
-                            <button type="button" className="btn-archipeg-main-morado" style={{ padding: '10px 30px', backgroundColor: '#cf00f1' }} onClick={ejecutarImportacionDesdeDisco}>📂 IMPORTACIÓN DISCO</button>
+                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>💾 GUARDAR EN ARCHIPEG</button>
+                            <button 
+                                type="button" 
+                                className="btn-archipeg-main-morado" 
+                                style={{ 
+                                    padding: '10px 30px', 
+                                    backgroundColor: (!electron && !IS_LOCAL) ? '#333' : '#cf00f1',
+                                    borderColor: (!electron && !IS_LOCAL) ? '#555' : '#00ffff',
+                                    color: (!electron && !IS_LOCAL) ? '#888' : '#00ffff'
+                                }} 
+                                onClick={ejecutarImportacionDesdeDisco}
+                            >
+                                {(!electron && !IS_LOCAL) ? '🔒 IMPORTACIÓN DISCO (SÓLO PC)' : '📂 IMPORTACIÓN DISCO'}
+                            </button>
                         </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
                     </form>
