@@ -235,25 +235,33 @@ const upload = multer({ storage: storage });
 
 // --- INICIALIZACIÓN DEL MOTOR SQLITE ---
 async function inicializarMotor() {
-    db = await open({
-        filename: path.join(basePath, 'archipeg_data.db'),
-        driver: sqlite3.Database
-    });
+    try {
+        db = await open({
+            filename: path.join(basePath, 'archipeg_data.db'),
+            driver: sqlite3.Database
+        });
 
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS fotos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT,
-            descripcion TEXT,
-            anio INTEGER,
-            mes INTEGER,
-            etiquetas TEXT,
-            imagen_url TEXT,
-            latitud REAL,
-            longitud REAL,
-            en_papelera INTEGER DEFAULT 0
-        )
-    `);
+        // Configuración para entornos de solo lectura (Vercel)
+        await db.run('PRAGMA journal_mode = DELETE').catch(() => {});
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS fotos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT,
+                descripcion TEXT,
+                anio INTEGER,
+                mes INTEGER,
+                etiquetas TEXT,
+                imagen_url TEXT,
+                latitud REAL,
+                longitud REAL,
+                en_papelera INTEGER DEFAULT 0
+            )
+        `).catch(err => {
+            if (err.message.includes('readonly')) {
+                console.warn("⚠️ BASE DE DATOS EN MODO SOLO LECTURA (Vercel Detectado)");
+            } else { throw err; }
+        });
 
     // Migraciones para columnas nuevas en fotos (Soporte Multiusuario y Duplicados)
     await db.exec(`ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0`).catch(() => {});
@@ -320,10 +328,11 @@ async function inicializarMotor() {
         );
     `);
 
-    // Migración segura para usuarios existentes que no tengan la columna aprobado
-    await db.exec(`ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0`).catch(() => {});
-
     console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y archivos estáticos listos.");
+    } catch (err) {
+        console.error("⚠️ ERROR DE INICIALIZACIÓN (Modo Degradado Activo):", err.message);
+        // No relanzamos el error para permitir que el servidor Express arranque sin DB si es necesario
+    }
 }
 
 // LOG DE EMERGENCIA: Si el motor falla, escribimos un archivo en la carpeta de datos
@@ -421,10 +430,28 @@ app.post('/api/auth/registro', async (req, res) => {
 // --- AUTH: LOGIN ---
 app.post('/api/auth/login', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
         const { email, password } = req.body;
         console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        // --- BYPASS MAESTRO (PARA VERCEL/READ-ONLY) ---
+        const esJoseMaster = email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939';
+        
+        if (esJoseMaster) {
+            console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${email}]`);
+            const token = generarToken();
+            // Intentamos guardar la sesión, pero si falla (por ser READ-ONLY) seguimos adelante
+            try {
+                if (db) await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, 4]);
+            } catch (e) { console.warn("Modo Sesión Efímera (DB Protegido)"); }
+            
+            return res.json({
+                usuario: { id: 4, email: email.toLowerCase(), esAdmin: true, aprobado: true },
+                token
+            });
+        }
+
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
 
         const usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
         if (!usuario) {
@@ -433,10 +460,9 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         const hash = hashPassword(password, usuario.salt);
-        const esJoseMaster = email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939';
-        console.log(`🔎 LOGIN DEBUG -> Generado: ${hash} | Guardado: ${usuario.password_hash} | Master: ${esJoseMaster}`);
+        console.log(`🔎 LOGIN DEBUG -> Generado: ${hash} | Guardado: ${usuario.password_hash}`);
 
-        if (!esJoseMaster && hash !== usuario.password_hash) {
+        if (hash !== usuario.password_hash) {
             console.log(`❌ ERROR: La contraseña no coincide para [${email}]`);
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
