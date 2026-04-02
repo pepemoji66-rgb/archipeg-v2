@@ -7,6 +7,9 @@
   "author": "[JOSE MORENO JIMENEZ]",
   "license": "Proprietary",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "react-scripts start",
