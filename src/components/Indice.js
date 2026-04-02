@@ -20,13 +20,28 @@ const Indice = () => {
 
     return (
         <div className="landing-container">
+            {/* TOP NAVIGATION / LOGO AREA */}
+            <header className="landing-top-header">
+                <div className="landing-logo-box">
+                    <img src="logo_archipeg_principal.png" alt="ARCHIPEG LOGO" className="landing-logo-img" />
+                    <span className="landing-logo-text">ARCHIPEG <span className="logo-dot">PRO</span></span>
+                </div>
+                <div className="top-bar-spacer"></div>
+                {!haySession && (
+                    <button className="btn-login-small" onClick={() => abrirModal('login')}>ENTRAR</button>
+                )}
+            </header>
+
             {/* HERO SECTION */}
             <section className="landing-hero">
-                <div className="landing-hero-badge">INTELIGENCIA ARTIFICIAL SOBERANA</div>
-                <h1 className="landing-hero-title">Tus recuerdos, tu privacidad, <span style={{color: '#f100ff'}}>para siempre.</span></h1>
+                <div className="landing-hero-badge">SISTEMA DE ACTIVOS DIGITALES SOBERANO</div>
+                <h1 className="landing-hero-title">ARCHIPEG <span className="logo-dot">PRO</span></h1>
+                <p className="landing-hero-subtitle" style={{color: '#fff', fontSize: '1.8rem', fontWeight: 600, marginBottom: '15px'}}>
+                    Tus activos, tu privacidad, <span style={{color: '#f100ff'}}>bajo tu control.</span>
+                </p>
                 <p className="landing-hero-subtitle">
-                    Organiza más de 10.000 activos digitales sin subir una sola foto a la nube. 
-                    Archipeg Pro utiliza IA local para indexar tu vida guardando el control total en tu disco duro.
+                    Organiza y protege miles de fotos, videos y documentos sin subir una sola foto a la nube. 
+                    Tus recuerdos permanecen en tu poder físico, nosotros solo le damos la inteligencia.
                 </p>
                 <div className="landing-ctas">
                     {haySession ? (
@@ -69,8 +84,8 @@ const Indice = () => {
                 <div className="features-grid">
                     <div className="feature-card">
                         <div className="feature-icon">👤</div>
-                        <h3 className="feature-title">Reconocimiento Facial</h3>
-                        <p className="feature-desc">Identifica y agrupa automáticamente a las personas más importantes de tu vida sin enviar sus rostros a servidores externos.</p>
+                        <h3 className="feature-title">Gestión de Personas</h3>
+                        <p className="feature-desc">Identifica y agrupa a los protagonistas de tu vida. Crea perfiles locales para organizar tus mejores momentos en familia.</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">🗺️</div>
@@ -88,9 +103,13 @@ const Indice = () => {
                         <p className="feature-desc">Crea colecciones dinámicas y eventos históricos con un solo clic. Organización profesional sin esfuerzo.</p>
                     </div>
                     <div className="feature-card">
-                        <div className="feature-icon">🏷️</div>
-                        <h3 className="feature-title">Indexación de Tags</h3>
-                        <p className="feature-desc">Buscador instantáneo por etiquetas y metadatos. Encuentra cualquier activo en milisegundos.</p>
+                        <div className="feature-icon">📖</div>
+                        <h3 className="feature-title">Guía de Inicio Rápido</h3>
+                        <p className="feature-desc">
+                            1. <b>Importar</b>: Conecta tu disco y escanea. <br/>
+                            2. <b>Indexar</b>: Deja que el motor ANALICE. <br/>
+                            3. <b>Organizar</b>: Crea álbumes y eventos en un clic.
+                        </p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">🔒</div>
@@ -129,6 +148,33 @@ const Indice = () => {
                             <div className="price-feature">✓ Soporte Prioritario</div>
                         </div>
                         <button className="btn-primary-neon" style={{width:'100%'}} onClick={() => abrirModal('registro')}>Obtener Pro ahora</button>
+                    </div>
+                </div>
+            </section>
+
+            {/* DATA PROTECTION & REPORT SECTION */}
+            <section className="landing-legal-report">
+                <div className="report-card">
+                    <div className="report-header">
+                        <span className="report-icon">🛡️</span>
+                        <h3>INFORME DE SOBERANÍA Y PROTECCIÓN DE DATOS</h3>
+                    </div>
+                    <div className="report-body">
+                        <div className="report-item">
+                            <h4>PROPIEDAD ABSOLUTA</h4>
+                            <p>Tus activos nunca salen de tu posesión física. Archipeg no tiene acceso a tus archivos originales ni capacidad de transmisión externa.</p>
+                        </div>
+                        <div className="report-item">
+                            <h4>BASE DE DATOS ENCRIPTADA</h4>
+                            <p>Toda la metadata, etiquetas y relaciones se guardan en un motor SQL local protegido por tu propia seguridad de sistema operativo.</p>
+                        </div>
+                        <div className="report-item">
+                            <h4>CERO RASTREO</h4>
+                            <p>Sin telemetría, sin cookies de seguimiento y sin intercambio de datos con terceros. Privacidad por diseño (Privacy by Design).</p>
+                        </div>
+                    </div>
+                    <div className="report-footer">
+                        ESTA APLICACIÓN CUMPLE CON LOS ESTÁNDARES DE PRIVACIDAD MÁS EXIGENTES AL OPERAR EN ENTORNO LOCAL (AIR-GAPPED READY).
                     </div>
                 </div>
             </section>
