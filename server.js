@@ -1369,13 +1369,15 @@ app.get('*', (req, res) => {
 });
 
 // --- LANZAMIENTO ---
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 10000;
 
-// Solo escuchamos en el puerto si NO estamos en Vercel (entorno serverless)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// En Render/Web, SIEMPRE escuchamos en el puerto asignado
+// Solo evitamos escuchar si detectamos específicamente el entorno de Vercel
+if (!process.env.VERCEL) {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 ARCHIPEG PRO: Operando en puerto ${PORT}`);
         console.log(`📂 Almacén de fotos: ${dirDestino}`);
+        console.log(`✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.`);
     });
 }
 
