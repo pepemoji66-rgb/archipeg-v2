@@ -1152,7 +1152,10 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
 // --- GESTIÓN DE USUARIOS (ADMIN ONLY) con Paginación Real ---
 app.get('/api/usuarios', async (req, res) => {
     try {
-        if (!req.esAdmin) return res.status(403).json({ error: 'Acceso denegado' });
+        if (!req.esAdmin) {
+            console.warn(`🛑 [403]: Intento de acceso a usuarios por [${req.usuario?.email || 'desconocido'}]. Admin: ${req.esAdmin}`);
+            return res.status(403).json({ error: 'Acceso denegado' });
+        }
         
         // Parámetros de paginación
         const page = parseInt(req.query.page) || 1;

@@ -57,13 +57,14 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 {modo === 'login' ? 'Bienvenido de nuevo a tu archivo privado.' : 'Únete a la soberanía digital de Archipeg.'}
             </p>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <input
                     className="indice-auth-input"
                     type="email"
                     placeholder="Tu email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
+                    autoComplete="off"
                     required
                 />
                 <input
@@ -72,6 +73,7 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                     placeholder="Contraseña"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
+                    autoComplete="off"
                     required
                 />
                 
@@ -83,6 +85,7 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                             placeholder="Repite contraseña"
                             value={confirmar}
                             onChange={e => setConfirmar(e.target.value)}
+                            autoComplete="off"
                             required
                         />
                     </>
