@@ -541,7 +541,7 @@ const AdminPanel = () => {
             }}>
                 {modoSoberano 
                     ? "🛡️ MODO SOBERANO ACTIVO: Tus fotos están seguras en este PC y NUNCA salen a Internet." 
-                    : "⚠️ MODO ESCAPARATE WEB: Las fotos que subas aquí se guardarán en la nube de Render (Internet)."}
+                    : "⚠️ MODO INTERNET (WEB): En el móvil o la web, las fotos se suben a la nube. Para PRIVACIDAD TOTAL, usa ARCHIPEG PC."}
             </div>
 
             <header className="admin-header">
@@ -617,21 +617,39 @@ const AdminPanel = () => {
 
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>{labelGuardar}</button>
-                            <button 
-                                type="button" 
-                                className="btn-archipeg-main-morado" 
-                                style={{ 
-                                    padding: '10px 30px', 
-                                    backgroundColor: (!electron && !IS_LOCAL) ? '#333' : '#cf00f1',
-                                    borderColor: (!electron && !IS_LOCAL) ? '#555' : '#00ffff',
-                                    color: (!electron && !IS_LOCAL) ? '#888' : '#00ffff',
-                                    cursor: (!electron && !IS_LOCAL) ? 'not-allowed' : 'pointer'
-                                }} 
-                                onClick={ejecutarImportacionDesdeDisco}
-                                disabled={!electron && !IS_LOCAL}
-                            >
-                                {(!electron && !IS_LOCAL) ? '🔒 IMPORTACIÓN DISCO (SÓLO PC)' : '📂 IMPORTAR DISCO DURO'}
-                            </button>
+                            
+                            {/* BOTÓN DE IMPORTACIÓN DISCO (SÓLO PC) - CON CLARIDAD TOTAL */}
+                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                                {!modoSoberano && (
+                                    <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '8px', fontStyle: 'italic' }}>
+                                        🔒 La importación privada desde disco duro externo <br/>
+                                        <strong>SOLO está disponible en la versión de PC</strong> <br/>
+                                        para asegurar que tus fotos NUNCA toquen Internet.
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    className="btn-archipeg-main-morado"
+                                    style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '10px',
+                                        background: modoSoberano ? '#cf00f1' : '#222',
+                                        color: modoSoberano ? '#00ffff' : '#444',
+                                        cursor: modoSoberano ? 'pointer' : 'not-allowed',
+                                        border: modoSoberano ? '2px solid #00ffff' : '1px solid #333',
+                                        opacity: modoSoberano ? 1 : 0.6,
+                                        padding: '10px 30px'
+                                    }}
+                                    onClick={modoSoberano ? ejecutarImportacionDesdeDisco : null}
+                                    disabled={!modoSoberano}
+                                >
+                                    <span role="img" aria-label="disco">🔒</span> 
+                                    {modoSoberano ? 'IMPORTAR DESDE DISCO (PRIVADO)' : 'IMPORTACIÓN DISCO (SÓLO PC)'}
+                                </button>
+                            </div>
                         </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
                     </form>
