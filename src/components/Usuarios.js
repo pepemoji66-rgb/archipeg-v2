@@ -23,6 +23,7 @@ export default function Usuarios() {
             const res = await apiFetch(`${API}/usuarios?page=${page}&limit=${limite}`);
             if (res.ok) {
                 const data = await res.json();
+                console.log("📊 [DEBUG USUARIOS FRONTEND]:", data); // LOG CLAVE
                 setUsuarios(data.usuarios || []); // Guardamos solo los de esta página
                 setTotalUsuarios(data.total || 0); // Guardamos cuantos hay en TOTAL
             }

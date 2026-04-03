@@ -417,6 +417,8 @@ app.post('/api/auth/registro', async (req, res) => {
             [email.toLowerCase(), password_hash, salt, es_admin, aprobado]
         );
 
+        console.log(`✅ [NUEVO REGISTRO]: Usuario con ID #${result.lastID} [${email}] guardado en DB.`);
+
         const token = generarToken();
         await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, result.lastID]);
         res.status(201).json({ 
@@ -708,8 +710,8 @@ app.get('/api/imagenes', async (req, res) => {
         res.json(fotos.map(f => ({ 
             ...f, 
             etiquetas: f.etiquetas || "",
-            latitud: f.latitud || null,
-            longitud: f.longitud || null
+            latitud: (f.latitud !== undefined && f.latitud !== null) ? f.latitud : null,
+            longitud: (f.longitud !== undefined && f.longitud !== null) ? f.longitud : null
         })));
     } catch (err) { res.status(500).json(err); }
 });
@@ -1166,6 +1168,8 @@ app.get('/api/usuarios', async (req, res) => {
             [limit, offset]
         );
 
+        console.log(`📊 [DEBUG USUARIOS]: Total en DB: ${count} | Pag: ${page} | Lim: ${limit}`);
+        
         res.json({
             usuarios,
             total: count,
