@@ -570,7 +570,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                         >
                             <button onClick={() => { setEscala(1); setPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔍 Restaurar Zoom</button>
                             <button onClick={() => { girar(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔄 Girar 90°</button>
-                            {fotoLocal.latitud && (
+                            {fotoLocal.latitud != null && (
                                 <button onClick={() => { navigate(`/mapa?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, #00f2ff)' }}>📍 Ver en Mapa</button>
                             )}
                             <button onClick={() => { toggleFav(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">

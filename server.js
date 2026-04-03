@@ -129,11 +129,11 @@ function extraerMetadata(ruta) {
     const info = { lat: null, lon: null, anio: null, mes: null };
     let fd;
     try {
-        // OPTIMIZACIÓN PRO: Solo leemos los primeros 64KB del archivo (donde reside el EXIF)
-        // Esto evita cargar archivos de 5MB+ en memoria, acelerando el proceso x100
-        const buffer = Buffer.alloc(65535);
+        // OPTIMIZACIÓN PRO: Leemos los primeros 128KB del archivo (donde reside el EXIF)
+        // Aumentado desde 64KB para cubrir metadatos más densos en cámaras modernas
+        const buffer = Buffer.alloc(131072);
         fd = fs.openSync(ruta, 'r');
-        fs.readSync(fd, buffer, 0, 65535, 0);
+        fs.readSync(fd, buffer, 0, 131072, 0);
         
         const parser = ExifParser.create(buffer);
         const result = parser.parse();
@@ -705,7 +705,12 @@ app.get('/api/imagenes', async (req, res) => {
             ? await db.all(query, [LIMITE_DEMO])
             : await db.all(query, [req.usuario?.id]);
         const fotos = await limpiarFotosRotas(fotosRaw, req);
-        res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
+        res.json(fotos.map(f => ({ 
+            ...f, 
+            etiquetas: f.etiquetas || "",
+            latitud: f.latitud || null,
+            longitud: f.longitud || null
+        })));
     } catch (err) { res.status(500).json(err); }
 });
 

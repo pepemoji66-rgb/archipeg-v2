@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { apiFetch } from '../api';
@@ -39,6 +39,21 @@ const Sidebar = () => {
         cargar();
     }, [location.pathname]);
 
+    const navRef = useRef(null);
+
+    // PERSISTENCIA DE SCROLL: Asegura que el botón activo esté visible
+    useEffect(() => {
+        if (navRef.current && window.innerWidth <= 768) {
+            const activeItem = navRef.current.querySelector('.sidebar-item.active');
+            if (activeItem) {
+                // Pequeño timeout para asegurar que el DOM se ha actualizado con la clase .active
+                setTimeout(() => {
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }, 100);
+            }
+        }
+    }, [location.pathname]);
+
     const LIMITE = 50;
     const porcentaje = Math.min((conteos.fotos / LIMITE) * 100, 100);
     const isActive = (path) => location.pathname === path;
@@ -68,7 +83,7 @@ const Sidebar = () => {
                 />
             </div>
 
-            <nav className="sidebar-nav">
+            <nav className="sidebar-nav" ref={navRef}>
                 <div className="sidebar-section-label">General</div>
                 <Link to="/galeria-completa" className={`sidebar-item ${isActive('/galeria-completa') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🏠</span> Inicio / Galería
