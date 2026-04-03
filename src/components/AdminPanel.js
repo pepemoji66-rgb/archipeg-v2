@@ -60,9 +60,9 @@ const AdminPanel = () => {
 
     // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
     const modoSoberano = IS_ELECTRON || IS_LOCAL;
-    const labelFotos = modoSoberano ? `🖼️ IMPORTAR FOTOS A MI DISCO (PRIVADO)` : `🖼️ ELEGIR FOTOS PARA SUBIR A INTERNET`;
-    const labelCarpeta = modoSoberano ? "📂 IMPORTAR CARPETA A DISCO" : "📂 SUBIR CARPETA A INTERNET";
-    const labelGuardar = modoSoberano ? "💾 GUARDAR EN MI PC (SIN NUBE)" : "☁️ SUBIR A INTERNET (NUBE DE RENDER)";
+    const labelFotos = modoSoberano ? `🛡️ MODO PRIVADO: IMPORTAR FOTOS A MI DISCO (SIN INTERNET)` : `⚠️ MODO INTERNET: SUBIR FOTOS A LA WEB (NO PRIVADO)`;
+    const labelCarpeta = modoSoberano ? "🛡️ IMPORTAR CARPETA A DISCO (LOCAL)" : "⚠️ SUBIR CARPETA A LA WEB (INTERNET)";
+    const labelGuardar = modoSoberano ? "🛡️ GUARDAR EN MI PC (100% SOBERANO)" : "☁️ SUBIR A LA NUBE DE RENDER (PÚBLICO)";
 
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
@@ -372,7 +372,6 @@ const AdminPanel = () => {
             } catch (e) {
                 resultado = { error: "Respuesta del servidor no válida" };
             }
-
             if (resImport.ok) {
                 setProgreso(100);
                 setTimeout(() => {
@@ -527,6 +526,24 @@ const AdminPanel = () => {
 
     return (
         <div className="admin-container">
+            {/* BANNER DE SOBERANÍA DE DATOS (MÁXIMA CLARIDAD) */}
+            <div style={{
+                background: modoSoberano ? 'rgba(0, 255, 128, 0.1)' : 'rgba(255, 45, 125, 0.1)',
+                border: `1px solid ${modoSoberano ? '#00ff80' : '#ff2d7d'}`,
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                textAlign: 'center',
+                color: modoSoberano ? '#00ff80' : '#ff2d7d',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                boxShadow: `0 0 15px ${modoSoberano ? 'rgba(0, 255, 128, 0.2)' : 'rgba(255, 45, 125, 0.2)'}`
+            }}>
+                {modoSoberano 
+                    ? "🛡️ MODO SOBERANO ACTIVO: Tus fotos están seguras en este PC y NUNCA salen a Internet." 
+                    : "⚠️ MODO ESCAPARATE WEB: Las fotos que subas aquí se guardarán en la nube de Render (Internet)."}
+            </div>
+
             <header className="admin-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button onClick={() => window.location.href = '/'} className="btn-volver-neon">⬅ VOLVER</button>
