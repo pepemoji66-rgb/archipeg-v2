@@ -38,6 +38,14 @@
     letter-spacing: 4px;
     text-shadow: 0 0 10px var(--cian-neon);
     margin: 0;
+    text-align: center;
+}
+
+@media (max-width: 800px) {
+    .galeria-titulo {
+        font-size: 0.95rem;
+        letter-spacing: 1px;
+    }
 }
 
 /* Botones de Cabecera (Adiós Windows 95) */
@@ -80,6 +88,30 @@
     gap: 10px;
 }
 
+@media (max-width: 800px) {
+    .galeria-header {
+        flex-direction: column;
+        padding: 15px;
+        gap: 10px;
+    }
+    .galeria-filtros {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+    .galeria-filtros .input-neon,
+    .galeria-filtros .select-neon,
+    .galeria-filtros button {
+        width: 100% !important;
+    }
+    .galeria-acciones {
+        width: 100%;
+    }
+    .galeria-acciones button {
+        width: 100%;
+    }
+}
+
 .input-neon,
 .select-neon {
     background: #000 !important;
@@ -99,11 +131,19 @@
 /* --- GRID 3x5 (5 columnas fijas) --- */
 .masonry-grid {
     display: grid !important;
-    grid-template-columns: repeat(5, 1fr) !important;
-    gap: 20px;
-    padding: 30px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 15px;
+    padding: 15px;
     max-width: 1600px;
     margin: 0 auto;
+}
+
+@media (max-width: 500px) {
+    .masonry-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+        padding: 10px;
+    }
 }
 
 .foto-card {
@@ -215,6 +255,17 @@
     justify-content: center;
     align-items: center;
     gap: 25px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .paginacion-controles {
+        gap: 15px;
+    }
+    .pagi-salto-zona {
+        order: -1;
+        width: 100%;
+    }
 }
 
 .btn-pagi-flecha {
