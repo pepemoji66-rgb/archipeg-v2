@@ -85,13 +85,6 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                             onChange={e => setConfirmar(e.target.value)}
                             required
                         />
-                        <input
-                            className="indice-auth-input"
-                            type="password"
-                            placeholder="Clave de Sistema (Opcional)"
-                            value={systemKey}
-                            onChange={e => setSystemKey(e.target.value)}
-                        />
                     </>
                 )}
 

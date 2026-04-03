@@ -1,5 +1,6 @@
-/* src/components/landing.css */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+* {
+    box-sizing: border-box;
+}
 
 .landing-container {
     background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a1a 100%);
@@ -7,6 +8,8 @@
     font-family: 'Outfit', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    width: 100%;
+    position: relative;
     padding-bottom: 50px;
 }
 
@@ -14,7 +17,7 @@
 .landing-top-header {
     display: flex;
     align-items: center;
-    padding: 20px 40px;
+    padding: 20px;
     position: absolute;
     top: 0;
     left: 0;
@@ -184,11 +187,19 @@
 }
 
 @media (max-width: 850px) {
-    .landing-privacy-box { grid-template-columns: 1fr; text-align: center; margin: 15px; padding: 40px 20px; }
-    .landing-hero-title { font-size: clamp(3rem, 15vw, 5rem); }
-    .landing-hero-subtitle { font-size: 1rem; }
-    .landing-top-header { padding: 15px 20px; }
-    .landing-logo-img { height: 45px; }
+    .landing-privacy-box { 
+        grid-template-columns: 1fr; 
+        text-align: center; 
+        margin: 15px; 
+        padding: 40px 20px;
+        width: calc(100% - 30px);
+    }
+    .landing-hero-title { font-size: clamp(2.5rem, 15vw, 4rem); letter-spacing: -1px; }
+    .landing-hero-subtitle { font-size: 0.95rem; line-height: 1.4; }
+    .landing-top-header { padding: 15px; }
+    .landing-logo-img { height: 40px; }
+    .landing-logo-text { font-size: 1.1rem; }
+    .btn-login-small { padding: 6px 12px; font-size: 0.7rem; }
 }
 
 .privacy-content h2 {

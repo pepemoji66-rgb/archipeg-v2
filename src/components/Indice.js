@@ -188,9 +188,13 @@ const Indice = () => {
                                 <li>🚀 <b>MÁXIMA VELOCIDAD</b>: Sin depender de tu conexión de fibra.</li>
                                 <li>💎 <b>PROPIEDAD</b>: Tú eres el dueño físico de tus datos.</li>
                             </ul>
-                            <button className="btn-primary-neon" style={{marginTop: '20px', width: '100%', fontSize: '0.9rem'}} onClick={() => alert("Próximamente: Enlace de descarga de ARCHIPEG PC")}>
-                                DESCARGAR ARCHIPEG PC ⬇️
-                            </button>
+                            <a 
+                                href="mailto:archipegv2@gmail.com?subject=Solicitud de ARCHIPEG PC PRO&body=Hola Jose, me gustaría solicitar la versión de escritorio soberana de Archipeg Pro para mi PC. Mi usuario registrado es: "
+                                className="btn-primary-neon" 
+                                style={{marginTop: '20px', width: '100%', fontSize: '0.9rem', display: 'inline-block', textDecoration: 'none', textAlign: 'center'}}
+                            >
+                                SOLICITAR ARCHIPEG PC POR EMAIL ⬇️
+                            </a>
                         </div>
                     </div>
                     <div className="magic-footer">

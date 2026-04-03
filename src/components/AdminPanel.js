@@ -60,9 +60,9 @@ const AdminPanel = () => {
 
     // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
     const modoSoberano = IS_ELECTRON || IS_LOCAL;
-    const labelFotos = modoSoberano ? `🖼️ IMPORTAR FOTOS (DISCO)` : `🖼️ ELEGIR FOTOS (NUBE)`;
-    const labelCarpeta = modoSoberano ? "📂 IMPORTAR CARPETA (DISCO)" : "📂 SUBIR CARPETA (NUBE)";
-    const labelGuardar = modoSoberano ? "💾 GUARDAR EN MI PC (SIN NUBE)" : "☁️ SUBIR A LA NUBE (RENDER)";
+    const labelFotos = modoSoberano ? `🖼️ IMPORTAR FOTOS A MI DISCO (PRIVADO)` : `🖼️ ELEGIR FOTOS PARA SUBIR A INTERNET`;
+    const labelCarpeta = modoSoberano ? "📂 IMPORTAR CARPETA A DISCO" : "📂 SUBIR CARPETA A INTERNET";
+    const labelGuardar = modoSoberano ? "💾 GUARDAR EN MI PC (SIN NUBE)" : "☁️ SUBIR A INTERNET (NUBE DE RENDER)";
 
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
@@ -320,7 +320,7 @@ const AdminPanel = () => {
         try {
             // --- ADVERTENCIA DE SOBERANÍA DE DATOS ---
             if (!electron && !IS_LOCAL) {
-                const mensajeWeb = `⚠️ ATENCIÓN: ESTÁS EN LA VERSIÓN WEB (RENDER)\n\nLa magia de ARCHIPEG es la privacidad total en tu disco duro local.\nSi importas fotos aquí, se subirán a internet (nube de Render).\n\nPara máxima soberanía, te recomendamos usar ARCHIPEG PC.\n¿Quieres continuar con la subida a la nube?`;
+                const mensajeWeb = `⚠️ ATENCIÓN: ESTÁS EN LA VERSIÓN WEB (INTERNET)\n\nLa magia de ARCHIPEG es la privacidad total en TU DISCO DURO LOCAL.\nSi importas fotos aquí, se subirán a INTERNET (nube de Render).\n\nPara máxima soberanía, te recomendamos usar ARCHIPEG PC.\n¿Quieres continuar con la subida a INTERNET?`;
                 if (!window.confirm(mensajeWeb)) return;
             }
 
