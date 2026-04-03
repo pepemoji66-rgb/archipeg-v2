@@ -72,7 +72,6 @@
     ],
     "files": [
       "build/**/*",
-      "node_modules/**/*",
       "main.js",
       "preload.js",
       "server.js",

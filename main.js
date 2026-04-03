@@ -88,9 +88,13 @@ function createWindow() {
         dialog.showErrorBox("Fallo de Inicio", `No se encontró el motor en: ${serverScript}`);
     }
 
-    // Usamos stdio para capturar errores del motor y mostrarlos
+    // Usamos el proceso de Electron para el fork si es posible, asegurando soporte ASAR
     serverProcess = fork(serverScript, [], {
-        env: { ...process.env, ARCHIPEG_DATA_DIR: userDataStore },
+        env: { 
+            ...process.env, 
+            ARCHIPEG_DATA_DIR: userDataStore,
+            ELECTRON_RUN_AS_NODE: '1' 
+        },
         stdio: ['inherit', 'inherit', 'pipe', 'ipc']
     });
 
@@ -102,7 +106,6 @@ function createWindow() {
 
     serverProcess.on('error', (err) => {
         console.error('Fallo crítico en el motor ARCHIPEG:', err);
-        dialog.showErrorBox("Error del Motor", `El motor falló al arrancar: ${err.message}`);
     });
 
     serverProcess.on('exit', (code) => {

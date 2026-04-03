@@ -58,6 +58,12 @@ const AdminPanel = () => {
     const [mensaje, setMensaje] = useState("");
     const [progreso, setProgreso] = useState(0);
 
+    // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
+    const modoSoberano = IS_ELECTRON || IS_LOCAL;
+    const labelFotos = modoSoberano ? `🖼️ IMPORTAR FOTOS (DISCO)` : `🖼️ ELEGIR FOTOS (NUBE)`;
+    const labelCarpeta = modoSoberano ? "📂 IMPORTAR CARPETA (DISCO)" : "📂 SUBIR CARPETA (NUBE)";
+    const labelGuardar = modoSoberano ? "💾 GUARDAR EN MI PC (SIN NUBE)" : "☁️ SUBIR A LA NUBE (RENDER)";
+
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
     const [busquedaTitulo, setBusquedaTitulo] = useState("");
@@ -529,7 +535,14 @@ const AdminPanel = () => {
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.1 - OPTIMIZADO</span>
                     </div>
                 </div>
-                <span className="tag-badge">{fotos.length} ACTIVOS EN RED</span>
+                <div style={{ textAlign: 'right' }}>
+                    <span className="tag-badge">{fotos.length} ACTIVOS EN RED</span>
+                    {(!usuario || !usuario.aprobado) && (
+                        <div className="demo-banner-small" style={{ fontSize: '0.7rem', color: '#ff2d7d', marginTop: '5px' }}>
+                            ⚠️ MODO DEMO: Activa en <a href="mailto:archipegv2@gmail.com" style={{color: '#ff2d7d'}}>archipegv2@gmail.com</a>
+                        </div>
+                    )}
+                </div>
             </header>
 
             <main className="admin-content">
@@ -564,10 +577,10 @@ const AdminPanel = () => {
 
                         <div className="file-input-wrapper" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <input id="file-upload" type="file" onChange={manejarCambioArchivos} multiple accept="image/*" />
-                            <label htmlFor="file-upload" className="btn-file-morado">🖼️ FOTOS ({archivos.length})</label>
+                            <label htmlFor="file-upload" className="btn-file-morado">{labelFotos} ({archivos.length})</label>
                             
                             <input id="folder-upload" type="file" onChange={manejarCambioArchivos} webkitdirectory="" directory="" multiple accept="image/*" style={{ display: 'none' }} />
-                            <label htmlFor="folder-upload" className="btn-file-morado" style={{ background: 'linear-gradient(135deg, #0088ff 0%, #00f2ff 100%)' }}>📂 CARPETA</label>
+                            <label htmlFor="folder-upload" className="btn-file-morado" style={{ background: 'linear-gradient(135deg, #0088ff 0%, #00f2ff 100%)' }}>{labelCarpeta}</label>
                         </div>
 
                         {progreso > 0 && (
@@ -586,7 +599,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>💾 GUARDAR EN ARCHIPEG</button>
+                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>{labelGuardar}</button>
                             <button 
                                 type="button" 
                                 className="btn-archipeg-main-morado" 
@@ -594,11 +607,13 @@ const AdminPanel = () => {
                                     padding: '10px 30px', 
                                     backgroundColor: (!electron && !IS_LOCAL) ? '#333' : '#cf00f1',
                                     borderColor: (!electron && !IS_LOCAL) ? '#555' : '#00ffff',
-                                    color: (!electron && !IS_LOCAL) ? '#888' : '#00ffff'
+                                    color: (!electron && !IS_LOCAL) ? '#888' : '#00ffff',
+                                    cursor: (!electron && !IS_LOCAL) ? 'not-allowed' : 'pointer'
                                 }} 
                                 onClick={ejecutarImportacionDesdeDisco}
+                                disabled={!electron && !IS_LOCAL}
                             >
-                                {(!electron && !IS_LOCAL) ? '🔒 IMPORTACIÓN DISCO (SÓLO PC)' : '📂 IMPORTACIÓN DISCO'}
+                                {(!electron && !IS_LOCAL) ? '🔒 IMPORTACIÓN DISCO (SÓLO PC)' : '📂 IMPORTAR DISCO DURO'}
                             </button>
                         </div>
                         {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}

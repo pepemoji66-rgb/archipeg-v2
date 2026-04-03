@@ -107,6 +107,7 @@
     margin-bottom: 20px;
     background: linear-gradient(to right, #00f2ff, #fff, #f100ff);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
     letter-spacing: -2px;
@@ -183,7 +184,11 @@
 }
 
 @media (max-width: 850px) {
-    .landing-privacy-box { grid-template-columns: 1fr; text-align: center; margin: 20px; }
+    .landing-privacy-box { grid-template-columns: 1fr; text-align: center; margin: 15px; padding: 40px 20px; }
+    .landing-hero-title { font-size: clamp(3rem, 15vw, 5rem); }
+    .landing-hero-subtitle { font-size: 1rem; }
+    .landing-top-header { padding: 15px 20px; }
+    .landing-logo-img { height: 45px; }
 }
 
 .privacy-content h2 {
@@ -496,6 +501,8 @@
 @media (max-width: 900px) {
     .magic-grid { grid-template-columns: 1fr; }
     .magic-divider { padding: 20px 0; font-size: 1.5rem !important; }
+    .magic-card { padding: 30px 20px; border-radius: 20px; }
+    .magic-header h2 { font-size: 1.5rem; }
 }
 
 .magic-item {

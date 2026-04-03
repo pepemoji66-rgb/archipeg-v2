@@ -1,14 +1,15 @@
 console.log("🚀 ARCHIPEG PRO: Motor Integral arrancando...");
 
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const { exec } = require('child_process');
+
 const express = require('express');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const { exec } = require('child_process');
 const ExifParser = require('exif-parser');
 
 const app = express();
@@ -436,19 +437,24 @@ app.post('/api/auth/login', async (req, res) => {
         console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
-        // --- BYPASS MAESTRO (PARA VERCEL/READ-ONLY) ---
+        // --- BYPASS MAESTRO (PARA VERCEL/READ-ONLY Y SEGURIDAD ABSOLUTA) ---
         const esJoseMaster = email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939';
         
         if (esJoseMaster) {
             console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${email}]`);
             const token = generarToken();
-            // Intentamos guardar la sesión, pero si falla (por ser READ-ONLY) seguimos adelante
+            // ID Maestro inalterable (4 o 1, según la base de datos, en producción forzamos coherencia con el ID admin)
+            const idMaestro = 1; 
             try {
-                if (db) await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, 4]);
+                if (db) {
+                    await db.run('INSERT OR REPLACE INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, idMaestro]);
+                    // Aseguramos que sea admin y aprobado
+                    await db.run('UPDATE usuarios SET es_admin = 1, aprobado = 1 WHERE email = ?', [email.toLowerCase()]);
+                }
             } catch (e) { console.warn("Modo Sesión Efímera (DB Protegido)"); }
             
             return res.json({
-                usuario: { id: 4, email: email.toLowerCase(), esAdmin: true, aprobado: true },
+                usuario: { id: idMaestro, email: email.toLowerCase(), esAdmin: true, aprobado: true },
                 token
             });
         }
@@ -1187,9 +1193,16 @@ app.patch('/api/usuarios/:id/admin', async (req, res) => {
 app.delete('/api/usuarios/:id', async (req, res) => {
     try {
         if (!req.esAdmin) return res.status(403).json({ error: 'Acceso denegado' });
-        if (req.params.id === "1") return res.status(403).json({ error: "No se puede eliminar el administrador original" });
         
-        await db.run("DELETE FROM usuarios WHERE id = ?", [req.params.id]);
+        // PROTECCIÓN MAESTRA: ID #1 o el correo del administrador supremo
+        const idParaBorrar = parseInt(req.params.id);
+        const usuarioAEliminar = await db.get("SELECT email FROM usuarios WHERE id = ?", [idParaBorrar]);
+        
+        if (idParaBorrar === 1 || (usuarioAEliminar && usuarioAEliminar.email === 'pepemoji66@gmail.com')) {
+            return res.status(403).json({ error: "No se puede eliminar al Administrador Original (Protección Maestro)" });
+        }
+        
+        await db.run("DELETE FROM usuarios WHERE id = ?", [idParaBorrar]);
         res.json({ ok: true });
     } catch (err) { res.status(500).json(err); }
 });
