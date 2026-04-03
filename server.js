@@ -841,7 +841,25 @@ app.patch('/api/fotos/:id/favorito', async (req, res) => {
 // FAVORITOS — listar
 app.get('/api/favoritos', async (req, res) => {
     try {
-        const fotos = await db.all("SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 AND usuario_id = ? ORDER BY id DESC", [req.usuario?.id]);
+        const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
+        
+        let query;
+        let params = [];
+        
+        if (!req.esAutenticado) {
+            // Modo Demo: Solo fotos sin usuario
+            query = `SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 AND es_duplicado = 0 AND usuario_id IS NULL ${excludes} ORDER BY id DESC`;
+        } else if (req.usuario?.id === 1) {
+            // Admin Maestro: Ve lo suyo Y lo global (demo)
+            query = `SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 AND es_duplicado = 0 AND (usuario_id = ? OR usuario_id IS NULL) ${excludes} ORDER BY id DESC`;
+            params = [1];
+        } else {
+            // Usuario normal: Solo lo suyo
+            query = `SELECT * FROM fotos WHERE favorito = 1 AND en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ? ${excludes} ORDER BY id DESC`;
+            params = [req.usuario?.id];
+        }
+        
+        const fotos = await db.all(query, params);
         res.json(fotos.map(f => ({ ...f, etiquetas: f.etiquetas || "" })));
     } catch (err) { res.status(500).json(err); }
 });
