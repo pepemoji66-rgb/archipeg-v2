@@ -50,10 +50,10 @@ const Favoritos = () => {
     };
 
     return (
-        <div className="galeria-layout" style={{ padding: '0 20px 20px' }}>
-            <header className="galeria-header">
+        <div className="galeria-layout" style={{ padding: '0 10px 20px' }}>
+            <header className="galeria-header" style={{ flexWrap: 'wrap', gap: '10px' }}>
                 <button className="btn-header-neon" onClick={() => window.history.back()}>⬅ ATRÁS</button>
-                <h1 className="galeria-titulo">⭐ Favoritos</h1>
+                <h1 className="galeria-titulo" style={{ fontSize: 'clamp(1.2rem, 5vw, 2rem)' }}>⭐ Favoritos</h1>
             </header>
 
             {fotos.length === 0 ? (

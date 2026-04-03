@@ -94,7 +94,7 @@ const Eventos = () => {
     // VISTA DE DETALLE DEL EVENTO (FOTOS)
     if (eventoActivo) return (
         <div className="admin-container">
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
+            <div className="admin-layout-wrapper">
                 <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <button className="btn-volver-neon" onClick={() => { setEventoActivo(null); setFotosEvento([]); }}>
@@ -155,7 +155,7 @@ const Eventos = () => {
     // VISTA PRINCIPAL DE EVENTOS
     return (
         <div className="admin-container">
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
+            <div className="admin-layout-wrapper">
                 <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">📅 EVENTOS</h1>
@@ -178,7 +178,7 @@ const Eventos = () => {
                     </section>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
+                <div className="eventos-grid">
                     {eventos.map(ev => (
                         <div key={ev.id} className="admin-card" style={{ cursor: 'pointer' }} onClick={() => abrirEvento(ev)}>
                             <div style={{ fontSize: '2.5rem', marginBottom: '10px', filter: 'drop-shadow(0 0 5px #ff00ff)' }}>📅</div>

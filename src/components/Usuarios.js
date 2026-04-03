@@ -161,6 +161,22 @@ export default function Usuarios() {
                                                 >
                                                     🗑️ ELIMINAR
                                                 </button>
+
+                                                {/* ENVIAR ENLACE PRO POR CORREO */}
+                                                {u.aprobado === 1 && u.id !== 1 && (
+                                                    <button 
+                                                        className="btn-usr-action"
+                                                        style={{ backgroundColor: '#ffcc00', color: '#000', fontWeight: '900', border: '1px solid #000' }}
+                                                        onClick={() => {
+                                                            const link = `${window.location.origin}/downloads/Archipeg_Setup.exe`;
+                                                            const subject = encodeURIComponent("Archipeg Pro - Acceso Concedido 🛡️");
+                                                            const body = encodeURIComponent(`¡Hola!\n\nTu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión Pro de Archipeg para tu PC haciendo clic en el siguiente enlace:\n\n${link}\n\n¡Disfrútalo!`);
+                                                            window.location.href = `mailto:${u.email}?subject=${subject}&body=${body}`;
+                                                        }}
+                                                    >
+                                                        ✉️ ENVIAR PRO
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

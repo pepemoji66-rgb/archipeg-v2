@@ -768,8 +768,8 @@ const AdminPanel = () => {
                     </div>
                 </section>
 
-                {/* --- SECCIÓN DE MANTENIMIENTO (SÓLO ADMIN) --- */}
-                {usuario?.esAdmin && (
+                {/* --- SECCIÓN DE MANTENIMIENTO (SÓLO EL CREADOR / ID #1) --- */}
+                {usuario?.id === 1 && (
                     <section className="admin-card" style={{ border: '2px solid #ff0044', background: 'rgba(255, 0, 68, 0.05)', textAlign: 'center' }}>
                         <h2 className="section-title" style={{ color: '#ff0044', justifyContent: 'center' }}>🛠️ ZONA DE MANTENIMIENTO</h2>
                         <p style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '15px' }}>

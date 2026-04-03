@@ -66,16 +66,17 @@ const Personas = () => {
         const next = dir === 'siguiente' ? (idx + 1) % fotos.length : (idx - 1 + fotos.length) % fotos.length;
         setFotoZoom(fotos[next]);
     };
-
     // VISTA DETALLE: FOTOS DE LA PERSONA
     if (personaActiva) return (
-        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
-            <header className="admin-header">
-                <div>
-                    <h1 className="admin-title">👤 {personaActiva.nombre.toUpperCase()}</h1>
-                    <span className="section-title" style={{ fontSize: '0.65rem' }}>SUJETO IDENTIFICADO</span>
-                </div>
-            </header>
+        <div className="admin-container">
+            <div className="admin-layout-wrapper">
+                <header className="admin-header">
+                    <button className="btn-volver-neon" onClick={() => { setPersonaActiva(null); setFotos([]); }}>⬅ VOLVER</button>
+                    <div>
+                        <h1 className="admin-title">👤 {personaActiva.nombre.toUpperCase()}</h1>
+                        <span className="section-title" style={{ fontSize: '0.65rem' }}>SUJETO IDENTIFICADO</span>
+                    </div>
+                </header>
 
                 {fotos.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '100px', opacity: 0.5 }}>
@@ -109,12 +110,14 @@ const Personas = () => {
                     />
                 )}
             </div>
+        </div>
     );
 
     // VISTA PRINCIPAL: LISTADO DE PERSONAS
     return (
-        <div className="admin-layout-wrapper" style={{ padding: '20px' }}>
-            <header className="admin-header">
+        <div className="admin-container">
+            <div className="admin-layout-wrapper">
+                <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">👤 PERSONAS</h1>
                         <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>BASE DE DATOS DE SUJETOS</span>
@@ -142,7 +145,7 @@ const Personas = () => {
                     </section>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                <div className="personas-grid">
                     {personas.map(p => (
                         <div key={p.id} className="admin-card" style={{ cursor: 'pointer', textAlign: 'center' }} onClick={() => abrirPersona(p)}>
                             <div style={{ fontSize: '3rem', marginBottom: '10px', filter: 'drop-shadow(0 0 8px #00ffff)' }}>👤</div>
@@ -166,6 +169,7 @@ const Personas = () => {
                     </div>
                 )}
             </div>
+        </div>
     );
 };
 

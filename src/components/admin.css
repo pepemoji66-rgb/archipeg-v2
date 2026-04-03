@@ -576,3 +576,33 @@
     height: 30px;
     background: rgba(255, 255, 255, 0.1);
 }
+
+/* --- DISEÑO RESPONSIVO UNIVERSAL PARA SECCIONES --- */
+.admin-layout-wrapper {
+    margin-left: 240px;
+    width: calc(100% - 240px);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 900px) {
+    .admin-layout-wrapper {
+        margin-left: 0;
+        width: 100%;
+        padding: 10px;
+    }
+}
+
+/* Grids adaptables para todas las secciones */
+.album-grid, .eventos-grid, .personas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+@media (max-width: 600px) {
+    .album-grid, .eventos-grid, .personas-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+}

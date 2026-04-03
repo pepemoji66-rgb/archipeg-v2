@@ -443,13 +443,20 @@ app.post('/api/auth/login', async (req, res) => {
         if (esJoseMaster) {
             console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${email}]`);
             const token = generarToken();
-            // ID Maestro inalterable (4 o 1, según la base de datos, en producción forzamos coherencia con el ID admin)
             const idMaestro = 1; 
             try {
                 if (db) {
+                    // --- ASEGURAR EXISTENCIA FÍSICA DEL MAESTRO (ID 1) ---
+                    const salt = 'master_salt';
+                    const pass_hash = hashPassword(password, salt);
+                    await db.run(
+                        'INSERT OR IGNORE INTO usuarios (id, email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, 1, 1)',
+                        [idMaestro, email.toLowerCase(), pass_hash, salt]
+                    );
+                    // Por si ya existía pero con otros datos, lo blindamos
+                    await db.run('UPDATE usuarios SET es_admin = 1, aprobado = 1 WHERE id = ?', [idMaestro]);
+                    
                     await db.run('INSERT OR REPLACE INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, idMaestro]);
-                    // Aseguramos que sea admin y aprobado
-                    await db.run('UPDATE usuarios SET es_admin = 1, aprobado = 1 WHERE email = ?', [email.toLowerCase()]);
                 }
             } catch (e) { console.warn("Modo Sesión Efímera (DB Protegido)"); }
             

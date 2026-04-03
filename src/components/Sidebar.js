@@ -113,7 +113,7 @@ const Sidebar = () => {
                 <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">⚙️</span> Gestión
                 </Link>
-                {usuario?.esAdmin && (
+                {usuario?.id === 1 && (
                     <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
                         <span className="sidebar-item-icon">👥</span> Usuarios
                     </Link>
@@ -131,14 +131,25 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                {(esDemo || (usuario && usuario.aprobado)) && (
+                {usuario && usuario.aprobado === 1 && (
                     <a 
                         href="/downloads/Archipeg_Setup.exe" 
                         download 
                         className="sidebar-upload-btn btn-descargar-app" 
-                        style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
+                        style={{ 
+                            marginBottom: '15px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '8px', 
+                            textDecoration: 'none',
+                            background: 'linear-gradient(90deg, #00ffff, #ff00ff)',
+                            color: '#000',
+                            fontWeight: '900',
+                            boxShadow: '0 0 15px rgba(0, 255, 255, 0.5)'
+                        }}
                     >
-                        ⬇ DESCARGAR APP (PC)
+                        🚀 DESCARGAR VERSIÓN PRO (PC)
                     </a>
                 )}
 

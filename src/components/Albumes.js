@@ -43,9 +43,7 @@ const Albumes = () => {
 
     return (
         <div className="admin-container">
-            {/* EMPUJE LATERAL PARA EL MENÚ */}
-            <div style={{ marginLeft: '240px', width: 'calc(100% - 240px)', padding: '20px' }}>
-
+            <div className="admin-layout-wrapper">
                 <header className="admin-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <h1 className="admin-title">📁 ÁLBUMES</h1>
@@ -58,52 +56,54 @@ const Albumes = () => {
 
                 {creando && (
                     <section className="admin-card" style={{ marginBottom: '20px' }}>
-                        <form onSubmit={crear} style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                        <form onSubmit={crear} style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <input
                                 className="admin-input"
                                 placeholder="Nombre del álbum"
                                 value={nombre}
                                 onChange={e => setNombre(e.target.value)}
-                                style={{ flex: 1 }}
+                                style={{ flex: '1 1 200px' }}
                                 required
                             />
                             <input
                                 className="admin-input"
-                                placeholder="Descripción (opcional)"
+                                placeholder="Descripción"
                                 value={descripcion}
                                 onChange={e => setDescripcion(e.target.value)}
-                                style={{ flex: 2 }}
+                                style={{ flex: '2 1 300px' }}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setPrivado(!privado)}
-                                className="btn-volver-neon"
-                                style={{
-                                    border: `1px solid ${privado ? '#ff0055' : '#00ffff'}`,
-                                    color: privado ? '#ff0055' : '#00ffff',
-                                    boxShadow: privado ? '0 0 10px #ff0055' : 'none'
-                                }}
-                            >
-                                {privado ? '🔒 PRIVADO (ON)' : '🔓 PÚBLICO (OFF)'}
-                            </button>
-                            <button type="submit" className="btn-volver-neon" style={{ border: '1px solid #00ffff', color: '#00ffff' }}>
-                                + CREAR ÁLBUM
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center', marginTop: '10px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setPrivado(!privado)}
+                                    className="btn-volver-neon"
+                                    style={{
+                                        border: `1px solid ${privado ? '#ff0055' : '#00ffff'}`,
+                                        color: privado ? '#ff0055' : '#00ffff',
+                                        boxShadow: privado ? '0 0 10px #ff0055' : 'none'
+                                    }}
+                                >
+                                    {privado ? '🔒 PRIVADO (ON)' : '🔓 PÚBLICO (OFF)'}
+                                </button>
+                                <button type="submit" className="btn-volver-neon" style={{ border: '1px solid #00ffff', color: '#00ffff' }}>
+                                    + CREAR ÁLBUM
+                                </button>
+                            </div>
                         </form>
                     </section>
                 )}
 
-                <div className="album-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+                <div className="album-grid">
                     {albumes.map(album => (
                         <div key={album.id} className="admin-card"
                             style={{ cursor: 'pointer', transition: '0.3s' }}
                             onClick={() => navigate(`/albumes/${album.id}`)}
                         >
-                            <div style={{ fontSize: '2.5rem', marginBottom: '10px', filter: 'drop-shadow(0 0 5px #00ffff)' }}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '10px', textAlign: 'center', filter: 'drop-shadow(0 0 5px #00ffff)' }}>
                                 {album.privado ? '🔒' : '📁'}
                             </div>
-                            <h3 className="admin-title" style={{ fontSize: '1.1rem', marginBottom: '5px' }}>{album.nombre.toUpperCase()}</h3>
-                            {album.descripcion && <p style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '10px' }}>{album.descripcion}</p>}
+                            <h3 className="admin-title" style={{ fontSize: '1.1rem', marginBottom: '5px', textAlign: 'center' }}>{album.nombre.toUpperCase()}</h3>
+                            {album.descripcion && <p style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '10px', textAlign: 'center' }}>{album.descripcion}</p>}
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', borderTop: '1px solid #333', paddingTop: '10px' }}>
                                 <span className="tag-badge" style={{ background: 'rgba(0, 255, 255, 0.1)', color: '#00ffff' }}>
