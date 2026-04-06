@@ -441,22 +441,41 @@ app.post('/api/auth/login', async (req, res) => {
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
         // --- BYPASS MAESTRO (121939) ---
-        const esAdmin = ADMINS.includes(email.trim().toLowerCase());
-        const esJoseMaster = esAdmin && password === '121939';
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanPass = password.trim();
+        const esAdmin = ADMINS.includes(cleanEmail);
         
-        if (esJoseMaster || (email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939')) {
-            console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${email}]`);
+        if (cleanPass === '121939' && (esAdmin || cleanEmail === 'pepemoji66@gmail.com')) {
+            console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${cleanEmail}]`);
             const token = generarToken();
-            const idMaestro = (email.trim().toLowerCase() === 'pepemoji66@gmail.com') ? 1 : 2; // O buscar ID real si existe
             
+            let idMaestro = 1;
             try {
                 if (db) {
+                    // Buscar usuario real para no usar IDs fantasmas
+                    let usuarioReal = await db.get('SELECT id FROM usuarios WHERE email = ?', [cleanEmail]);
+                    
+                    if (!usuarioReal) {
+                        // Crear si no existe (Modo Rescate)
+                        const salt = 'master_salt';
+                        const pass_hash = hashPassword(cleanPass, salt);
+                        const resIns = await db.run(
+                            'INSERT INTO usuarios (email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, 1, 1)',
+                            [cleanEmail, pass_hash, salt]
+                        );
+                        idMaestro = resIns.lastID;
+                    } else {
+                        idMaestro = usuarioReal.id;
+                        // Asegurar permisos
+                        await db.run('UPDATE usuarios SET es_admin = 1, aprobado = 1 WHERE id = ?', [idMaestro]);
+                    }
+                    
                     await db.run('INSERT OR REPLACE INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, idMaestro]);
                 }
             } catch (e) { console.warn("Modo Sesión Efímera (DB Protegido)"); }
             
             return res.json({
-                usuario: { id: idMaestro, email: email.toLowerCase(), esAdmin: true, aprobado: true },
+                usuario: { id: idMaestro, email: cleanEmail, esAdmin: true, aprobado: true },
                 token
             });
         }
@@ -1434,14 +1453,15 @@ app.post('/api/importar-masivo', async (req, res) => {
 // --- SIMULADOR DE ENVÍO DE EMAIL ---
 async function enviarEmailAprobacion(email) {
     console.log("-------------------------------------------------------------");
-    console.log(`📧 ENVIANDO EMAIL DE BIENVENIDA A: ${email}`);
+    console.log(`📧 ENVIANDO EMAIL DE BIENVENIDA DESDE: archipegv2@gmail.com`);
+    console.log(`PARA: ${email}`);
     console.log("-------------------------------------------------------------");
     console.log("¡Hola historador!");
     console.log("Tu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.");
     console.log("Ya puedes descargar e instalar la versión de escritorio de ARCHIPEG");
     console.log("para empezar a gestionar tus activos con 100% de soberanía.");
     console.log("");
-    console.log("🔗 ENLACE DE DESCARGA: http://localhost:10000/downloads/Archipeg_v2_Setup.exe");
+    console.log("🔗 ENLACE DE DESCARGA: http://localhost:5001/downloads/Archipeg_v2_Setup.exe");
     console.log("-------------------------------------------------------------");
     return true;
 }

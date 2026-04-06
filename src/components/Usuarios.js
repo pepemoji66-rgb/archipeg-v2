@@ -171,7 +171,7 @@ export default function Usuarios() {
                                                         onClick={() => {
                                                             const link = `${window.location.origin}/downloads/Archipeg_Setup.exe`;
                                                             const subject = encodeURIComponent("Archipeg Pro - Acceso Concedido 🛡️");
-                                                            const body = encodeURIComponent(`¡Hola!\n\nTu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión Pro de Archipeg para tu PC haciendo clic en el siguiente enlace:\n\n${link}\n\n¡Disfrútalo!`);
+                                                            const body = encodeURIComponent(`¡Hola!\n\nTu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión Pro de Archipeg para tu PC haciendo clic en el siguiente enlace:\n\n${link}\n\nSi tienes dudas, escríbenos a archipegv2@gmail.com\n\n¡Disfrútalo!`);
                                                             window.location.href = `mailto:${u.email}?subject=${subject}&body=${body}`;
                                                         }}
                                                     >

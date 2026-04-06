@@ -1,7 +1,7 @@
 {
   "name": "archipeg",
   "version": "1.0.0",
-  "homepage": "/",
+  "homepage": ".",
   "description": "Sistema Archipeg - Gestión de Activos y Geo-localización",
   "main": "main.js",
   "author": "[JOSE MORENO JIMENEZ]",
