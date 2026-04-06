@@ -128,7 +128,7 @@ const Sidebar = () => {
                 <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">⚙️</span> Gestión
                 </Link>
-                {usuario?.id === 1 && (
+                {usuario?.email === 'pepemoji66@gmail.com' && (
                     <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
                         <span className="sidebar-item-icon">👥</span> Usuarios
                     </Link>

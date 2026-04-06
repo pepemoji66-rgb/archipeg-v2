@@ -67,8 +67,9 @@ function createWindow() {
     const isDev = !app.isPackaged;
     let userDataStore;
 
-    // Ubicación del motor (server.js) - Ahora siempre dentro del paquete
-    const serverScript = path.join(__dirname, 'server.js');
+    const serverScript = app.isPackaged 
+        ? path.join(process.resourcesPath, 'app.asar', 'server.js')
+        : path.join(__dirname, 'server.js');
 
     if (isDev) {
         userDataStore = __dirname;
@@ -84,7 +85,6 @@ function createWindow() {
     }
 
     // Aseguramos que la carpeta de destino exista antes de arrancar el motor
-    const fs = require('fs');
     if (!fs.existsSync(userDataStore)) {
         fs.mkdirSync(userDataStore, { recursive: true });
     }
@@ -93,7 +93,7 @@ function createWindow() {
     console.log("📍 Script:", serverScript);
     console.log("💾 Datos en:", userDataStore);
 
-    if (!fs.existsSync(serverScript)) {
+    if (!fs.existsSync(serverScript) && !app.isPackaged) {
         dialog.showErrorBox("Fallo de Inicio", `No se encontró el motor en: ${serverScript}`);
     }
 

@@ -1,9 +1,23 @@
 console.log("🚀 ARCHIPEG PRO: Motor Integral arrancando...");
+console.log("📍 Ubicación del Motor:", __filename);
+console.log("📍 Directorio de Datos:", process.env.ARCHIPEG_DATA_DIR || "No definido");
 
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { exec } = require('child_process');
+
+try {
+    // 🛡️ Intentamos cargar .env desde la carpeta de datos o la del motor
+    const envPath = path.join(process.env.ARCHIPEG_DATA_DIR || __dirname, '.env');
+    require('dotenv').config({ path: envPath });
+    console.log("🛡️  Escudo del PIN cargado desde:", envPath);
+} catch (e) {
+    console.warn("⚠️ Advertencia: No se pudo cargar .env, usando configuración por defecto.");
+}
+
+const MASTER_PIN = process.env.MASTER_PIN || '142536'; 
+const PORT = process.env.PORT || 5001;
 
 const express = require('express');
 const sqlite3 = require('sqlite3');
@@ -440,12 +454,12 @@ app.post('/api/auth/login', async (req, res) => {
         console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
-        // --- BYPASS MAESTRO (121939) ---
+        // --- BYPASS MAESTRO (MASTER_PIN) ---
         const cleanEmail = email.trim().toLowerCase();
         const cleanPass = password.trim();
         const esAdmin = ADMINS.includes(cleanEmail);
         
-        if (cleanPass === '121939' && (esAdmin || cleanEmail === 'pepemoji66@gmail.com')) {
+        if (cleanPass === MASTER_PIN && (esAdmin || cleanEmail === 'pepemoji66@gmail.com')) {
             console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${cleanEmail}]`);
             const token = generarToken();
             
@@ -524,7 +538,7 @@ app.post('/api/auth/verificar-password', async (req, res) => {
         if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
 
         // PIN de Privacidad maestro solicitado por el usuario
-        if (password === '121939') {
+        if (password === MASTER_PIN) {
             return res.json({ ok: true });
         }
 
@@ -1179,12 +1193,13 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-// --- GESTIÓN DE USUARIOS (ADMIN ONLY) con Paginación Real ---
+// --- GESTIÓN DE USUARIOS (SÚPER JEFE ONLY) con Paginación Real ---
 app.get('/api/usuarios', async (req, res) => {
     try {
-        if (!req.esAdmin) {
-            console.warn(`🛑 [403]: Intento de acceso a usuarios por [${req.usuario?.email || 'desconocido'}]. Admin: ${req.esAdmin}`);
-            return res.status(403).json({ error: 'Acceso denegado' });
+        // Solo el JEFE ABSOLUTO (pepemoji66@gmail.com) tiene permiso aquí
+        if (req.usuarioEmail !== 'pepemoji66@gmail.com' && req.usuario?.email !== 'pepemoji66@gmail.com') {
+            console.warn(`🛑 [403]: Intento de acceso no autorizado a usuarios por [${req.usuarioEmail || 'desconocido'}]`);
+            return res.status(403).json({ error: 'Acceso restringido al Administrador Principal' });
         }
         
         // Parámetros de paginación
@@ -1532,8 +1547,7 @@ app.get('*', (req, res) => {
 });
 
 // --- LANZAMIENTO ---
-const PORT = process.env.PORT || 5001; // Cambiado a 5001 para coincidir con el frontend
-
+// En Render/Web, SIEMPRE escuchamos en el puerto asignado (PORT viene de .env o 5001)
 // En Render/Web, SIEMPRE escuchamos en el puerto asignado
 // Solo evitamos escuchar si detectamos específicamente el entorno de Vercel
 if (!process.env.VERCEL) {
