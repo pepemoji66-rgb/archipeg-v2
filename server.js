@@ -383,7 +383,8 @@ app.get('/api/test', (req, res) => {
         status: 'online', 
         message: 'ARCHIPEG BACKEND IS ALIVE', 
         vercel: !!process.env.VERCEL,
-        dbStatus: !!db ? 'connected' : 'not initialization'
+        dbStatus: !!db ? 'connected' : 'not initialization',
+        isCDrive: (process.env.ARCHIPEG_DATA_DIR || __dirname).toLowerCase().startsWith('c:')
     });
 });
 
@@ -439,25 +440,17 @@ app.post('/api/auth/login', async (req, res) => {
         console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
-        // --- BYPASS MAESTRO (PARA VERCEL/READ-ONLY Y SEGURIDAD ABSOLUTA) ---
-        const esJoseMaster = email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939';
+        // --- BYPASS MAESTRO (121939) ---
+        const esAdmin = ADMINS.includes(email.trim().toLowerCase());
+        const esJoseMaster = esAdmin && password === '121939';
         
-        if (esJoseMaster) {
+        if (esJoseMaster || (email.trim().toLowerCase() === 'pepemoji66@gmail.com' && password === '121939')) {
             console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${email}]`);
             const token = generarToken();
-            const idMaestro = 1; 
+            const idMaestro = (email.trim().toLowerCase() === 'pepemoji66@gmail.com') ? 1 : 2; // O buscar ID real si existe
+            
             try {
                 if (db) {
-                    // --- ASEGURAR EXISTENCIA FÍSICA DEL MAESTRO (ID 1) ---
-                    const salt = 'master_salt';
-                    const pass_hash = hashPassword(password, salt);
-                    await db.run(
-                        'INSERT OR IGNORE INTO usuarios (id, email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, 1, 1)',
-                        [idMaestro, email.toLowerCase(), pass_hash, salt]
-                    );
-                    // Por si ya existía pero con otros datos, lo blindamos
-                    await db.run('UPDATE usuarios SET es_admin = 1, aprobado = 1 WHERE id = ?', [idMaestro]);
-                    
                     await db.run('INSERT OR REPLACE INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, idMaestro]);
                 }
             } catch (e) { console.warn("Modo Sesión Efímera (DB Protegido)"); }
@@ -1211,6 +1204,15 @@ app.patch('/api/usuarios/:id/aprobar', async (req, res) => {
         
         const nuevoEstado = user.aprobado === 1 ? 0 : 1;
         await db.run("UPDATE usuarios SET aprobado = ? WHERE id = ?", [nuevoEstado, req.params.id]);
+        
+        // Si ha sido aprobado (de 0 a 1), enviamos el email de bienvenida
+        if (nuevoEstado === 1) {
+            const userData = await db.get("SELECT email FROM usuarios WHERE id = ?", [req.params.id]);
+            if (userData) {
+                enviarEmailAprobacion(userData.email).catch(e => console.error("Error envío email:", e));
+            }
+        }
+
         res.json({ aprobado: nuevoEstado });
     } catch (err) { res.status(500).json(err); }
 });
@@ -1242,6 +1244,113 @@ app.delete('/api/usuarios/:id', async (req, res) => {
         await db.run("DELETE FROM usuarios WHERE id = ?", [idParaBorrar]);
         res.json({ ok: true });
     } catch (err) { res.status(500).json(err); }
+});
+
+// IMPORTACIÓN MÁGICA DESDE CARPETA "FOTOS PARA SUBIR"
+app.post('/api/sistema/importar-automatico', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose...' });
+        
+        const dirSubida = path.join(basePath, 'FOTOS PARA SUBIR');
+        if (!fs.existsSync(dirSubida)) {
+            return res.status(404).json({ error: 'No se encontró la carpeta "FOTOS PARA SUBIR" en el proyecto.' });
+        }
+
+        const scanRecursive = (dir, currentTags = []) => {
+            let results = [];
+            const list = fs.readdirSync(dir, { withFileTypes: true });
+            for (const item of list) {
+                const fullPath = path.join(dir, item.name);
+                if (item.isDirectory()) {
+                    results = results.concat(scanRecursive(fullPath, [...currentTags, item.name]));
+                } else if (item.isFile() && EXTENSIONES_IMAGEN.has(path.extname(item.name).toLowerCase())) {
+                    results.push({ path: fullPath, tags: currentTags });
+                }
+            }
+            return results;
+        };
+
+        const fotosAImportar = scanRecursive(dirSubida);
+        let importadas = 0;
+        let saltadas = 0;
+        let errores = 0;
+
+        await db.run("BEGIN TRANSACTION");
+        try {
+            for (const foto of fotosAImportar) {
+                const fileName = path.basename(foto.path);
+                const stats = fs.statSync(foto.path);
+                
+                // 1. Detección de duplicados (Nombre + Tamaño)
+                const duplicada = await db.get(
+                    "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
+                    [fileName, req.usuario?.id]
+                );
+                
+                if (duplicada) {
+                    saltadas++;
+                    continue;
+                }
+
+                // 2. Extracción de metadatos del nombre de la carpeta (último nivel preferido)
+                let anioExtraido = null;
+                let etiquetasFinales = foto.tags.join(' ');
+                
+                // Buscar año en la jerarquía de carpetas (de abajo hacia arriba)
+                for (let i = foto.tags.length - 1; i >= 0; i--) {
+                    const match = foto.tags[i].match(/(19\d{2}|20\d{2})/);
+                    if (match) {
+                        anioExtraido = parseInt(match[1]);
+                        break;
+                    }
+                }
+
+                // 3. Copiar archivo a fotos_archipeg
+                const nuevoNombre = `${Date.now()}-${fileName}`;
+                const destinoFinal = path.join(dirDestino, nuevoNombre);
+                fs.copyFileSync(foto.path, destinoFinal);
+
+                // 4. Extraer metadata técnica (GPS, etc)
+                const meta = extraerMetadata(destinoFinal);
+                const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
+
+                // 5. Insertar en DB
+                const result = await db.run(
+                    "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                    [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
+                );
+
+                // 6. Vincular a Evento (si hay etiquetas)
+                if (foto.tags.length > 0) {
+                    const nombreEvento = foto.tags[foto.tags.length - 1]; // El nombre de la carpeta inmediata
+                    let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
+                    if (!evento) {
+                        const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${anioFinal}-01-01`]);
+                        evento = { id: resEv.lastID };
+                    }
+                    await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [evento.id, result.lastID]);
+                }
+
+                importadas++;
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            console.error("Error en transacción:", e);
+            errores++;
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Importación finalizada.`,
+            importadas, 
+            saltadas,
+            pendientes: fotosAImportar.length - importadas - saltadas
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Fallo crítico en el motor de importación' });
+    }
 });
 
 // IMPORTACIÓN MASIVA DESDE DISCO
@@ -1321,6 +1430,22 @@ app.post('/api/importar-masivo', async (req, res) => {
     }
 });
 
+
+// --- SIMULADOR DE ENVÍO DE EMAIL ---
+async function enviarEmailAprobacion(email) {
+    console.log("-------------------------------------------------------------");
+    console.log(`📧 ENVIANDO EMAIL DE BIENVENIDA A: ${email}`);
+    console.log("-------------------------------------------------------------");
+    console.log("¡Hola historador!");
+    console.log("Tu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.");
+    console.log("Ya puedes descargar e instalar la versión de escritorio de ARCHIPEG");
+    console.log("para empezar a gestionar tus activos con 100% de soberanía.");
+    console.log("");
+    console.log("🔗 ENLACE DE DESCARGA: http://localhost:10000/downloads/Archipeg_v2_Setup.exe");
+    console.log("-------------------------------------------------------------");
+    return true;
+}
+
 // SERVIR FOTOS REFERENCIADAS POR RUTA ABSOLUTA
 app.get('/api/foto-local', (req, res) => {
     const ruta = req.query.ruta;
@@ -1387,7 +1512,7 @@ app.get('*', (req, res) => {
 });
 
 // --- LANZAMIENTO ---
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 5001; // Cambiado a 5001 para coincidir con el frontend
 
 // En Render/Web, SIEMPRE escuchamos en el puerto asignado
 // Solo evitamos escuchar si detectamos específicamente el entorno de Vercel

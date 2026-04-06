@@ -14,8 +14,8 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
     const { login, registro } = useAuth();
     const navigate = useNavigate();
 
-    const limpiar = () => { setError(''); setPassword(''); setConfirmar(''); setSystemKey(''); };
-    const cambiarModo = (nuevoModo) => { setModo(nuevoModo); limpiar(); };
+    const limpiar = () => { setEmail(''); setPassword(''); setConfirmar(''); setSystemKey(''); setError(''); };
+    const cambiarModo = (nuevoModo) => { limpiar(); setModo(nuevoModo); };
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -33,6 +33,10 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 const resData = await registro(email.trim().toLowerCase(), password, systemKey.trim());
                 if (resData && !resData.token) {
                     setError('PENDIENTE: Un administrador debe aprobar tu cuenta.');
+                    setTimeout(() => {
+                        limpiar();
+                        setModo('login');
+                    }, 3000);
                 } else {
                     if (onAuthSuccess) onAuthSuccess();
                     navigate('/galeria-completa');
@@ -51,29 +55,33 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 <img src="logo_archipeg_principal.png" alt="Archipeg" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
             </div>
             <h2 className="landing-hero-title" style={{ fontSize: '1.5rem', marginBottom: '10px', textAlign: 'center' }}>
-                {modo === 'login' ? 'INICIAR SESIÓN' : 'CREAR CUENTA'}
+                {modo === 'login' ? 'INICIAR SESIÓN' : 'REGISTRO SOBERANO'}
             </h2>
             <p style={{ color: '#888', textAlign: 'center', marginBottom: '20px', fontSize: '0.8rem' }}>
-                {modo === 'login' ? 'Bienvenido de nuevo a tu archivo privado.' : 'Únete a la soberanía digital de Archipeg.'}
+                {modo === 'login' ? 'Entra a tu archivo privado.' : 'Crear una cuenta nueva (requiere aprobación).'}
             </p>
 
             <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <input
                     className="indice-auth-input"
                     type="email"
+                    name={modo === 'registro' ? "reg_email" : "login_email"}
+                    id={modo === 'registro' ? "reg_email" : "login_email"}
                     placeholder="Tu email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    autoComplete="off"
+                    autoComplete={modo === 'registro' ? "new-password" : "off"}
                     required
                 />
                 <input
                     className="indice-auth-input"
                     type="password"
+                    name={modo === 'registro' ? "reg_pass" : "login_pass"}
+                    id={modo === 'registro' ? "reg_pass" : "login_pass"}
                     placeholder="Contraseña"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    autoComplete="off"
+                    autoComplete={modo === 'registro' ? "new-password" : "off"}
                     required
                 />
                 
@@ -82,10 +90,12 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                         <input
                             className="indice-auth-input"
                             type="password"
+                            name="reg_confirm"
+                            id="reg_confirm"
                             placeholder="Repite contraseña"
                             value={confirmar}
                             onChange={e => setConfirmar(e.target.value)}
-                            autoComplete="off"
+                            autoComplete="new-password"
                             required
                         />
                     </>

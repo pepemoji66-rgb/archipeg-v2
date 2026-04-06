@@ -96,6 +96,7 @@ const AdminPanel = () => {
     const [seleccionados, setSeleccionados] = useState(new Set());
     const [bulkAlbumId, setBulkAlbumId] = useState("");
     const [bulkEventoId, setBulkEventoId] = useState("");
+    const [esDiscoC, setEsDiscoC] = useState(false);
 
     const zoomWrapperRef = useRef(null);
     // Las variables y función para la navegación de zoom se declaran más abajo para tener acceso a fotosFiltradas
@@ -128,6 +129,12 @@ const AdminPanel = () => {
         apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
         apiFetch(`${API_URL}/eventos`).then(r => r.json()).then(setEventosParaZoom).catch(() => { });
         apiFetch(`${API_URL}/anios`).then(r => r.json()).then(data => setAniosDb(data.map(a => a.anio).filter(Boolean))).catch(() => { });
+        
+        // --- VERIFICAR SOBERANÍA DEL DISCO ---
+        fetch(`${API_URL}/test`)
+            .then(res => res.json())
+            .then(data => setEsDiscoC(data.isCDrive))
+            .catch(() => {});
     }, []);
 
     // Bloquear el scroll del fondo cuando el modal de zoom esté abierto
@@ -524,6 +531,38 @@ const AdminPanel = () => {
         }).catch(() => window.open(url, '_blank'));
     };
 
+    const ejecutarImportacionAutomatica = async () => {
+        if (!window.confirm("🚀 ¿QUIERES QUE ARCHIPEG ESCANEE TU CARPETA 'FOTOS PARA SUBIR'?\n\n- Se asignará Año y Evento automáticamente según el nombre de las carpetas.\n- Se ignorarán las fotos que ya existan.\n- Esto puede tardar unos minutos si tienes miles de fotos.")) return;
+
+        try {
+            setMensaje("🚀 Motor Mágico arrancando... Escaneando carpetas.");
+            setProgreso(10);
+            
+            const res = await apiFetch(`${API_URL}/sistema/importar-automatico`, { 
+                method: 'POST' 
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                setProgreso(100);
+                setTimeout(() => {
+                    alert(`✨ ¡MAGIA COMPLETADA!\n\n- Fotos nuevas: ${data.importadas}\n- Saltadas (duplicadas): ${data.saltadas}\n\nYa puedes verlas en la galería.`);
+                    setMensaje("✅ Importación automática finalizada.");
+                    setProgreso(0);
+                    cargarFotos();
+                }, 500);
+            } else {
+                const errorData = await res.json();
+                alert("❌ ERROR: " + (errorData.error || "Fallo en la importación"));
+                setProgreso(0);
+                setMensaje("⚠️ Falló la importación mágica.");
+            }
+        } catch (error) {
+            setProgreso(0);
+            alert("Error de conexión con el motor.");
+        }
+    };
+
     return (
         <div className="admin-container">
             {/* BANNER DE SOBERANÍA DE DATOS (MÁXIMA CLARIDAD) */}
@@ -548,11 +587,25 @@ const AdminPanel = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button onClick={() => window.location.href = '/'} className="btn-volver-neon">⬅ VOLVER</button>
                     <div>
-                        <h1 className="admin-title">GESTIÓN DE ACTIVOS V2.1-FIX</h1>
-                        <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.1 - OPTIMIZADO</span>
+                        <h1 className="admin-title">GESTIÓN DE ACTIVOS V2.2-PRO</h1>
+                        <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.2 - SOBERANÍA TOTAL</span>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
+                    {esDiscoC && (
+                        <div style={{
+                            background: '#ff0000',
+                            color: '#fff',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            marginBottom: '5px',
+                            animation: 'pulse 1.5s infinite'
+                        }}>
+                             ⚠️ DISCO C: NO SOBERANO
+                        </div>
+                    )}
                     <span className="tag-badge">{fotos.length} ACTIVOS EN RED</span>
                     {(!usuario || !usuario.aprobado) && (
                         <div className="demo-banner-small" style={{ fontSize: '0.7rem', color: '#ff2d7d', marginTop: '5px' }}>
@@ -563,95 +616,78 @@ const AdminPanel = () => {
             </header>
 
             <main className="admin-content">
-                <section className="admin-card">
-                    <form onSubmit={manejarSubida}>
-                        <h2 className="section-title">➕ INYECTAR NUEVOS ACTIVOS</h2>
-                        <div className="form-grid">
-                            <input type="text" placeholder="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} className="admin-input" />
-                            <input type="number" value={anio} onChange={(e) => setAnio(e.target.value)} required className="admin-input" />
-                            <input type="text" placeholder="Etiquetas" value={etiquetas} onChange={(e) => setEtiquetas(e.target.value)} className="admin-input" />
-                            <input type="text" placeholder="Lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} className="admin-input" />
-                            <select value={albumSeleccionado} onChange={e => setAlbumSeleccionado(e.target.value)} className="admin-select">
-                                <option value="">📁 SIN ÁLBUM</option>
-                                {albumes.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                            </select>
+                <section className="admin-card" style={{ border: '1px solid #7000ff' }}>
+                    <h2 className="section-title" style={{ color: '#00ffff' }}>📂 ZONA DE IMPORTACIÓN SOBERANA</h2>
+                    <p style={{ color: '#ccc', fontSize: '0.85rem', marginBottom: '20px' }}>
+                        Selecciona el método para inyectar tus fotos al sistema. ARCHIPEG detectará años y eventos automáticamente.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                        {/* MÉTODO 1: MÁGICA */}
+                        <div style={{ background: 'rgba(112, 0, 255, 0.1)', border: '1px solid #7000ff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#7000ff' }}>🚀 MAGIA (AUTO)</h3>
+                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Escanea carpetas en <strong>FOTOS PARA SUBIR</strong> y las organiza por Año/Etiqueta.</p>
+                            <button onClick={ejecutarImportacionAutomatica} className="btn-archipeg-main-morado" style={{ width: '100%', padding: '10px', border: 'none', background: 'linear-gradient(135deg, #7000ff 0%, #00ffff 100%)' }}>EJECUTAR ESCÁNER</button>
                         </div>
-                        <textarea placeholder="Descripción técnica..." value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="admin-textarea" />
 
-                        {personas.length > 0 && (
-                            <div className="mini-tags-display" style={{ margin: '10px 0' }}>
-                                {personas.map(p => (
-                                    <button key={p.id} type="button"
-                                        className={personasSeleccionadas.includes(p.id) ? "tag-badge activa" : "tag-badge"}
-                                        style={{ cursor: 'pointer', background: personasSeleccionadas.includes(p.id) ? '#00ffff' : '', color: personasSeleccionadas.includes(p.id) ? '#000' : '' }}
-                                        onClick={() => setPersonasSeleccionadas(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id])}
-                                    >
-                                        {p.nombre}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        {/* MÉTODO 2: DISCO NATIVO */}
+                        <div style={{ background: 'rgba(0, 255, 255, 0.05)', border: '1px solid #00ffff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#00ffff' }}>💾 DISCO ENTERO</h3>
+                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Selecciona cualquier carpeta de tu PC o disco duro externo (D, E, F...).</p>
+                            <button 
+                                onClick={modoSoberano ? ejecutarImportacionDesdeDisco : null} 
+                                className="btn-archipeg-main-morado" 
+                                style={{ width: '100%', padding: '10px', border: '1px solid #00ffff', background: 'transparent', color: '#00ffff', opacity: modoSoberano ? 1 : 0.5 }}
+                                disabled={!modoSoberano}
+                            >
+                                {modoSoberano ? 'BUSCAR EN MI PC' : 'SOLO VERSIÓN PC'}
+                            </button>
+                        </div>
 
-                        <div className="file-input-wrapper" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <input id="file-upload" type="file" onChange={manejarCambioArchivos} multiple accept="image/*" />
-                            <label htmlFor="file-upload" className="btn-file-morado">{labelFotos} ({archivos.length})</label>
+                        {/* MÉTODO 3: WEB / MANUAL */}
+                        <div style={{ background: 'rgba(255, 0, 255, 0.05)', border: '1px solid #ff00ff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '1rem', color: '#ff00ff' }}>📤 SUBIDA WEB</h3>
+                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Para cuando usas el móvil o quieres subir fotos específicas desde la nube.</p>
                             
-                            <input id="folder-upload" type="file" onChange={manejarCambioArchivos} webkitdirectory="" directory="" multiple accept="image/*" style={{ display: 'none' }} />
-                            <label htmlFor="folder-upload" className="btn-file-morado" style={{ background: 'linear-gradient(135deg, #0088ff 0%, #00f2ff 100%)' }}>{labelCarpeta}</label>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <input id="file-upload-new" type="file" onChange={manejarCambioArchivos} multiple accept="image/*" style={{ display: 'none' }} />
+                                <label htmlFor="file-upload-new" className="tag-badge" style={{ flex: 1, cursor: 'pointer', padding: '8px', fontSize: '0.6rem' }}>📄 ARCHIVOS ({archivos.length})</label>
+                                
+                                <input id="folder-upload-new" type="file" onChange={manejarCambioArchivos} webkitdirectory="" directory="" multiple accept="image/*" style={{ display: 'none' }} />
+                                <label htmlFor="folder-upload-new" className="tag-badge" style={{ flex: 1, cursor: 'pointer', padding: '8px', fontSize: '0.6rem' }}>📁 CARPETA</label>
+                            </div>
+                            
+                            <button 
+                                onClick={manejarSubida} 
+                                className="btn-archipeg-main-morado" 
+                                style={{ width: '100%', padding: '10px', border: 'none', background: '#ff00ff', marginTop: '10px' }}
+                                disabled={archivos.length === 0}
+                            >
+                                SUBIR AHORA
+                            </button>
                         </div>
+                    </div>
 
+                    <div style={{ marginTop: '20px' }}>
                         {progreso > 0 && (
                             <div className="progreso-container-morado">
                                 <div className="progreso-bar-morado" style={{ width: `${progreso}%` }}>{progreso}%</div>
                             </div>
                         )}
+                        {mensaje && <p className="mensaje-feedback-morado" style={{ textAlign: 'center' }}>{mensaje}</p>}
+                    </div>
+                </section>
 
-                        <div className="admin-controls" style={{ justifyContent: 'center', marginTop: '20px' }}>
-                            <button type="button" onClick={ejecutarRescanGPS} className="btn-archipeg-action" style={{ borderColor: '#ffaa00', color: '#ffaa00' }}>
-                                🛰️ RE-ESCANEAR GPS (MAPA)
-                            </button>
-                            <button type="button" onClick={ejecutarRescanTags} className="btn-archipeg-action" style={{ borderColor: '#00ccff', color: '#00ccff' }}>
-                                🏷️ RE-ESCANEAR TAGS (IA)
-                            </button>
+                <section className="admin-card">
+                    <form onSubmit={manejarSubida}>
+                        <h2 className="section-title">✏️ METADATOS POR DEFECTO</h2>
+                        <div className="form-grid">
+                            <input type="text" placeholder="Título base para subida manual" value={titulo} onChange={(e) => setTitulo(e.target.value)} className="admin-input" />
+                            <input type="number" value={anio} onChange={(e) => setAnio(e.target.value)} required className="admin-input" />
+                            <input type="text" placeholder="Etiquetas (opcional)" value={etiquetas} onChange={(e) => setEtiquetas(e.target.value)} className="admin-input" />
+                            <input type="text" placeholder="Lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} className="admin-input" />
                         </div>
-
-                        <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button type="submit" className="btn-archipeg-main-morado" style={{ padding: '10px 30px' }}>{labelGuardar}</button>
-                            
-                            {/* BOTÓN DE IMPORTACIÓN DISCO (SÓLO PC) - CON CLARIDAD TOTAL */}
-                            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                                {!modoSoberano && (
-                                    <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '8px', fontStyle: 'italic' }}>
-                                        🔒 La importación privada desde disco duro externo <br/>
-                                        <strong>SOLO está disponible en la versión de PC</strong> <br/>
-                                        para asegurar que tus fotos NUNCA toquen Internet.
-                                    </p>
-                                )}
-                                <button
-                                    type="button"
-                                    className="btn-archipeg-main-morado"
-                                    style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '10px',
-                                        background: modoSoberano ? '#cf00f1' : '#222',
-                                        color: modoSoberano ? '#00ffff' : '#444',
-                                        cursor: modoSoberano ? 'pointer' : 'not-allowed',
-                                        border: modoSoberano ? '2px solid #00ffff' : '1px solid #333',
-                                        opacity: modoSoberano ? 1 : 0.6,
-                                        padding: '10px 30px'
-                                    }}
-                                    onClick={modoSoberano ? ejecutarImportacionDesdeDisco : null}
-                                    disabled={!modoSoberano}
-                                >
-                                    <span role="img" aria-label="disco">🔒</span> 
-                                    {modoSoberano ? 'IMPORTAR DESDE DISCO (PRIVADO)' : 'IMPORTACIÓN DISCO (SÓLO PC)'}
-                                </button>
-                            </div>
-                        </div>
-                        {mensaje && <p className="mensaje-feedback-morado">{mensaje}</p>}
+                        <textarea placeholder="Descripción técnica opcional..." value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="admin-textarea" />
                     </form>
                 </section>
 

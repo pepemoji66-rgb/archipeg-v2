@@ -64,15 +64,24 @@ const menuTemplate = [
 let serverProcess;
 
 function createWindow() {
-    // --- LÓGICA DE AUTO-ENCENDIDO DEL SERVIDOR ---
     const isDev = !app.isPackaged;
+    let userDataStore;
 
-    // Ubicación del motor (server.js) - Ahora siempre dentro del paquete para encontrar las dependencias
+    // Ubicación del motor (server.js) - Ahora siempre dentro del paquete
     const serverScript = path.join(__dirname, 'server.js');
 
-    // Directorio de datos en Documentos
-    const docPath = app.getPath('documents');
-    const userDataStore = path.join(docPath, 'ArchipegPro');
+    if (isDev) {
+        userDataStore = __dirname;
+    } else {
+        const appPath = app.getPath('exe');
+        const drive = appPath.substring(0, 3).toUpperCase();
+        
+        if (drive === 'C:\\') {
+            userDataStore = path.join(app.getPath('documents'), 'ArchipegPro');
+        } else {
+            userDataStore = path.join(path.dirname(appPath), 'Archipeg_Storage');
+        }
+    }
 
     // Aseguramos que la carpeta de destino exista antes de arrancar el motor
     const fs = require('fs');
