@@ -553,7 +553,8 @@ const AdminPanel = () => {
                 }, 500);
             } else {
                 const errorData = await res.json();
-                alert("❌ ERROR: " + (errorData.error || "Fallo en la importación"));
+                const detalleRutas = errorData.detalle ? `\n\nBuscado en:\n${errorData.detalle.split(', ').join('\n')}` : "";
+                alert(`❌ ERROR: ${errorData.error}${detalleRutas}`);
                 setProgreso(0);
                 setMensaje("⚠️ Falló la importación mágica.");
             }

@@ -1285,10 +1285,28 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose...' });
         
-        const dirSubida = path.join(basePath, 'FOTOS PARA SUBIR');
-        if (!fs.existsSync(dirSubida)) {
-            return res.status(404).json({ error: 'No se encontró la carpeta "FOTOS PARA SUBIR" en el proyecto.' });
+        const posiblesRutas = [
+            path.join(basePath, 'FOTOS PARA SUBIR'),
+            path.join(__dirname, 'FOTOS PARA SUBIR'),
+            'D:\\archipeg\\FOTOS PARA SUBIR' // Nueva ruta para el disco externo
+        ];
+
+        let dirSubida = null;
+        for (const ruta of posiblesRutas) {
+            if (fs.existsSync(ruta)) {
+                dirSubida = ruta;
+                break;
+            }
         }
+
+        if (!dirSubida) {
+            return res.status(404).json({ 
+                error: 'No se encontró la carpeta "FOTOS PARA SUBIR".',
+                detalle: `Buscado en: ${posiblesRutas.join(', ')}`
+            });
+        }
+
+        console.log(`🚀 Motor Archipeg escaneando: ${dirSubida}`);
 
         const scanRecursive = (dir, currentTags = []) => {
             let results = [];
