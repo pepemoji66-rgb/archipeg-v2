@@ -604,23 +604,31 @@ app.post('/api/sistema/limpiar-todo', async (req, res) => {
     try {
         if (!req.esAutenticado || !req.esAdmin) return res.status(403).json({ error: 'Solo Admin' });
         
-        await db.run("BEGIN");
+        await db.run("BEGIN TRANSACTION");
         try {
-            await db.run("DELETE FROM fotos WHERE usuario_id = ?", [req.usuario?.id]);
-            // No borramos álbumes ni eventos para no romper la estructura local, solo las asociaciones de fotos del usuario
-            // Nota: Para ser 100% estrictos habría que borrar solo las asociaciones de fotos que pertenecen al usuario
-            await db.run("DELETE FROM album_fotos WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [req.usuario?.id]);
-            await db.run("DELETE FROM evento_fotos WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [req.usuario?.id]);
-            await db.run("DELETE FROM foto_personas WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [req.usuario?.id]);
+            const usuarioId = req.usuario?.id;
+            if (!usuarioId) throw new Error("ID de usuario no encontrado en la sesión");
+
+            // 1. Borramos primero las relaciones (tablas hijas) para no dejar huérfanos
+            await db.run("DELETE FROM album_fotos WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [usuarioId]);
+            await db.run("DELETE FROM evento_fotos WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [usuarioId]);
+            await db.run("DELETE FROM foto_personas WHERE foto_id IN (SELECT id FROM fotos WHERE usuario_id = ?)", [usuarioId]);
             
+            // 2. Finalmente borramos las fotos del usuario
+            const { changes } = await db.run("DELETE FROM fotos WHERE usuario_id = ?", [usuarioId]);
+            
+            console.log(`🧹 Limpieza completada para usuario ${usuarioId}. Fotos eliminadas: ${changes}`);
+
             await db.run("COMMIT");
+            res.json({ message: `Reset de datos completado. Se han eliminado ${changes} fotos.` });
         } catch (e) {
             await db.run("ROLLBACK");
+            console.error("❌ Fallo en limpiar-todo:", e.message);
             throw e;
         }
-        res.json({ message: "Reset de tus datos completado" });
     } catch (err) {
-        res.status(500).json({ error: "Fallo al vaciar la DB" });
+        console.error("🔥 Error crítico en /api/sistema/limpiar-todo:", err);
+        res.status(500).json({ error: "Fallo al vaciar la DB", detalle: err.message });
     }
 });
 
