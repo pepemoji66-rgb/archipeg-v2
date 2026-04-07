@@ -1310,14 +1310,22 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
 
         const scanRecursive = (dir, currentTags = []) => {
             let results = [];
-            const list = fs.readdirSync(dir, { withFileTypes: true });
-            for (const item of list) {
-                const fullPath = path.join(dir, item.name);
-                if (item.isDirectory()) {
-                    results = results.concat(scanRecursive(fullPath, [...currentTags, item.name]));
-                } else if (item.isFile() && EXTENSIONES_IMAGEN.has(path.extname(item.name).toLowerCase())) {
-                    results.push({ path: fullPath, tags: currentTags });
+            try {
+                const list = fs.readdirSync(dir, { withFileTypes: true });
+                for (const item of list) {
+                    const fullPath = path.join(dir, item.name);
+                    try {
+                        if (item.isDirectory()) {
+                            results = results.concat(scanRecursive(fullPath, [...currentTags, item.name]));
+                        } else if (item.isFile() && EXTENSIONES_IMAGEN.has(path.extname(item.name).toLowerCase())) {
+                            results.push({ path: fullPath, tags: currentTags });
+                        }
+                    } catch (e) {
+                        console.error(`⚠️ Salto de elemento ilegible en: ${fullPath}`, e.message);
+                    }
                 }
+            } catch (e) {
+                console.error(`❌ Error leyendo directorio: ${dir}`, e.message);
             }
             return results;
         };
@@ -1330,66 +1338,71 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
         await db.run("BEGIN TRANSACTION");
         try {
             for (const foto of fotosAImportar) {
-                const fileName = path.basename(foto.path);
-                const stats = fs.statSync(foto.path);
-                
-                // 1. Detección de duplicados (Nombre + Tamaño)
-                const duplicada = await db.get(
-                    "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
-                    [fileName, req.usuario?.id]
-                );
-                
-                if (duplicada) {
-                    saltadas++;
-                    continue;
-                }
-
-                // 2. Extracción de metadatos del nombre de la carpeta (último nivel preferido)
-                let anioExtraido = null;
-                let etiquetasFinales = foto.tags.join(' ');
-                
-                // Buscar año en la jerarquía de carpetas (de abajo hacia arriba)
-                for (let i = foto.tags.length - 1; i >= 0; i--) {
-                    const match = foto.tags[i].match(/(19\d{2}|20\d{2})/);
-                    if (match) {
-                        anioExtraido = parseInt(match[1]);
-                        break;
+                try {
+                    const fileName = path.basename(foto.path);
+                    const stats = fs.statSync(foto.path);
+                    
+                    // 1. Detección de duplicados (Nombre + Tamaño)
+                    const duplicada = await db.get(
+                        "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
+                        [fileName, req.usuario?.id]
+                    );
+                    
+                    if (duplicada) {
+                        saltadas++;
+                        continue;
                     }
-                }
 
-                // 3. Copiar archivo a fotos_archipeg
-                const nuevoNombre = `${Date.now()}-${fileName}`;
-                const destinoFinal = path.join(dirDestino, nuevoNombre);
-                fs.copyFileSync(foto.path, destinoFinal);
-
-                // 4. Extraer metadata técnica (GPS, etc)
-                const meta = extraerMetadata(destinoFinal);
-                const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
-
-                // 5. Insertar en DB
-                const result = await db.run(
-                    "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
-                    [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
-                );
-
-                // 6. Vincular a Evento (si hay etiquetas)
-                if (foto.tags.length > 0) {
-                    const nombreEvento = foto.tags[foto.tags.length - 1]; // El nombre de la carpeta inmediata
-                    let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
-                    if (!evento) {
-                        const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${anioFinal}-01-01`]);
-                        evento = { id: resEv.lastID };
+                    // 2. Extracción de metadatos del nombre de la carpeta (último nivel preferido)
+                    let anioExtraido = null;
+                    let etiquetasFinales = foto.tags.join(' ');
+                    
+                    // Buscar año en la jerarquía de carpetas (de abajo hacia arriba)
+                    for (let i = foto.tags.length - 1; i >= 0; i--) {
+                        const match = foto.tags[i].match(/(19\d{2}|20\d{2})/);
+                        if (match) {
+                            anioExtraido = parseInt(match[1]);
+                            break;
+                        }
                     }
-                    await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [evento.id, result.lastID]);
-                }
 
-                importadas++;
+                    // 3. Copiar archivo a fotos_archipeg
+                    const nuevoNombre = `${Date.now()}-${fileName}`;
+                    const destinoFinal = path.join(dirDestino, nuevoNombre);
+                    fs.copyFileSync(foto.path, destinoFinal);
+
+                    // 4. Extraer metadata técnica (GPS, etc)
+                    const meta = extraerMetadata(destinoFinal);
+                    const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
+
+                    // 5. Insertar en DB
+                    const result = await db.run(
+                        "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                        [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
+                    );
+
+                    // 6. Vincular a Evento (si hay etiquetas)
+                    if (foto.tags.length > 0) {
+                        const nombreEvento = foto.tags[foto.tags.length - 1]; // El nombre de la carpeta inmediata
+                        let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
+                        if (!evento) {
+                            const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${anioFinal}-01-01`]);
+                            evento = { id: resEv.lastID };
+                        }
+                        await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [evento.id, result.lastID]);
+                    }
+
+                    importadas++;
+                } catch (e) {
+                    console.error(`❌ Fallo al procesar archivo: ${foto.path}`, e.message);
+                    errores++;
+                }
             }
             await db.run("COMMIT");
         } catch (e) {
             await db.run("ROLLBACK");
             console.error("Error en transacción:", e);
-            errores++;
+            throw e;
         }
 
         res.json({ 
