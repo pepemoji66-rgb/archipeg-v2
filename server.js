@@ -27,6 +27,8 @@ const multer = require('multer');
 const ExifParser = require('exif-parser');
 
 const app = express();
+let db;
+let dbLock = false;
 
 // --- MIDDLEWARES ---
 app.use(cors());
@@ -139,63 +141,58 @@ function deepScanKeywords(buffer) {
     return null;
 }
 
-function extraerMetadata(ruta) {
+async function extraerMetadata(ruta) {
     const info = { lat: null, lon: null, anio: null, mes: null };
-    let fd;
+    let handle;
     try {
-        // OPTIMIZACIÓN PRO: Leemos los primeros 128KB del archivo (donde reside el EXIF)
-        // Aumentado desde 64KB para cubrir metadatos más densos en cámaras modernas
         const buffer = Buffer.alloc(131072);
-        fd = fs.openSync(ruta, 'r');
-        fs.readSync(fd, buffer, 0, 131072, 0);
+        handle = await fs.promises.open(ruta, 'r');
+        const { bytesRead } = await handle.read(buffer, 0, 131072, 0);
         
-        const parser = ExifParser.create(buffer);
-        const result = parser.parse();
-        
-        if (result.tags) {
-            if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
-                info.lat = result.tags.GPSLatitude;
-                info.lon = result.tags.GPSLongitude;
-            }
-            if (result.tags.DateTimeOriginal) {
-                const date = new Date(result.tags.DateTimeOriginal * 1000);
-                if (!isNaN(date.getFullYear())) {
-                    info.anio = date.getFullYear();
-                    info.mes = date.getMonth() + 1;
+        if (bytesRead > 0) {
+            const parser = ExifParser.create(buffer);
+            const result = parser.parse();
+            
+            if (result.tags) {
+                if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
+                    info.lat = result.tags.GPSLatitude;
+                    info.lon = result.tags.GPSLongitude;
                 }
-            }
-            // --- NUEVO: SOPORTE PARA TAGS AUTOMÁTICOS ---
-            const tagsEncontrados = [];
-            // XPKeywords (Windows), Keywords (Nikon/Canon), UserComment
-            if (result.tags.XPKeywords) tagsEncontrados.push(...result.tags.XPKeywords.split(';').map(t => t.trim()));
-            if (result.tags.Keywords) {
-                if (Array.isArray(result.tags.Keywords)) tagsEncontrados.push(...result.tags.Keywords);
-                else tagsEncontrados.push(...result.tags.Keywords.split(',').map(t => t.trim()));
-            }
-            if (result.tags.UserComment) {
-                 const comment = result.tags.UserComment.toString();
-                 if (comment.includes('#')) { // Tratamos de capturar hashtags si existen
-                     const matches = comment.match(/#[^\s,]+/g);
-                     if (matches) tagsEncontrados.push(...matches.map(m => m.replace('#','')));
-                 }
-            }
-            if (tagsEncontrados.length > 0) {
-                info.etiquetas = [...new Set(tagsEncontrados)].filter(t => t.length > 1).join(', ');
-            } else {
-                // --- FALLBACK: ESCANEO PROFUNDO DE BYTES ---
-                const deepTags = deepScanKeywords(buffer);
-                if (deepTags) info.etiquetas = deepTags.join(', ');
+                if (result.tags.DateTimeOriginal) {
+                    const date = new Date(result.tags.DateTimeOriginal * 1000);
+                    if (!isNaN(date.getFullYear())) {
+                        info.anio = date.getFullYear();
+                        info.mes = date.getMonth() + 1;
+                    }
+                }
+                const tagsEncontrados = [];
+                if (result.tags.XPKeywords) tagsEncontrados.push(...result.tags.XPKeywords.split(';').map(t => t.trim()));
+                if (result.tags.Keywords) {
+                    if (Array.isArray(result.tags.Keywords)) tagsEncontrados.push(...result.tags.Keywords);
+                    else tagsEncontrados.push(...result.tags.Keywords.split(',').map(t => t.trim()));
+                }
+                if (result.tags.UserComment) {
+                     const comment = result.tags.UserComment.toString();
+                     if (comment.includes('#')) { 
+                         const matches = comment.match(/#[^\s,]+/g);
+                         if (matches) tagsEncontrados.push(...matches.map(m => m.replace('#','')));
+                     }
+                }
+                if (tagsEncontrados.length > 0) {
+                    info.etiquetas = [...new Set(tagsEncontrados)].filter(t => t.length > 1).join(', ');
+                } else {
+                    const deepTags = deepScanKeywords(buffer);
+                    if (deepTags) info.etiquetas = deepTags.join(', ');
+                }
             }
         }
     } catch (e) {
-        // console.error("Error EXIF:", e.message);
     } finally {
-        if (fd !== undefined) {
-            try { fs.closeSync(fd); } catch(e){}
+        if (handle) {
+            try { await handle.close(); } catch(e){}
         }
     }
     
-    // Si falla EXIF, intentamos por FS (lo que ya teníamos)
     if (!info.anio) {
         try {
             const s = fs.statSync(ruta);
@@ -219,15 +216,16 @@ const MIME_TIPOS = {
     '.bmp': 'image/bmp'
 };
 
-function escanearRecursivo(dir) {
+async function escanearRecursivo(dir) {
     const resultados = [];
     try {
-        const entradas = fs.readdirSync(dir, { withFileTypes: true });
+        const entradas = await fs.promises.readdir(dir, { withFileTypes: true });
         for (const entrada of entradas) {
             const rutaCompleta = path.join(dir, entrada.name);
             try {
                 if (entrada.isDirectory()) {
-                    resultados.push(...escanearRecursivo(rutaCompleta));
+                    const subResults = await escanearRecursivo(rutaCompleta);
+                    resultados.push(...subResults);
                 } else if (entrada.isFile() && EXTENSIONES_IMAGEN.has(path.extname(entrada.name).toLowerCase())) {
                     resultados.push(rutaCompleta);
                 }
@@ -255,8 +253,9 @@ async function inicializarMotor() {
             driver: sqlite3.Database
         });
 
-        // Configuración para entornos de solo lectura (Vercel)
-        await db.run('PRAGMA journal_mode = DELETE').catch(() => {});
+        // CONFIGURACIÓN PROFESIONAL (Modo Tanque): WAL para mayor concurrencia y velocidad
+        await db.run('PRAGMA journal_mode = WAL').catch(() => {});
+        await db.run('PRAGMA busy_timeout = 5000').catch(() => {});
 
         await db.exec(`
             CREATE TABLE IF NOT EXISTS fotos (
@@ -555,27 +554,27 @@ app.post('/api/auth/verificar-password', async (req, res) => {
 // 0. SUBIR FOTOS
 app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
     try {
+        if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso. Espera unos segundos.' });
         const { titulo, anio, mes, descripcion, etiquetas, lugar } = req.body;
         const archivos = req.files;
         if (!archivos || archivos.length === 0) return res.status(400).json({ message: "Sin fotos" });
 
-        // LÍMITE DEMO: Tanto para invitados como para usuarios registrados pero NO aprobados
         if (!req.esAutenticado || (req.usuario && !req.usuario.aprobado)) {
             const userIdFilter = req.usuario ? req.usuario.id : null;
             const row = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0 AND usuario_id IS ?", [userIdFilter]);
             if (row.count >= LIMITE_DEMO) {
-                return res.status(403).json({ error: `MODO DEMO: límite de ${LIMITE_DEMO} fotos alcanzado. Paga la suscripción o espera activación.` });
+                return res.status(403).json({ error: `MODO DEMO: límite de ${LIMITE_DEMO} fotos alcanzado.` });
             }
         }
 
-        // --- OPTIMIZACIÓN CRÍTICA: Transacción SQL para que 5.000+ fotos entren de un plumazo ---
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
+            let i = 0;
             for (const file of archivos) {
                 const rutaImagen = path.join(dirDestino, file.filename);
-                const meta = extraerMetadata(rutaImagen);
+                const meta = await extraerMetadata(rutaImagen);
                 
-                // Combinar etiquetas de usuario con etiquetas EXIF si existen
                 let tagsFinales = etiquetas || "";
                 if (meta.etiquetas) {
                     const setTags = new Set((tagsFinales.split(',').concat(meta.etiquetas.split(','))).map(t => t.trim().toLowerCase()).filter(t => t));
@@ -583,16 +582,21 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
                 }
 
                 await db.run(
-                    "INSERT INTO fotos (titulo, anio, mes, descripcion, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, descripcion, tagsFinales, file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
+                    "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, etiquetas, tagsFinales, file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
                 );
+
+                i++;
+                if (i % 50 === 0) await new Promise(resolve => setImmediate(resolve));
             }
             await db.run("COMMIT");
+            res.json({ message: "✅ Guardado en ARCHIPEG local" });
         } catch (e) {
             await db.run("ROLLBACK");
             throw e;
+        } finally {
+            dbLock = false;
         }
-        res.json({ message: "✅ Guardado en ARCHIPEG local" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Fallo al subir archivos" });
@@ -603,7 +607,9 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
 app.post('/api/sistema/limpiar-todo', async (req, res) => {
     try {
         if (!req.esAutenticado || !req.esAdmin) return res.status(403).json({ error: 'Solo Admin' });
+        if (dbLock) return res.status(429).json({ error: 'Operación en curso. Espera.' });
         
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
             const usuarioId = req.usuario?.id;
@@ -635,15 +641,15 @@ app.post('/api/sistema/limpiar-todo', async (req, res) => {
 app.post('/api/sistema/rescan-gps', async (req, res) => {
     try {
         if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
-        
-        // Obtenemos todas las fotos del usuario que NO tienen latitud
+        if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso.' });
+
         const fotos = await db.all("SELECT id, imagen_url FROM fotos WHERE usuario_id = ? AND (latitud IS NULL OR latitud = 0)", [req.usuario.id]);
-        
         let actualizadas = 0;
         
-        // --- OPTIMIZACIÓN CRÍTICA: Usar una transacción para evitar 5.700 escrituras individuales ---
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
+            let i = 0;
             for (const f of fotos) {
                 let rutaAbsoluta = f.imagen_url;
                 if (!path.isAbsolute(rutaAbsoluta)) {
@@ -651,23 +657,26 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
                 }
                 
                 if (fs.existsSync(rutaAbsoluta)) {
-                    const meta = extraerMetadata(rutaAbsoluta);
+                    const meta = await extraerMetadata(rutaAbsoluta);
                     if (meta.lat && meta.lon) {
                         await db.run("UPDATE fotos SET latitud = ?, longitud = ? WHERE id = ?", [meta.lat, meta.lon, f.id]);
                         actualizadas++;
                     }
                 }
+                i++;
+                if (i % 50 === 0) await new Promise(resolve => setImmediate(resolve));
             }
             await db.run("COMMIT");
+            res.json({ message: `Re-escaneo completado. Se han geolocalizado ${actualizadas} fotos nuevas.`, actualizadas });
         } catch (e) {
             await db.run("ROLLBACK");
             throw e;
+        } finally {
+            dbLock = false;
         }
-
-        res.json({ message: `Re-escaneo completado. Se han geolocalizado ${actualizadas} fotos nuevas en el mapa satelital.`, actualizadas });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Error en el re-escaneo masivo." });
+        console.error("Error en rescan-gps:", err);
+        res.status(500).json({ error: "Fallo en re-escaneo GPS" });
     }
 });
 
@@ -675,13 +684,16 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
 app.post('/api/sistema/rescan-tags', async (req, res) => {
     try {
         if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
-        
+        if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso.' });
+
         const fotos = await db.all("SELECT id, imagen_url, etiquetas FROM fotos WHERE usuario_id = ?", [req.usuario.id]);
         let totalTagsEncontrados = 0;
         let fotosActualizadas = 0;
 
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
+            let i = 0;
             for (const f of fotos) {
                 let rutaAbsoluta = f.imagen_url;
                 if (!path.isAbsolute(rutaAbsoluta)) {
@@ -689,9 +701,8 @@ app.post('/api/sistema/rescan-tags', async (req, res) => {
                 }
                 
                 if (fs.existsSync(rutaAbsoluta)) {
-                    const meta = extraerMetadata(rutaAbsoluta);
+                    const meta = await extraerMetadata(rutaAbsoluta);
                     if (meta.etiquetas) {
-                        // Mezclar con los que ya tenía
                         const tagsExistentes = f.etiquetas ? f.etiquetas.split(',') : [];
                         const tagsNuevos = meta.etiquetas.split(',');
                         const setTags = new Set([...tagsExistentes, ...tagsNuevos].map(t => t.trim()).filter(t => t));
@@ -704,14 +715,17 @@ app.post('/api/sistema/rescan-tags', async (req, res) => {
                         }
                     }
                 }
+                i++;
+                if (i % 50 === 0) await new Promise(resolve => setImmediate(resolve));
             }
             await db.run("COMMIT");
+            res.json({ message: `Re-escaneo de etiquetas completado. ${fotosActualizadas} fotos enriquecidas.`, totalTagsEncontrados });
         } catch (e) {
             await db.run("ROLLBACK");
             throw e;
+        } finally {
+            dbLock = false;
         }
-
-        res.json({ message: `Indexación completada. Se han descubierto e integrado ${totalTagsEncontrados} etiquetas nuevas en ${fotosActualizadas} activos.`, actualizadas: totalTagsEncontrados });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Error en la indexación masiva." });
@@ -1292,65 +1306,66 @@ app.delete('/api/usuarios/:id', async (req, res) => {
 app.post('/api/sistema/importar-automatico', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose...' });
+        if (dbLock) return res.status(429).json({ error: 'Ya hay una operación de importación en curso.' });
+        // --- ESCÁNER INTELIGENTE: BUSCA EN TODOS LOS DISCOS EXTERNOS (D-Z) ---
+        const unidadesExternas = "DEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        const posiblesRutas = [];
         
-        const posiblesRutas = [
-            path.join(basePath, 'FOTOS PARA SUBIR'),
-            path.join(__dirname, 'FOTOS PARA SUBIR'),
-            'D:\\archipeg\\FOTOS PARA SUBIR' // Nueva ruta para el disco externo
-        ];
+        for (const letra of unidadesExternas) {
+            posiblesRutas.push(`${letra}:\\FOTOS PARA SUBIR`);
+            posiblesRutas.push(`${letra}:\\archipeg\\FOTOS PARA SUBIR`);
+        }
 
         let dirSubida = null;
         for (const ruta of posiblesRutas) {
-            if (fs.existsSync(ruta)) {
-                dirSubida = ruta;
-                break;
-            }
+            try {
+                if (fs.existsSync(ruta)) {
+                    dirSubida = ruta;
+                    break;
+                }
+            } catch (e) { /* Unidad no disponible, saltar */ }
         }
 
         if (!dirSubida) {
             return res.status(404).json({ 
-                error: 'No se encontró la carpeta "FOTOS PARA SUBIR".',
-                detalle: `Buscado en: ${posiblesRutas.join(', ')}`
+                error: 'Por favor, conecta un disco o pendrive con la carpeta "FOTOS PARA SUBIR".',
+                detalle: `Buscado en unidades externas (D hasta Z). Nota: El disco C ha sido omitido por seguridad.`
             });
         }
 
         console.log(`🚀 Motor Archipeg escaneando: ${dirSubida}`);
 
-        const scanRecursive = (dir, currentTags = []) => {
+        const scanRecursive = async (dir, currentTags = []) => {
             let results = [];
             try {
-                const list = fs.readdirSync(dir, { withFileTypes: true });
+                const list = await fs.promises.readdir(dir, { withFileTypes: true });
                 for (const item of list) {
                     const fullPath = path.join(dir, item.name);
                     try {
                         if (item.isDirectory()) {
-                            results = results.concat(scanRecursive(fullPath, [...currentTags, item.name]));
+                            const subResults = await scanRecursive(fullPath, [...currentTags, item.name]);
+                            results = results.concat(subResults);
                         } else if (item.isFile() && EXTENSIONES_IMAGEN.has(path.extname(item.name).toLowerCase())) {
                             results.push({ path: fullPath, tags: currentTags });
                         }
-                    } catch (e) {
-                        console.error(`⚠️ Salto de elemento ilegible en: ${fullPath}`, e.message);
-                    }
+                    } catch (e) {}
                 }
-            } catch (e) {
-                console.error(`❌ Error leyendo directorio: ${dir}`, e.message);
-            }
+            } catch (e) {}
             return results;
         };
 
-        const fotosAImportar = scanRecursive(dirSubida);
+        const fotosAImportar = await scanRecursive(dirSubida);
         let importadas = 0;
         let saltadas = 0;
-        let errores = 0;
 
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
-            for (const foto of fotosAImportar) {
+            for (let i = 0; i < fotosAImportar.length; i++) {
+                const foto = fotosAImportar[i];
                 try {
                     const fileName = path.basename(foto.path);
-                    const stats = fs.statSync(foto.path);
                     
-                    // 1. Detección de duplicados (Nombre + Tamaño)
                     const duplicada = await db.get(
                         "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
                         [fileName, req.usuario?.id]
@@ -1361,37 +1376,33 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                         continue;
                     }
 
-                    // 2. Extracción de metadatos del nombre de la carpeta (último nivel preferido)
                     let anioExtraido = null;
                     let etiquetasFinales = foto.tags.join(' ');
                     
-                    // Buscar año en la jerarquía de carpetas (de abajo hacia arriba)
-                    for (let i = foto.tags.length - 1; i >= 0; i--) {
-                        const match = foto.tags[i].match(/(19\d{2}|20\d{2})/);
+                    for (let j = foto.tags.length - 1; j >= 0; j--) {
+                        const match = foto.tags[j].match(/(19\d{2}|20\d{2})/);
                         if (match) {
-                            anioExtraido = parseInt(match[1]);
+                            anioExtraido = parseInt(match[1], 10);
                             break;
                         }
                     }
 
-                    // 3. Copiar archivo a fotos_archipeg
                     const nuevoNombre = `${Date.now()}-${fileName}`;
                     const destinoFinal = path.join(dirDestino, nuevoNombre);
-                    fs.copyFileSync(foto.path, destinoFinal);
+                    
+                    // Copia asíncrona
+                    await fs.promises.copyFile(foto.path, destinoFinal);
 
-                    // 4. Extraer metadata técnica (GPS, etc)
-                    const meta = extraerMetadata(destinoFinal);
+                    const meta = await extraerMetadata(destinoFinal);
                     const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
 
-                    // 5. Insertar en DB
                     const result = await db.run(
                         "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
                         [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
                     );
 
-                    // 6. Vincular a Evento (si hay etiquetas)
                     if (foto.tags.length > 0) {
-                        const nombreEvento = foto.tags[foto.tags.length - 1]; // El nombre de la carpeta inmediata
+                        const nombreEvento = foto.tags[foto.tags.length - 1];
                         let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
                         if (!evento) {
                             const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${anioFinal}-01-01`]);
@@ -1401,25 +1412,31 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                     }
 
                     importadas++;
+                    
+                    // Ceder el control al event loop cada 50 fotos
+                    if (importadas % 50 === 0) {
+                        await new Promise(resolve => setImmediate(resolve));
+                    }
                 } catch (e) {
                     console.error(`❌ Fallo al procesar archivo: ${foto.path}`, e.message);
                     errores++;
                 }
             }
             await db.run("COMMIT");
+            res.json({ 
+                success: true, 
+                message: `Importación finalizada.`,
+                importadas, 
+                saltadas,
+                pendientes: fotosAImportar.length - importadas - saltadas
+            });
         } catch (e) {
             await db.run("ROLLBACK");
             console.error("Error en transacción:", e);
             throw e;
+        } finally {
+            dbLock = false;
         }
-
-        res.json({ 
-            success: true, 
-            message: `Importación finalizada.`,
-            importadas, 
-            saltadas,
-            pendientes: fotosAImportar.length - importadas - saltadas
-        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Fallo crítico en el motor de importación' });
@@ -1429,7 +1446,8 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
 // IMPORTACIÓN MASIVA DESDE DISCO
 app.post('/api/importar-masivo', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
+        if (!db) return res.status(503).json({ error: 'Servidor iniciándose...' });
+        if (dbLock) return res.status(429).json({ error: 'Operación en curso.' });
         const { ruta } = req.body;
         if (!ruta) return res.status(400).json({ error: 'La ruta llegó vacía a la base de datos' });
 
@@ -1442,14 +1460,13 @@ app.post('/api/importar-masivo', async (req, res) => {
             return res.status(400).json({ error: 'La ruta seleccionada no es un directorio válido: ' + String(ruta) });
         }
 
-        const imagenes = escanearRecursivo(ruta);
+        const imagenes = await escanearRecursivo(ruta);
 
         let importadas = 0;
         let actualizadas = 0;
         let ignoradas = 0;
 
         let fotosActuales = 0;
-        // LÍMITE DEMO: Tanto para invitados como para usuarios registrados pero NO aprobados
         const esBajoDemo = !req.esAutenticado || (req.usuario && !req.usuario.aprobado);
         
         if (esBajoDemo) {
@@ -1458,11 +1475,11 @@ app.post('/api/importar-masivo', async (req, res) => {
             fotosActuales = count;
         }
 
-        // --- OPTIMIZACIÓN CRÍTICA: Transacción para procesar miles de archivos en segundos ---
+        dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
-            for (const rutaImagen of imagenes) {
-                // Buscamos si ya existe por ruta y usuario
+            for (let i = 0; i < imagenes.length; i++) {
+                const rutaImagen = imagenes[i];
                 const existente = await db.get(
                     req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
                     req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
@@ -1478,7 +1495,7 @@ app.post('/api/importar-masivo', async (req, res) => {
                     continue;
                 }
 
-                const meta = extraerMetadata(rutaImagen);
+                const meta = await extraerMetadata(rutaImagen);
                 const anioFinal = meta.anio;
                 const mesFinal = meta.mes;
 
@@ -1489,14 +1506,19 @@ app.post('/api/importar-masivo', async (req, res) => {
 
                 importadas++;
                 if (esBajoDemo) fotosActuales++;
+
+                if (importadas % 50 === 0) {
+                    await new Promise(resolve => setImmediate(resolve));
+                }
             }
             await db.run("COMMIT");
+            res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
         } catch (e) {
             await db.run("ROLLBACK");
             throw e;
+        } finally {
+            dbLock = false;
         }
-
-        res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
     } catch (err) {
         console.error('Error importar-masivo:', err);
         res.status(500).json({ error: 'Error interno al importar' });

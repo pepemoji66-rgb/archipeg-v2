@@ -21,8 +21,12 @@ const IS_LOCAL = window.location.hostname === 'localhost';
 
 const AdminPanel = () => {
     const { usuario, token } = useAuth();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const pUrl = searchParams.get('p') || '1';
+
+    // --- NUEVO ESTADO DE PESTAÑAS (ESTILO ALBOLOTE) ---
+    const [activeTab, setActiveTab] = useState('activo'); // 'activo', 'herramientas', 'papelera'
 
     // --- CONFIGURACIÓN DE RED ---
     const API_URL = `${API_BASE_URL}/api`;
@@ -45,6 +49,7 @@ const AdminPanel = () => {
     ];
 
     const [fotos, setFotos] = useState([]);
+    const [fotosPapelera, setFotosPapelera] = useState([]);
     const [archivos, setArchivos] = useState([]);
     const [titulo, setTitulo] = useState("");
     const [anio, setAnio] = useState(2026);
@@ -60,9 +65,6 @@ const AdminPanel = () => {
 
     // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
     const modoSoberano = IS_ELECTRON || IS_LOCAL;
-    const labelFotos = modoSoberano ? `🛡️ MODO PRIVADO: IMPORTAR FOTOS A MI DISCO (SIN INTERNET)` : `⚠️ MODO INTERNET: SUBIR FOTOS A LA WEB (NO PRIVADO)`;
-    const labelCarpeta = modoSoberano ? "🛡️ IMPORTAR CARPETA A DISCO (LOCAL)" : "⚠️ SUBIR CARPETA A LA WEB (INTERNET)";
-    const labelGuardar = modoSoberano ? "🛡️ GUARDAR EN MI PC (100% SOBERANO)" : "☁️ SUBIR A LA NUBE DE RENDER (PÚBLICO)";
 
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
@@ -75,7 +77,6 @@ const AdminPanel = () => {
         const p = searchParams.get('p');
         if (p !== String(paginaActual)) {
             searchParams.set('p', paginaActual);
-            // navigate({ search: searchParams.toString() }, { replace: true });
             setSearchParams(searchParams, { replace: true });
         }
     }, [paginaActual, searchParams, setSearchParams]);
@@ -90,7 +91,6 @@ const AdminPanel = () => {
     // NUEVOS ESTADOS PARA EVENTOS Y UI
     const [eventosParaZoom, setEventosParaZoom] = useState([]);
     const [nuevoEventoRapido, setNuevoEventoRapido] = useState("");
-    const [menuOpcionesAbierto, setMenuOpcionesAbierto] = useState(false);
 
     // ESTADO PARA SELECCIÓN MÚLTIPLE
     const [seleccionados, setSeleccionados] = useState(new Set());
@@ -98,20 +98,10 @@ const AdminPanel = () => {
     const [bulkEventoId, setBulkEventoId] = useState("");
     const [esDiscoC, setEsDiscoC] = useState(false);
 
-    const zoomWrapperRef = useRef(null);
-    // Las variables y función para la navegación de zoom se declaran más abajo para tener acceso a fotosFiltradas
-
-    // --- LÓGICA DE RUTAS CORREGIDA ---
     const getFotoUrl = (foto) => {
         if (!foto || !foto.imagen_url) return PLACEHOLDER_IMG;
-
         const url = String(foto.imagen_url).trim();
-        if (esRutaAbsoluta(url)) {
-            // Si la BD guarda ruta absoluta, usamos el endpoint que lee desde disco.
-            return `${URL_FOTO_LOCAL_BASE}${encodeURIComponent(url)}`;
-        }
-
-        // Si no es ruta absoluta, asumimos que `imagen_url` es el nombre relativo al directorio servido en `/uploads`.
+        if (esRutaAbsoluta(url)) return `${URL_FOTO_LOCAL_BASE}${encodeURIComponent(url)}`;
         return `${URL_BASE_FOTOS}${url.replace(/ /g, '%20').replace(/\\/g, '/')}`;
     };
 
@@ -122,745 +112,258 @@ const AdminPanel = () => {
             .catch(err => console.error("Error API:", err));
     };
 
+    const cargarPapelera = () => {
+        apiFetch(`${API_URL}/papelera`)
+            .then(res => res.ok ? res.json() : [])
+            .then(setFotosPapelera)
+            .catch(() => {});
+    };
+
     useEffect(() => {
         cargarFotos();
-        cargarCatalogosZoom();
+        cargarPapelera();
         apiFetch(`${API_URL}/personas`).then(r => r.json()).then(setPersonas).catch(() => { });
         apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumes).catch(() => { });
         apiFetch(`${API_URL}/eventos`).then(r => r.json()).then(setEventosParaZoom).catch(() => { });
         apiFetch(`${API_URL}/anios`).then(r => r.json()).then(data => setAniosDb(data.map(a => a.anio).filter(Boolean))).catch(() => { });
-        
-        // --- VERIFICAR SOBERANÍA DEL DISCO ---
-        fetch(`${API_URL}/test`)
-            .then(res => res.json())
-            .then(data => setEsDiscoC(data.isCDrive))
-            .catch(() => {});
+        fetch(`${API_URL}/test`).then(res => res.json()).then(data => setEsDiscoC(data.isCDrive)).catch(() => {});
     }, []);
 
-    // Bloquear el scroll del fondo cuando el modal de zoom esté abierto
-    useEffect(() => {
-        const bodyRoot = document.getElementById('root') || document.querySelector('body');
-        const mainScroll = document.querySelector('.admin-container');
-        
-        if (fotoEnZoom) {
-            bodyRoot.style.overflow = 'hidden';
-            if (mainScroll) mainScroll.style.overflow = 'hidden';
-            // REFRESCO AUTOMÁTICO DE ÁLBUMES AL ABRIR EL ZOOM PARA NO PERDER NUEVOS ÁLBUMES
-            cargarCatalogosZoom();
-        } else {
-            bodyRoot.style.overflow = 'auto';
-            if (mainScroll) mainScroll.style.overflow = '';
-        }
-        return () => { 
-            bodyRoot.style.overflow = 'auto'; 
-            if (mainScroll) mainScroll.style.overflow = '';
-        };
-    }, [fotoEnZoom]);
-
-    // Sincronizar el input de la página cuando la página actual cambia (p. ej. por las flechas)
-    useEffect(() => {
-        setInputPage(paginaActual.toString());
-    }, [paginaActual]);
-
-    const cargarCatalogosZoom = () => {
-        apiFetch(`${API_URL}/albumes`).then(r => r.json()).then(setAlbumesParaZoom).catch(() => { });
-        apiFetch(`${API_URL}/eventos`).then(r => r.json()).then(setEventosParaZoom).catch(() => { });
-    };
-
-    const añadirAAlbumRapido = async (albumId) => {
-        if (!fotoEnZoom || !albumId) return;
-        try {
-            const res = await apiFetch(`${API_URL}/albumes/${albumId}/fotos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ foto_id: fotoEnZoom.id })
-            });
-            if (res.ok) {
-                setMensaje("✅ Activo añadido al álbum.");
-                setTimeout(() => setMensaje(""), 2000);
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    const crearAlbumRapido = async () => {
-        if (!nuevoAlbumRapido.trim()) return;
-        try {
-            const res = await apiFetch(`${API_URL}/albumes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: nuevoAlbumRapido.trim() })
-            });
-            if (res.ok) {
-                const nuevo = await res.json();
-                setAlbumesParaZoom(prev => {
-                    if (prev.some(a => a.id === nuevo.id)) return prev;
-                    return [...prev, nuevo];
-                });
-                await añadirAAlbumRapido(nuevo.id);
-                setNuevoAlbumRapido("");
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    const añadirAEventoRapido = async (eventoId) => {
-        if (!fotoEnZoom || !eventoId) return;
-        try {
-            const res = await apiFetch(`${API_URL}/eventos/${eventoId}/fotos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ foto_id: fotoEnZoom.id })
-            });
-            if (res.ok) {
-                setMensaje("✅ Activo añadido al evento.");
-                setTimeout(() => setMensaje(""), 2000);
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    const crearEventoRapido = async () => {
-        if (!nuevoEventoRapido.trim()) return;
-        try {
-            const res = await apiFetch(`${API_URL}/eventos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: nuevoEventoRapido.trim() })
-            });
-            if (res.ok) {
-                const nuevo = await res.json();
-                setEventosParaZoom(prev => {
-                    if (prev.some(e => e.id === nuevo.id)) return prev;
-                    return [...prev, nuevo];
-                });
-                await añadirAEventoRapido(nuevo.id);
-                setNuevoEventoRapido("");
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    const manejarCambioArchivos = (e) => {
-        setArchivos(Array.from(e.target.files).filter(f => f.type.startsWith('image/')));
-    };
-
-    // --- FUNCIÓN DE LIMPIEZA TOTAL (BOTÓN DE PÁNICO) ---
     const ejecutarLimpiezaTotal = async () => {
-        const confirmacion1 = window.confirm("⚠️ ¿ESTÁS SEGURO, HERMANO?\n\nEsto borrará los registros de las 11.000 fotos de la base de datos, pero NO tocará tus archivos en el disco duro.");
-        if (!confirmacion1) return;
-
-        const confirmacion2 = window.confirm("🚨 ÚLTIMA ADVERTENCIA 🚨\n\n¿Seguro que quieres dejar la biblioteca a cero?");
-        if (!confirmacion2) return;
-
+        const confirm1 = window.confirm("⚠️ ¿ESTÁS SEGURO?\n\nEsto borrará los registros de tus fotos en la base de datos.");
+        if (!confirm1) return;
         try {
             setMensaje("Vaciando base de datos...");
-            const res = await fetch(`${API_URL}/sistema/limpiar-todo`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
-                }
-            });
-
-            if (res.ok) {
-                alert("¡Hecho! La biblioteca está vacía. Ya puedes meter las 3.800 reales.");
-                setMensaje("✅ Sistema reiniciado.");
-                cargarFotos();
-            } else {
-                alert("Error al limpiar. Revisa que la ruta exista en el server.js");
-            }
-        } catch (error) {
-            alert("Error de conexión con el servidor.");
-        }
+            const res = await fetch(`${API_URL}/sistema/limpiar-todo`, { method: 'POST', headers: { 'Authorization': token ? `Bearer ${token}` : '' } });
+            if (res.ok) { setMensaje("✅ Índice vaciado."); cargarFotos(); }
+        } catch (error) { setMensaje("❌ Error al limpiar."); }
     };
 
     const manejarSubida = async (e) => {
         e.preventDefault();
-        if (archivos.length === 0) return alert("Selecciona fotos válidas, hermano");
-
-        const batchSize = 200; // Lote más grande ahora que tenemos transacciones estables en el server
+        if (archivos.length === 0) return alert("Selecciona fotos");
+        const batchSize = 100;
         const totalLotes = Math.ceil(archivos.length / batchSize);
         setProgreso(1);
-        setMensaje(`🚀 Iniciando carga por lotes (0/${archivos.length})`);
-
         for (let i = 0; i < totalLotes; i++) {
             const batch = archivos.slice(i * batchSize, (i + 1) * batchSize);
             const formData = new FormData();
             batch.forEach(f => formData.append('foto', f));
-            formData.append('titulo', titulo);
-            formData.append('anio', anio);
-            formData.append('mes', busquedaMes);
-            formData.append('etiquetas', etiquetas);
-            formData.append('descripcion', descripcion);
-            formData.append('lugar', lugar);
-
+            formData.append('titulo', titulo); formData.append('anio', anio); 
+            formData.append('mes', busquedaMes); formData.append('etiquetas', etiquetas);
+            formData.append('descripcion', descripcion); formData.append('lugar', lugar);
             try {
-                setMensaje(`📤 Cargando lote ${i + 1} de ${totalLotes}...`);
-                const res = await fetch(`${API_URL}/fotos/subir`, {
-                    method: 'POST',
-                    headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-                    body: formData
-                });
-
-                if (!res.ok) throw new Error("Fallo en el lote " + (i + 1));
+                setMensaje(`📤 Subiendo lote ${i + 1}/${totalLotes}...`);
+                await fetch(`${API_URL}/fotos/subir`, { method: 'POST', headers: { 'Authorization': token ? `Bearer ${token}` : '' }, body: formData });
                 setProgreso(Math.round(((i + 1) / totalLotes) * 100));
-            } catch (error) {
-                alert("❌ Falló la subida en el lote " + (i + 1));
-                setMensaje("⚠️ Error en la subida masiva.");
-                return;
-            }
+            } catch (error) { setMensaje("❌ Error en subida."); return; }
         }
-
-        setMensaje("¡Éxito! Todos los activos guardados en ARCHIPEG");
-        setProgreso(100);
-        setTimeout(() => {
-            setTitulo(""); setEtiquetas(""); setLugar(""); setPersonasSeleccionadas([]); setAlbumSeleccionado(""); setArchivos([]); setProgreso(0);
-            cargarFotos();
-        }, 1000);
+        setMensaje("✅ Importación completa.");
+        setArchivos([]); setProgreso(0); cargarFotos();
     };
 
-    const borrarFoto = async (id) => {
-        if (!window.confirm("¿Seguro que quieres enviar este activo a la papelera?")) return;
+    const ejecutarImportacionAutomatica = async () => {
+        if (!window.confirm("🚀 ¿INICIAR ESCÁNER MÁGICO?\n\nDetectará la carpeta 'FOTOS PARA SUBIR' en tus discos externos.")) return;
         try {
-            const res = await apiFetch(`${API_URL}/imagenes/${id}`, { method: 'DELETE' });
-            if (res.ok) { setFotoEnZoom(null); setRotacion(0); cargarFotos(); }
-        } catch (error) { alert("Error de conexión"); }
-    };
-
-    const ejecutarImportacionDesdeDisco = async () => {
-        try {
-            // --- ADVERTENCIA DE SOBERANÍA DE DATOS ---
-            if (!electron && !IS_LOCAL) {
-                const mensajeWeb = `⚠️ ATENCIÓN: ESTÁS EN LA VERSIÓN WEB (INTERNET)\n\nLa magia de ARCHIPEG es la privacidad total en TU DISCO DURO LOCAL.\nSi importas fotos aquí, se subirán a INTERNET (nube de Render).\n\nPara máxima soberanía, te recomendamos usar ARCHIPEG PC.\n¿Quieres continuar con la subida a INTERNET?`;
-                if (!window.confirm(mensajeWeb)) return;
-            }
-
-            setMensaje("Abriendo selector...");
-            let rutaSeleccionada = null;
-
-            if (electron) {
-                rutaSeleccionada = await electron.ipcRenderer.invoke('seleccionar-carpeta');
-            } else if (IS_LOCAL) {
-                // Solo intentamos el selector del servidor si estamos en LOCAL
-                const resRuta = await fetch(`${API_URL}/seleccionar-carpeta`);
-                const dataRuta = await resRuta.json();
-                rutaSeleccionada = dataRuta.ruta;
-            } else {
-                // En Render/Web, el selector del servidor fallará (501). 
-                // Avisamos al usuario que use el nuevo botón de Carpeta Web.
-                alert("El selector de carpetas nativo solo funciona en la Versión PC.\n\nUsa el nuevo botón '📂 CARPETA' que hemos añadido arriba para subir carpetas completas desde la web.");
-                setMensaje("Usa el botón de CARPETA WEB arriba.");
-                return;
-            }
-            if (!rutaSeleccionada) {
-                setMensaje("Operación cancelada.");
-                return;
-            }
-
-            if (!window.confirm(`¿Importar fotos de: ${rutaSeleccionada}?`)) return;
-
-            setMensaje("🚀 Motor ARCHIPEG trabajando al máximo... No cierres el panel.");
-            setProgreso(10);
-
-            // Simulamos un avance pequeño mientras esperamos la respuesta pesada del servidor
-            const interval = setInterval(() => {
-                setProgreso(prev => (prev < 90 ? prev + 1 : prev));
-            }, 500);
-
-            const resImport = await fetch(`${API_URL}/importar-masivo`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: JSON.stringify({ ruta: rutaSeleccionada })
-            });
-
-            clearInterval(interval);
-            let resultado;
-            try {
-                resultado = await resImport.json();
-            } catch (e) {
-                resultado = { error: "Respuesta del servidor no válida" };
-            }
-            if (resImport.ok) {
-                setProgreso(100);
-                setTimeout(() => {
-                    alert(`¡ÉXITO!\n- Nuevas: ${resultado.importadas}\n- Ya estaban: ${resultado.actualizadas}\n- Total: ${resultado.total}`);
-                    setMensaje("✅ Importación finalizada con éxito.");
-                    setProgreso(0);
-                    cargarFotos();
-                }, 500);
-            } else {
-                setProgreso(0);
-                alert("❌ ERROR EN EL MOTOR: " + (resultado.error || "Fallo crítico en la importación"));
-                setMensaje("⚠️ Falló la importación.");
-            }
-        } catch (error) {
-            setProgreso(0);
-            console.error(error);
-            alert("❌ ERROR DE CONEXIÓN: No se pudo contactar con el motor de ARCHIPEG.");
-        }
-    };
-
-    const ejecutarRescanGPS = async () => {
-        if (!window.confirm("🛰️ ¿Quieres re-escanear tus 5.700 fotos para buscar coordenadas GPS?\n\nEsto no borrará nada, solo añadirá los puntos al mapa.")) return;
-        
-        try {
-            setMensaje("🚀 Iniciando radar EXIF... Leyendo archivos del disco.");
-            setProgreso(5);
-            
-            const res = await fetch(`${API_URL}/sistema/rescan-gps`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
-                }
-            });
-            
+            setMensaje("🚀 Buscando en discos externos..."); setProgreso(10);
+            const res = await apiFetch(`${API_URL}/sistema/importar-automatico`, { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
-                setProgreso(100);
-                setTimeout(() => {
-                    alert(`🛰️ ¡Radar completado!\n\nSe han geolocalizado ${data.actualizadas} fotos nuevas.`);
-                    setMensaje("✅ Escaneo GPS finalizado.");
-                    setProgreso(0);
-                    cargarFotos();
-                }, 500);
+                setProgreso(100); setMensaje(`✨ ÉXITO: ${data.importadas} nuevas fotos.`);
+                setTimeout(() => { setProgreso(0); cargarFotos(); }, 2000);
             } else {
-                setProgreso(0);
-                alert("Error al ejecutar el radar.");
+                const err = await res.json(); alert(`❌ ${err.error}`); setProgreso(0);
             }
-        } catch (error) {
-            setProgreso(0);
-            alert("Error de conexión con el motor.");
-        }
+        } catch (error) { setProgreso(0); }
+    };
+
+    const gestionarPapelera = async (id, accion) => {
+        try {
+            const res = await apiFetch(`${API_URL}/papelera/operaciones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, accion })
+            });
+            if (res.ok) { cargarFotos(); cargarPapelera(); }
+        } catch (e) {}
     };
 
     const manejarSeleccion = (id) => {
         const nuevos = new Set(seleccionados);
-        if (nuevos.has(id)) nuevos.delete(id);
-        else nuevos.add(id);
+        if (nuevos.has(id)) nuevos.delete(id); else nuevos.add(id);
         setSeleccionados(nuevos);
-    };
-
-    const seleccionarTodo = () => {
-        if (seleccionados.size === fotosPaginadas.length) {
-            setSeleccionados(new Set());
-        } else {
-            setSeleccionados(new Set(fotosPaginadas.map(f => f.id)));
-        }
-    };
-
-    const ejecutarAccionMasiva = async (tipo) => {
-        const ids = Array.from(seleccionados);
-        if (ids.length === 0) return;
-        
-        let targetId = tipo === 'album' ? bulkAlbumId : bulkEventoId;
-        if (!targetId) return alert(`Selecciona un ${tipo === 'album' ? 'álbum' : 'evento'} primero.`);
-
-        setMensaje(`Procesando ${ids.length} activos...`);
-        let exitos = 0;
-
-        for (const id of ids) {
-            try {
-                const endpoint = tipo === 'album' 
-                    ? `${API_URL}/albumes/${targetId}/fotos` 
-                    : `${API_URL}/eventos/${targetId}/fotos`;
-                
-                const res = await apiFetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ foto_id: id })
-                });
-                if (res.ok) exitos++;
-            } catch (e) { console.error(e); }
-        }
-
-        setMensaje(`✅ ${exitos} activos vinculados correctamente.`);
-        setSeleccionados(new Set());
-        setTimeout(() => setMensaje(""), 3000);
-    };
-
-    const ejecutarRescanTags = async () => {
-        if (!window.confirm("¿QUIERES QUE ARCHIPEG ESCANEE DE NUEVO TUS 5.000 FOTOS EN BUSCA DE ETIQUETAS INTERNAS? (XPKeywords, Keywords, etc.)")) return;
-        setMensaje("Buscando etiquetas en metadatos... esto puede tardar.");
-        try {
-            const res = await apiFetch(`${API_URL}/sistema/rescan-tags`, { method: 'POST' });
-            const data = await res.json();
-            setMensaje(`✅ ${data.message}`);
-            // Recargar fotos para ver resultados
-            const r = await apiFetch(`${API_URL}/imagenes`);
-            const nuevas = await r.json();
-            setFotos(nuevas);
-        } catch (e) {
-            setMensaje("❌ Error en la indexación masiva.");
-        }
-        setTimeout(() => setMensaje(""), 6000);
     };
 
     const fotosFiltradas = fotos.filter(foto => {
         const bAnio = busquedaAnio.toString().trim();
         const bMes = busquedaMes.toString().trim();
         const bTit = busquedaTitulo.toLowerCase().trim();
-        
-        // Volvemos a incluir la ruta del archivo para que fotos sin "anio" en DB puedan ser localizadas por carpeta
         const rutaNorm = (foto.imagen_url || "").replace(/\\/g, "/").toLowerCase();
-        const coincideAnio = bAnio === "" || (foto.anio && foto.anio.toString() === bAnio) || rutaNorm.includes(bAnio);
-        const coincideMes = bMes === "" || (foto.mes && foto.mes.toString() === bMes);
-        const coincideTitulo = bTit === "" || (foto.titulo || "").toLowerCase().includes(bTit) || rutaNorm.includes(bTit);
-        
-        return coincideAnio && coincideMes && coincideTitulo;
+        return (bAnio === "" || (foto.anio && foto.anio.toString() === bAnio) || rutaNorm.includes(bAnio)) &&
+               (bMes === "" || (foto.mes && foto.mes.toString() === bMes)) &&
+               (bTit === "" || (foto.titulo || "").toLowerCase().includes(bTit) || rutaNorm.includes(bTit));
     });
 
     const totalPaginas = Math.max(1, Math.ceil(fotosFiltradas.length / fotosPorPagina));
     const fotosPaginadas = fotosFiltradas.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina);
 
-    const navegarZoom = (dir) => {
-        if (!fotoEnZoom) return;
-        const idx = fotosFiltradas.findIndex(f => f.id === fotoEnZoom.id);
-        const next = dir === 'siguiente' ? (idx + 1) % fotosFiltradas.length : (idx - 1 + fotosFiltradas.length) % fotosFiltradas.length;
-        setFotoEnZoom(fotosFiltradas[next]);
-    };
-
-    const forzarDescarga = (url, nombre) => {
-        fetch(url).then(res => res.blob()).then(blob => {
-            const urlBlob = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = urlBlob;
-            a.download = nombre || 'archivo_archipeg';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(urlBlob);
-        }).catch(() => window.open(url, '_blank'));
-    };
-
-    const ejecutarImportacionAutomatica = async () => {
-        if (!window.confirm("🚀 ¿QUIERES QUE ARCHIPEG ESCANEE TU CARPETA 'FOTOS PARA SUBIR'?\n\n- Se asignará Año y Evento automáticamente según el nombre de las carpetas.\n- Se ignorarán las fotos que ya existan.\n- Esto puede tardar unos minutos si tienes miles de fotos.")) return;
-
-        try {
-            setMensaje("🚀 Motor Mágico arrancando... Escaneando carpetas.");
-            setProgreso(10);
-            
-            const res = await apiFetch(`${API_URL}/sistema/importar-automatico`, { 
-                method: 'POST' 
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                setProgreso(100);
-                setTimeout(() => {
-                    alert(`✨ ¡MAGIA COMPLETADA!\n\n- Fotos nuevas: ${data.importadas}\n- Saltadas (duplicadas): ${data.saltadas}\n\nYa puedes verlas en la galería.`);
-                    setMensaje("✅ Importación automática finalizada.");
-                    setProgreso(0);
-                    cargarFotos();
-                }, 500);
-            } else {
-                const errorData = await res.json();
-                const detalleRutas = errorData.detalle ? `\n\nBuscado en:\n${errorData.detalle.split(', ').join('\n')}` : "";
-                alert(`❌ ERROR: ${errorData.error}${detalleRutas}`);
-                setProgreso(0);
-                setMensaje("⚠️ Falló la importación mágica.");
-            }
-        } catch (error) {
-            setProgreso(0);
-            alert("Error de conexión con el motor.");
-        }
-    };
-
     return (
-        <div className="admin-container">
-            {/* BANNER DE SOBERANÍA DE DATOS (MÁXIMA CLARIDAD) */}
-            <div style={{
-                background: modoSoberano ? 'rgba(0, 255, 128, 0.1)' : 'rgba(255, 45, 125, 0.1)',
-                border: `1px solid ${modoSoberano ? '#00ff80' : '#ff2d7d'}`,
-                padding: '12px',
-                borderRadius: '8px',
-                marginBottom: '20px',
-                textAlign: 'center',
-                color: modoSoberano ? '#00ff80' : '#ff2d7d',
-                fontWeight: 'bold',
-                fontSize: '0.9rem',
-                boxShadow: `0 0 15px ${modoSoberano ? 'rgba(0, 255, 128, 0.2)' : 'rgba(255, 45, 125, 0.2)'}`
-            }}>
-                {modoSoberano 
-                    ? "🛡️ MODO SOBERANO ACTIVO: Tus fotos están seguras en este PC y NUNCA salen a Internet." 
-                    : "⚠️ MODO INTERNET (WEB): En el móvil o la web, las fotos se suben a la nube. Para PRIVACIDAD TOTAL, usa ARCHIPEG PC."}
-            </div>
-
-            <header className="admin-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button onClick={() => window.location.href = '/'} className="btn-volver-neon">⬅ VOLVER</button>
-                    <div>
-                        <h1 className="admin-title">GESTIÓN DE ACTIVOS V2.2-PRO</h1>
-                        <span className="section-title" style={{ fontSize: '0.65rem', margin: 0 }}>MOTOR AUTÓNOMO V2.2 - SOBERANÍA TOTAL</span>
-                    </div>
+        <div className="admin-container albolote-style">
+            {/* 1. HEADER ESTILO ALBOLOTE-NEON */}
+            <header className="albolote-header">
+                <div className="header-left">
+                    <button onClick={() => navigate('/')} className="btn-circle-back">🏠</button>
+                    <h1 className="albolote-title">ARCHIPEG <span className="neon-text-alt">ADMIN</span></h1>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    {esDiscoC && (
-                        <div style={{
-                            background: '#ff0000',
-                            color: '#fff',
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            fontSize: '0.7rem',
-                            fontWeight: 'bold',
-                            marginBottom: '5px',
-                            animation: 'pulse 1.5s infinite'
-                        }}>
-                             ⚠️ DISCO C: NO SOBERANO
-                        </div>
-                    )}
-                    <span className="tag-badge">{fotos.length} ACTIVOS EN RED</span>
-                    {(!usuario || !usuario.aprobado) && (
-                        <div className="demo-banner-small" style={{ fontSize: '0.7rem', color: '#ff2d7d', marginTop: '5px' }}>
-                            ⚠️ MODO DEMO: Activa en <a href="mailto:archipegv2@gmail.com" style={{color: '#ff2d7d'}}>archipegv2@gmail.com</a>
-                        </div>
-                    )}
+                <div className="header-right">
+                    <button onClick={() => navigate('/galeria')} className="btn-neon-orange">VER GALERÍA</button>
                 </div>
             </header>
 
-            <main className="admin-content">
-                <section className="admin-card" style={{ border: '1px solid #7000ff' }}>
-                    <h2 className="section-title" style={{ color: '#00ffff' }}>📂 ZONA DE IMPORTACIÓN SOBERANA</h2>
-                    <p style={{ color: '#ccc', fontSize: '0.85rem', marginBottom: '20px' }}>
-                        Selecciona el método para inyectar tus fotos al sistema. ARCHIPEG detectará años y eventos automáticamente.
-                    </p>
+            {/* 2. TABS SUPERIORES */}
+            <nav className="albolote-tabs">
+                <button className={`tab-btn ${activeTab === 'activo' ? 'active' : ''}`} onClick={() => setActiveTab('activo')}>
+                    📁 ARCHIVO ACTIVO ({fotos.length})
+                </button>
+                <button className={`tab-btn ${activeTab === 'herramientas' ? 'active' : ''}`} onClick={() => setActiveTab('herramientas')}>
+                    🛠️ HERRAMIENTAS
+                </button>
+                <button className={`tab-btn ${activeTab === 'papelera' ? 'active' : ''}`} onClick={() => setActiveTab('papelera')}>
+                    🗑️ PAPELERA ({fotosPapelera.length})
+                </button>
+            </nav>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                        {/* MÉTODO 1: MÁGICA */}
-                        <div style={{ background: 'rgba(112, 0, 255, 0.1)', border: '1px solid #7000ff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '1rem', color: '#7000ff' }}>🚀 MAGIA (AUTO)</h3>
-                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Escanea carpetas en <strong>FOTOS PARA SUBIR</strong> y las organiza por Año/Etiqueta.</p>
-                            <button onClick={ejecutarImportacionAutomatica} className="btn-archipeg-main-morado" style={{ width: '100%', padding: '10px', border: 'none', background: 'linear-gradient(135deg, #7000ff 0%, #00ffff 100%)' }}>EJECUTAR ESCÁNER</button>
-                        </div>
-
-                        {/* MÉTODO 2: DISCO NATIVO */}
-                        <div style={{ background: 'rgba(0, 255, 255, 0.05)', border: '1px solid #00ffff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '1rem', color: '#00ffff' }}>💾 DISCO ENTERO</h3>
-                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Selecciona cualquier carpeta de tu PC o disco duro externo (D, E, F...).</p>
-                            <button 
-                                onClick={modoSoberano ? ejecutarImportacionDesdeDisco : null} 
-                                className="btn-archipeg-main-morado" 
-                                style={{ width: '100%', padding: '10px', border: '1px solid #00ffff', background: 'transparent', color: '#00ffff', opacity: modoSoberano ? 1 : 0.5 }}
-                                disabled={!modoSoberano}
-                            >
-                                {modoSoberano ? 'BUSCAR EN MI PC' : 'SOLO VERSIÓN PC'}
-                            </button>
-                        </div>
-
-                        {/* MÉTODO 3: WEB / MANUAL */}
-                        <div style={{ background: 'rgba(255, 0, 255, 0.05)', border: '1px solid #ff00ff', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '1rem', color: '#ff00ff' }}>📤 SUBIDA WEB</h3>
-                            <p style={{ fontSize: '0.7rem', color: '#aaa', minHeight: '40px' }}>Para cuando usas el móvil o quieres subir fotos específicas desde la nube.</p>
-                            
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <input id="file-upload-new" type="file" onChange={manejarCambioArchivos} multiple accept="image/*" style={{ display: 'none' }} />
-                                <label htmlFor="file-upload-new" className="tag-badge" style={{ flex: 1, cursor: 'pointer', padding: '8px', fontSize: '0.6rem' }}>📄 ARCHIVOS ({archivos.length})</label>
-                                
-                                <input id="folder-upload-new" type="file" onChange={manejarCambioArchivos} webkitdirectory="" directory="" multiple accept="image/*" style={{ display: 'none' }} />
-                                <label htmlFor="folder-upload-new" className="tag-badge" style={{ flex: 1, cursor: 'pointer', padding: '8px', fontSize: '0.6rem' }}>📁 CARPETA</label>
+            <main className="albolote-main">
+                {activeTab === 'activo' && (
+                    <>
+                        {/* MANTENIMIENTO RÁPIDO */}
+                        <section className="albolote-card maintenance">
+                            <h2 className="card-label">⚡ MANTENIMIENTO DEL SISTEMA</h2>
+                            <div className="maintenance-actions">
+                                <button onClick={ejecutarImportacionAutomatica} className="btn-magic-scan">
+                                    ✨ MAGIC SCAN (AUTO-DETECT)
+                                </button>
+                                <button onClick={ejecutarLimpiezaTotal} className="btn-panic-clear">
+                                    ☢️ VACIAR ÍNDICE
+                                </button>
                             </div>
-                            
-                            <button 
-                                onClick={manejarSubida} 
-                                className="btn-archipeg-main-morado" 
-                                style={{ width: '100%', padding: '10px', border: 'none', background: '#ff00ff', marginTop: '10px' }}
-                                disabled={archivos.length === 0}
-                            >
-                                SUBIR AHORA
-                            </button>
-                        </div>
-                    </div>
+                            {progreso > 0 && (
+                                <div className="progreso-mini">
+                                    <div className="progreso-fill" style={{ width: `${progreso}%` }}>{progreso}%</div>
+                                </div>
+                            )}
+                            {mensaje && <p className="mensaje-status">{mensaje}</p>}
+                        </section>
 
-                    <div style={{ marginTop: '20px' }}>
-                        {progreso > 0 && (
-                            <div className="progreso-container-morado">
-                                <div className="progreso-bar-morado" style={{ width: `${progreso}%` }}>{progreso}%</div>
+                        {/* FILTROS Y TABLA */}
+                        <section className="albolote-card content">
+                            <div className="filter-bar-sleek">
+                                <input type="text" placeholder="Buscar por título o etiquetas..." value={busquedaTitulo} onChange={(e) => { setBusquedaTitulo(e.target.value); setPaginaActual(1); }} className="sleek-input" />
+                                <input type="number" placeholder="Año" value={busquedaAnio} onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }} className="sleek-input-small" />
+                                <select value={busquedaMes} onChange={(e) => { setBusquedaMes(e.target.value); setPaginaActual(1); }} className="sleek-select">
+                                    <option value="">Cualquier Mes</option>
+                                    {nombreMeses.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                                </select>
                             </div>
-                        )}
-                        {mensaje && <p className="mensaje-feedback-morado" style={{ textAlign: 'center' }}>{mensaje}</p>}
-                    </div>
-                </section>
 
-                <section className="admin-card">
-                    <form onSubmit={manejarSubida}>
-                        <h2 className="section-title">✏️ METADATOS POR DEFECTO</h2>
-                        <div className="form-grid">
-                            <input type="text" placeholder="Título base para subida manual" value={titulo} onChange={(e) => setTitulo(e.target.value)} className="admin-input" />
-                            <input type="number" value={anio} onChange={(e) => setAnio(e.target.value)} required className="admin-input" />
-                            <input type="text" placeholder="Etiquetas (opcional)" value={etiquetas} onChange={(e) => setEtiquetas(e.target.value)} className="admin-input" />
-                            <input type="text" placeholder="Lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} className="admin-input" />
-                        </div>
-                        <textarea placeholder="Descripción técnica opcional..." value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="admin-textarea" />
-                    </form>
-                </section>
+                            <div className="table-wrapper-clean">
+                                <table className="albolote-table">
+                                    <thead>
+                                        <tr>
+                                            <th>MINI</th>
+                                            <th>TÍTULO / ETIQUETAS</th>
+                                            <th>FECHA</th>
+                                            <th>ACCIONES</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {fotosPaginadas.map(f => (
+                                            <tr key={f.id}>
+                                                <td className="td-mini" onClick={() => setFotoEnZoom(f)}>
+                                                    <img src={getFotoUrl(f)} alt="mini" className="mini-thumb" onError={(e) => e.target.src = PLACEHOLDER_IMG} />
+                                                </td>
+                                                <td className="td-info-clean">
+                                                    <span className="info-title">{f.titulo || "Sin título"}</span>
+                                                    <span className="info-tags">{f.etiquetas || "Sin etiquetas"}</span>
+                                                </td>
+                                                <td className="td-date">{f.mes}/{f.anio}</td>
+                                                <td className="td-actions-clean">
+                                                    <button onClick={() => apiFetch(`${API_URL}/imagenes/${f.id}`, { method: 'DELETE' }).then(cargarFotos)} className="btn-mini-action">🗑️</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                <section className="admin-card">
-                    <h2 className="section-title">🔍 FILTROS MAESTRO</h2>
-                    <div className="admin-controls">
-                        <input type="text" placeholder="Buscar título..." value={busquedaTitulo} onChange={(e) => { setBusquedaTitulo(e.target.value); setPaginaActual(1); }} className="admin-input" />
-                        <select value={busquedaMes} onChange={(e) => { setBusquedaMes(e.target.value); setPaginaActual(1); }} className="admin-select">
-                            <option value="">📅 MESES</option>
-                            {nombreMeses.map((mes, index) => <option key={index} value={index + 1}>{mes}</option>)}
-                        </select>
-                        <input 
-                            type="text" 
-                            placeholder="AÑO" 
-                            list="admin-anios"
-                            value={busquedaAnio} 
-                            onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }} 
-                            className="admin-input" 
-                            style={{ maxWidth: '120px' }}
-                        />
-                        <datalist id="admin-anios">
-                            {aniosDb.map(a => <option key={a} value={a} />)}
-                        </datalist>
-                    </div>
-
-                    <div className="table-responsive">
-                        <table className="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={fotosPaginadas.length > 0 && seleccionados.size === fotosPaginadas.length} 
-                                            onChange={seleccionarTodo}
-                                            className="admin-checkbox-main"
-                                        />
-                                    </th>
-                                    <th>MINI</th>
-                                    <th>INFO</th>
-                                    <th>FECHA</th>
-                                    <th>ACCIONES</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {fotosPaginadas.map(foto => (
-                                    <tr key={foto.id} className={seleccionados.has(foto.id) ? "row-selected" : ""}>
-                                        <td>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={seleccionados.has(foto.id)} 
-                                                onChange={() => manejarSeleccion(foto.id)}
-                                                className="admin-checkbox"
-                                            />
-                                        </td>
-                                        <td className="td-mini" onClick={() => setFotoEnZoom(foto)}>
-                                            <img
-                                                src={getFotoUrl(foto)}
-                                                alt="mini"
-                                                className="admin-mini-morada"
-                                                onError={(e) => { e.target.src = PLACEHOLDER_IMG; }}
-                                            />
-                                        </td>
-                                        <td className="td-info">
-                                            <span className="foto-titulo">{foto.titulo || "S/T"}</span>
-                                            <div className="mini-tags-display">
-                                                {foto.etiquetas && foto.etiquetas.split(',').map((tag, idx) => (
-                                                    <span key={idx} className="tag-badge">{tag.trim()}</span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td className="td-fecha">{foto.mes || '?'}/{foto.anio}</td>
-                                        <td className="td-acciones">
-                                            <button onClick={() => forzarDescarga(getFotoUrl(foto), foto.titulo)} className="btn-action-icon-morado" title="Descargar">📥</button>
-                                            {foto.latitud && (
-                                                <button onClick={() => navigate(`/mapa?fotoId=${foto.id}`)} className="btn-action-icon-morado" title="Ver en Mapa">📍</button>
-                                            )}
-                                            <button onClick={() => borrarFoto(foto.id)} className="btn-action-icon-morado btn-borrar" title="Mover a Papelera">🗑️</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
-                        <button disabled={paginaActual === 1} onClick={() => { setPaginaActual(p => p - 1); setSeleccionados(new Set()); }} className="btn-action-icon-morado" style={{ padding: '5px 15px' }}>◀ ANT</button>
-                        
-                        <span style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
-                            Página 
-                            <input 
-                                type="number" 
-                                min="1" 
-                                max={totalPaginas}
-                                value={inputPage} 
-                                onChange={(e) => setInputPage(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        let val = parseInt(inputPage, 10);
-                                        if (val >= 1 && val <= totalPaginas) setPaginaActual(val);
-                                        else setInputPage(paginaActual.toString());
-                                    }
-                                }}
-                                onBlur={() => {
-                                    let val = parseInt(inputPage, 10);
-                                    if (val >= 1 && val <= totalPaginas) setPaginaActual(val);
-                                    else setInputPage(paginaActual.toString());
-                                }}
-                                className="admin-input"
-                                style={{ width: '60px', padding: '5px', textAlign: 'center', appearance: 'textfield' }} 
-                            />
-                            de {totalPaginas}
-                        </span>
-
-                        <button disabled={paginaActual >= totalPaginas} onClick={() => { setPaginaActual(p => p + 1); }} className="btn-action-icon-morado" style={{ padding: '5px 15px' }}>SIG ▶</button>
-                    </div>
-                </section>
-
-                {/* --- SECCIÓN DE MANTENIMIENTO (SÓLO EL CREADOR / ID #1) --- */}
-                {usuario?.id === 1 && (
-                    <section className="admin-card" style={{ border: '2px solid #ff0044', background: 'rgba(255, 0, 68, 0.05)', textAlign: 'center' }}>
-                        <h2 className="section-title" style={{ color: '#ff0044', justifyContent: 'center' }}>🛠️ ZONA DE MANTENIMIENTO</h2>
-                        <p style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '15px' }}>
-                            Usa estas herramientas con precaución. Son operaciones irreversibles sobre la base de datos.
-                        </p>
-                        <button
-                            onClick={ejecutarLimpiezaTotal}
-                            className="btn-archipeg-main-morado"
-                            style={{ backgroundColor: '#ff0044', fontWeight: 'bold', padding: '15px 40px', fontSize: '1rem' }}
-                        >
-                            🚨 BORRAR TODOS MIS ACTIVOS (RESET PROPIO)
-                        </button>
-                    </section>
+                            <div className="pagination-sleek">
+                                <button disabled={paginaActual === 1} onClick={() => setPaginaActual(p => p - 1)} className="btn-pag">ANTERIOR</button>
+                                <span>Página {paginaActual} de {totalPaginas}</span>
+                                <button disabled={paginaActual >= totalPaginas} onClick={() => setPaginaActual(p => p + 1)} className="btn-pag">SIGUIENTE</button>
+                            </div>
+                        </section>
+                    </>
                 )}
 
-                {/* BARRA DE ACCIONES MASIVAS (FUERA DE LAS CARDS PARA EVITAR CLIPPING) */}
-                {seleccionados.size > 0 && (
-                    <div className="bulk-actions-bar">
-                        <div className="bulk-info">
-                            <span>{seleccionados.size} SELECCIONADOS</span>
-                            <button className="btn-clear-selection" onClick={() => setSeleccionados(new Set())}>✕</button>
-                        </div>
-                        <div className="bulk-controls">
-                            <div className="bulk-group">
-                                <select className="admin-select" value={bulkAlbumId} onChange={e => setBulkAlbumId(e.target.value)}>
-                                    <option value="">📁 ELEGIR ÁLBUM...</option>
-                                    {albumes.map(a => <option key={a.id} value={a.id}>{a.nombre.toUpperCase()}</option>)}
-                                </select>
-                                <button className="btn-bulk-action" onClick={() => ejecutarAccionMasiva('album')}>AÑADIR A ÁLBUM</button>
+                {activeTab === 'herramientas' && (
+                    <div className="tools-grid">
+                        <section className="albolote-card tools">
+                            <h2 className="card-label">📤 SUBIDA WEB / CONFIGURACIÓN</h2>
+                            <form onSubmit={manejarSubida} className="tools-form">
+                                <div className="form-row">
+                                    <input type="text" placeholder="Título base" value={titulo} onChange={e => setTitulo(e.target.value)} className="sleek-input" />
+                                    <input type="number" value={anio} onChange={e => setAnio(e.target.value)} className="sleek-input-small" />
+                                </div>
+                                <div className="file-box">
+                                    <input type="file" multiple onChange={e => setArchivos(Array.from(e.target.files))} id="file-up" style={{display:'none'}} />
+                                    <label htmlFor="file-up" className="btn-file-neon">SELECCIONAR FOTOS ({archivos.length})</label>
+                                    <button type="submit" className="btn-neon-purple" disabled={archivos.length===0} style={{marginTop:'15px'}}>INICIAR SUBIDA</button>
+                                </div>
+                            </form>
+                        </section>
+                        
+                        <section className="albolote-card tools">
+                            <h2 className="card-label">⚙️ TAREAS DE MANTENIMIENTO</h2>
+                            <div className="maintenance-buttons-grid">
+                                <button onClick={() => apiFetch(`${API_URL}/sistema/rescan-gps`, {method:'POST'}).then(() => setMensaje("GPS Actualizado"))} className="btn-tool">SATÉLITE GPS</button>
+                                <button onClick={() => apiFetch(`${API_URL}/sistema/rescan-tags`, {method:'POST'}).then(() => setMensaje("Tags Indexados"))} className="btn-tool">INDEXAR TAGS</button>
+                                <button onClick={() => navigate('/usuarios')} className="btn-tool">GESTIÓN USUARIOS</button>
                             </div>
-                            <div className="bulk-divider"></div>
-                            <div className="bulk-group">
-                                <select className="admin-select" value={bulkEventoId} onChange={e => setBulkEventoId(e.target.value)}>
-                                    <option value="">🎭 ELEGIR EVENTO...</option>
-                                    {eventosParaZoom.map(ev => <option key={ev.id} value={ev.id}>{ev.nombre.toUpperCase()}</option>)}
-                                </select>
-                                <button className="btn-bulk-action" style={{ background: '#ff00ff' }} onClick={() => ejecutarAccionMasiva('evento')}>AÑADIR A EVENTO</button>
-                            </div>
-                        </div>
+                        </section>
                     </div>
+                )}
+
+                {activeTab === 'papelera' && (
+                    <section className="albolote-card content">
+                        <h2 className="card-label">🗑️ ELEMENTOS ELIMINADOS</h2>
+                        <div className="table-wrapper-clean">
+                            <table className="albolote-table">
+                                <thead><tr><th>MINI</th><th>NOMBRE</th><th>ACCIONES</th></tr></thead>
+                                <tbody>
+                                    {fotosPapelera.map(f => (
+                                        <tr key={f.id}>
+                                            <td className="td-mini"><img src={getFotoUrl(f)} className="mini-thumb" alt="" /></td>
+                                            <td>{f.titulo || f.imagen_url}</td>
+                                            <td className="td-actions-clean">
+                                                <button onClick={() => gestionarPapelera(f.id, 'restaurar')} className="btn-mini-action restore">🔄</button>
+                                                <button onClick={() => gestionarPapelera(f.id, 'eliminar_permanente')} className="btn-mini-action delete-perm">❌</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 )}
             </main>
 
+            {/* ZOOM MODAL */}
             {fotoEnZoom && (
-                <ModalZoom
-                    foto={fotoEnZoom}
-                    onClose={() => setFotoEnZoom(null)}
-                    onNavigate={navegarZoom}
-                    onBorrar={borrarFoto}
+                <ModalZoom 
+                    foto={fotoEnZoom} 
+                    onClose={() => setFotoEnZoom(null)} 
                     getFotoUrl={getFotoUrl}
-                    setBusqueda={(q) => { setBusquedaTitulo(q); setPaginaActual(1); setFotoEnZoom(null); }}
-                    onFavoritoToggle={(updated) => {
-                        setFotos(prev => prev.map(f => f.id === updated.id ? updated : f));
-                    }}
+                    onFavoritoToggle={(updated) => setFotos(prev => prev.map(f => f.id === updated.id ? updated : f))}
                 />
             )}
         </div>

@@ -138,9 +138,16 @@ function createWindow() {
         }
     });
 
-    // Cargamos el build de React
+    // Cargamos la app: En desarrollo usamos el servidor en vivo, en producción el build estático
     const indexPath = path.join(__dirname, 'build', 'index.html');
-    win.loadFile(indexPath);
+    if (isDev) {
+        // Usamos el puerto 5002 que es el que ha asignado el sistema anteriormente
+        win.loadURL('http://localhost:5002').catch(() => {
+            win.loadFile(indexPath); // Fallback al build si el dev server no responde
+        });
+    } else {
+        win.loadFile(indexPath);
+    }
 
     // Abrimos consola para cazar errores en vivo
     // win.webContents.openDevTools();
