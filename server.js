@@ -101,7 +101,8 @@ function generarToken() {
 }
 
 // --- CONFIGURACIÓN DE VERSIÓN ---
-const LIMITE_DEMO = 50;
+const LIMITE_DEMO = 100000;
+let progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
 
 // --- IMPORTACIÓN MASIVA ---
 const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
@@ -401,6 +402,11 @@ app.get('/api/test', (req, res) => {
     });
 });
 
+// NUEVO: Endpoint para que el frontal consulte el progreso de tareas largas
+app.get('/api/sistema/status-import', (req, res) => {
+    res.json(progresoOperacion);
+});
+
 // --- AUTH: REGISTRO ---
 const MASTER_ADMIN_KEY = 'ARCHIPEG-PRO-2026'; // Clave de sistema solicitada por el usuario
 
@@ -582,8 +588,8 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
                 }
 
                 await db.run(
-                    "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                    [titulo || meta.anio, anio || meta.anio, mes || meta.mes, etiquetas, tagsFinales, file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
+                    "INSERT INTO fotos (titulo, descripcion, anio, mes, etiquetas, imagen_url, latitud, longitud, en_papelera, usuario_id, lugar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+                    [titulo || meta.anio, descripcion || "", anio || meta.anio, mes || meta.mes, tagsFinales, file.filename, meta.lat, meta.lon, req.usuario?.id, lugar || ""]
                 );
 
                 i++;
@@ -646,11 +652,13 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
         const fotos = await db.all("SELECT id, imagen_url FROM fotos WHERE usuario_id = ? AND (latitud IS NULL OR latitud = 0)", [req.usuario.id]);
         let actualizadas = 0;
         
+        progresoOperacion = { actual: 0, total: fotos.length, mensaje: "Geolocalizando fotos...", activa: true };
         dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
             let i = 0;
             for (const f of fotos) {
+                progresoOperacion.actual = i + 1;
                 let rutaAbsoluta = f.imagen_url;
                 if (!path.isAbsolute(rutaAbsoluta)) {
                     rutaAbsoluta = path.join(dirDestino, rutaAbsoluta);
@@ -667,9 +675,11 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
                 if (i % 50 === 0) await new Promise(resolve => setImmediate(resolve));
             }
             await db.run("COMMIT");
+            progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
             res.json({ message: `Re-escaneo completado. Se han geolocalizado ${actualizadas} fotos nuevas.`, actualizadas });
         } catch (e) {
             await db.run("ROLLBACK");
+            progresoOperacion.activa = false;
             throw e;
         } finally {
             dbLock = false;
@@ -690,11 +700,13 @@ app.post('/api/sistema/rescan-tags', async (req, res) => {
         let totalTagsEncontrados = 0;
         let fotosActualizadas = 0;
 
+        progresoOperacion = { actual: 0, total: fotos.length, mensaje: "Indexando etiquetas...", activa: true };
         dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
             let i = 0;
             for (const f of fotos) {
+                progresoOperacion.actual = i + 1;
                 let rutaAbsoluta = f.imagen_url;
                 if (!path.isAbsolute(rutaAbsoluta)) {
                     rutaAbsoluta = path.join(dirDestino, rutaAbsoluta);
@@ -719,9 +731,11 @@ app.post('/api/sistema/rescan-tags', async (req, res) => {
                 if (i % 50 === 0) await new Promise(resolve => setImmediate(resolve));
             }
             await db.run("COMMIT");
+            progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
             res.json({ message: `Re-escaneo de etiquetas completado. ${fotosActualizadas} fotos enriquecidas.`, totalTagsEncontrados });
         } catch (e) {
             await db.run("ROLLBACK");
+            progresoOperacion.activa = false;
             throw e;
         } finally {
             dbLock = false;
@@ -805,7 +819,7 @@ app.get('/api/fotos/:id/albumes', async (req, res) => {
     try {
         const albumes = await db.all(
             "SELECT a.* FROM albumes a JOIN album_fotos af ON a.id = af.album_id WHERE af.foto_id = ? AND a.usuario_id = ?",
-            [req.params.id]
+            [req.params.id, req.usuario?.id]
         );
         res.json(albumes);
     } catch (err) { res.status(500).json(err); }
@@ -1355,13 +1369,16 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
         };
 
         const fotosAImportar = await scanRecursive(dirSubida);
+        progresoOperacion = { actual: 0, total: fotosAImportar.length, mensaje: "Importando desde Magic Scan...", activa: true };
         let importadas = 0;
         let saltadas = 0;
+        let errores = 0;
 
         dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
             for (let i = 0; i < fotosAImportar.length; i++) {
+                progresoOperacion.actual = i + 1;
                 const foto = fotosAImportar[i];
                 try {
                     const fileName = path.basename(foto.path);
@@ -1423,15 +1440,18 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                 }
             }
             await db.run("COMMIT");
+            progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
             res.json({ 
                 success: true, 
                 message: `Importación finalizada.`,
                 importadas, 
                 saltadas,
-                pendientes: fotosAImportar.length - importadas - saltadas
+                errores,
+                pendientes: fotosAImportar.length - importadas - saltadas - errores
             });
         } catch (e) {
             await db.run("ROLLBACK");
+            progresoOperacion.activa = false;
             console.error("Error en transacción:", e);
             throw e;
         } finally {
@@ -1461,6 +1481,7 @@ app.post('/api/importar-masivo', async (req, res) => {
         }
 
         const imagenes = await escanearRecursivo(ruta);
+        progresoOperacion = { actual: 0, total: imagenes.length, mensaje: "Importando desde carpeta...", activa: true };
 
         let importadas = 0;
         let actualizadas = 0;
@@ -1479,6 +1500,7 @@ app.post('/api/importar-masivo', async (req, res) => {
         await db.run("BEGIN TRANSACTION");
         try {
             for (let i = 0; i < imagenes.length; i++) {
+                progresoOperacion.actual = i + 1;
                 const rutaImagen = imagenes[i];
                 const existente = await db.get(
                     req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
@@ -1512,9 +1534,11 @@ app.post('/api/importar-masivo', async (req, res) => {
                 }
             }
             await db.run("COMMIT");
+            progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
             res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
         } catch (e) {
             await db.run("ROLLBACK");
+            progresoOperacion.activa = false;
             throw e;
         } finally {
             dbLock = false;

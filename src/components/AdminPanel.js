@@ -164,17 +164,40 @@ const AdminPanel = () => {
 
     const ejecutarImportacionAutomatica = async () => {
         if (!window.confirm("🚀 ¿INICIAR ESCÁNER MÁGICO?\n\nDetectará la carpeta 'FOTOS PARA SUBIR' en tus discos externos.")) return;
+        
+        let intervalId;
         try {
-            setMensaje("🚀 Buscando en discos externos..."); setProgreso(10);
+            setMensaje("🚀 Buscando en discos externos..."); setProgreso(1);
+            
+            // Iniciamos polling de progreso
+            intervalId = setInterval(async () => {
+                try {
+                    const statusRes = await fetch(`${API_URL}/sistema/status-import`);
+                    if (statusRes.ok) {
+                        const statusData = await statusRes.json();
+                        if (statusData.activa && statusData.total > 0) {
+                            const p = Math.round((statusData.actual / statusData.total) * 100);
+                            setProgreso(p > 0 ? p : 1);
+                            setMensaje(`🚀 ${statusData.mensaje} (${statusData.actual}/${statusData.total})`);
+                        }
+                    }
+                } catch (e) {}
+            }, 1500);
+
             const res = await apiFetch(`${API_URL}/sistema/importar-automatico`, { method: 'POST' });
+            clearInterval(intervalId);
+
             if (res.ok) {
                 const data = await res.json();
                 setProgreso(100); setMensaje(`✨ ÉXITO: ${data.importadas} nuevas fotos.`);
                 setTimeout(() => { setProgreso(0); cargarFotos(); }, 2000);
             } else {
-                const err = await res.json(); alert(`❌ ${err.error}`); setProgreso(0);
+                const err = await res.json(); alert(`❌ ${err.error}`); setProgreso(0); setMensaje("");
             }
-        } catch (error) { setProgreso(0); }
+        } catch (error) { 
+            if (intervalId) clearInterval(intervalId);
+            setProgreso(0); setMensaje("");
+        }
     };
 
     const gestionarPapelera = async (id, accion) => {
@@ -325,8 +348,40 @@ const AdminPanel = () => {
                         <section className="albolote-card tools">
                             <h2 className="card-label">⚙️ TAREAS DE MANTENIMIENTO</h2>
                             <div className="maintenance-buttons-grid">
-                                <button onClick={() => apiFetch(`${API_URL}/sistema/rescan-gps`, {method:'POST'}).then(() => setMensaje("GPS Actualizado"))} className="btn-tool">SATÉLITE GPS</button>
-                                <button onClick={() => apiFetch(`${API_URL}/sistema/rescan-tags`, {method:'POST'}).then(() => setMensaje("Tags Indexados"))} className="btn-tool">INDEXAR TAGS</button>
+                                <button onClick={async () => {
+                                    setMensaje("🛰️ Geolocalizando..."); setProgreso(1);
+                                    let intv = setInterval(async () => {
+                                        const r = await fetch(`${API_URL}/sistema/status-import`);
+                                        if (r.ok) {
+                                            const d = await r.json();
+                                            if (d.activa) {
+                                                setProgreso(Math.round((d.actual / d.total) * 100));
+                                                setMensaje(`🛰️ ${d.mensaje} (${d.actual}/${d.total})`);
+                                            }
+                                        }
+                                    }, 1500);
+                                    await apiFetch(`${API_URL}/sistema/rescan-gps`, {method:'POST'});
+                                    clearInterval(intv); setProgreso(100); setMensaje("✅ GPS Actualizado");
+                                    setTimeout(() => { setProgreso(0); setMensaje(""); }, 2000);
+                                }} className="btn-tool">SATÉLITE GPS</button>
+                                
+                                <button onClick={async () => {
+                                    setMensaje("🏷️ Indexando..."); setProgreso(1);
+                                    let intv = setInterval(async () => {
+                                        const r = await fetch(`${API_URL}/sistema/status-import`);
+                                        if (r.ok) {
+                                            const d = await r.json();
+                                            if (d.activa) {
+                                                setProgreso(Math.round((d.actual / d.total) * 100));
+                                                setMensaje(`🏷️ ${d.mensaje} (${d.actual}/${d.total})`);
+                                            }
+                                        }
+                                    }, 1500);
+                                    await apiFetch(`${API_URL}/sistema/rescan-tags`, {method:'POST'});
+                                    clearInterval(intv); setProgreso(100); setMensaje("✅ Tags Indexados");
+                                    setTimeout(() => { setProgreso(0); setMensaje(""); }, 2000);
+                                }} className="btn-tool">INDEXAR TAGS</button>
+                                
                                 <button onClick={() => navigate('/usuarios')} className="btn-tool">GESTIÓN USUARIOS</button>
                             </div>
                         </section>
