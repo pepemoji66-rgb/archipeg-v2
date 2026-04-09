@@ -45,7 +45,7 @@ function AppRoutes() {
                 <Route path="/anio/:anio" element={<VistaAnio />} />
                 <Route path="/galeria/:anio" element={<VistaAnio />} />
                 <Route path="/duplicados" element={<Duplicados />} />
-                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/admin" element={<RutaAdmin><AdminPanel /></RutaAdmin>} />
                 <Route path="/usuarios" element={<RutaAdmin><Usuarios /></RutaAdmin>} />
                 <Route path="/papelera" element={<Papelera />} />
                 <Route path="/albumes" element={<Albumes />} />

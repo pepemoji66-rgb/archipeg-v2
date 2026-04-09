@@ -263,12 +263,20 @@ const AdminPanel = () => {
                         <section className="albolote-card maintenance">
                             <h2 className="card-label">⚡ MANTENIMIENTO DEL SISTEMA</h2>
                             <div className="maintenance-actions">
-                                <button onClick={ejecutarImportacionAutomatica} className="btn-magic-scan">
-                                    ✨ MAGIC SCAN (AUTO-DETECT)
-                                </button>
-                                <button onClick={ejecutarLimpiezaTotal} className="btn-panic-clear">
-                                    ☢️ VACIAR ÍNDICE
-                                </button>
+                                {modoSoberano ? (
+                                    <>
+                                        <button onClick={ejecutarImportacionAutomatica} className="btn-magic-scan">
+                                            ✨ MAGIC SCAN (AUTO-DETECT)
+                                        </button>
+                                        <button onClick={ejecutarLimpiezaTotal} className="btn-panic-clear">
+                                            ☢️ VACIAR ÍNDICE
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="info-render-box">
+                                        <p>🌐 <strong>Modo Cloud (Render) Activo:</strong> El Escáner Mágico y vaciado físico están limitados a la versión de Escritorio para proteger tu colección.</p>
+                                    </div>
+                                )}
                             </div>
                             {progreso > 0 && (
                                 <div className="progreso-mini">

@@ -1233,8 +1233,8 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
 app.get('/api/usuarios', async (req, res) => {
     try {
         // Solo el JEFE ABSOLUTO (pepemoji66@gmail.com) tiene permiso aquí
-        if (req.usuarioEmail !== 'pepemoji66@gmail.com' && req.usuario?.email !== 'pepemoji66@gmail.com') {
-            console.warn(`🛑 [403]: Intento de acceso no autorizado a usuarios por [${req.usuarioEmail || 'desconocido'}]`);
+        if (req.usuario?.email !== 'pepemoji66@gmail.com' && req.usuario?.email !== 'pepemoji66@gmail.com') {
+            console.warn(`🛑 [403]: Intento de acceso no autorizado a usuarios por [${req.usuario?.email || 'desconocido'}]`);
             return res.status(403).json({ error: 'Acceso restringido al Administrador Principal' });
         }
         
@@ -1321,6 +1321,15 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose...' });
         if (dbLock) return res.status(429).json({ error: 'Ya hay una operación de importación en curso.' });
+
+        // --- PROTECCIÓN RENDER/WEB ---
+        if (process.platform === 'linux' || process.env.RENDER) {
+            return res.status(403).json({ 
+                error: 'El Escáner Mágico solo está disponible en la versión de Escritorio (PC).',
+                detalle: 'En Render no es posible acceder a tus discos locales por seguridad. Usa el botón "SELECCIONAR FOTOS" para subir tus archivos.'
+            });
+        }
+
         // --- ESCÁNER INTELIGENTE: BUSCA EN TODOS LOS DISCOS EXTERNOS (D-Z) ---
         const unidadesExternas = "DEFGHIJKLMNOPQRSTUVWXYZ".split("");
         const posiblesRutas = [];

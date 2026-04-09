@@ -903,3 +903,95 @@
     background: #ff2d7d;
     color: #fff;
 }
+
+/* --- BOX INFORMATIVO RENDER (CLOUD) --- */
+.info-render-box {
+    background: linear-gradient(135deg, rgba(0, 242, 255, 0.1) 0%, rgba(112, 0, 255, 0.1) 100%);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.info-render-box p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #e0e0e0;
+    line-height: 1.5;
+}
+
+.info-render-box strong {
+    color: #00f2ff;
+    text-shadow: 0 0 5px rgba(0, 242, 255, 0.5);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- MEJORAS DE TABLA Y UI --- */
+.td-mini {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    width: 80px;
+}
+
+.mini-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.mini-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    border-color: #00ffff;
+}
+
+.td-info-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-title {
+    font-weight: 700;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.info-tags {
+    font-size: 0.8rem;
+    color: #00ffff;
+    opacity: 0.8;
+}
+
+.td-date {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.btn-mini-action {
+    background: rgba(255, 45, 125, 0.1);
+    border: 1px solid rgba(255, 45, 125, 0.3);
+    color: #ff2d7d;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-mini-action:hover {
+    background: #ff2d7d;
+    color: #fff;
+    box-shadow: 0 0 10px #ff2d7d;
+}
