@@ -112,6 +112,25 @@ const AdminPanel = () => {
             .catch(err => console.error("Error API:", err));
     };
 
+    const navegarFoto = (direccion) => {
+        const idx = fotosFiltradas.findIndex(f => f.id === fotoEnZoom?.id);
+        if (idx === -1) return;
+        if (direccion === 'siguiente' && idx < fotosFiltradas.length - 1) setFotoEnZoom(fotosFiltradas[idx + 1]);
+        else if (direccion === 'anterior' && idx > 0) setFotoEnZoom(fotosFiltradas[idx - 1]);
+    };
+
+    const ejecutarSalto = (e) => {
+        if (e.key === 'Enter') {
+            const num = parseInt(inputPage);
+            if (!isNaN(num) && num > 0 && num <= totalPaginas) {
+                setPaginaActual(num);
+                setInputPage(num.toString());
+            } else {
+                setInputPage(paginaActual.toString());
+            }
+        }
+    };
+
     const cargarPapelera = () => {
         apiFetch(`${API_URL}/papelera`)
             .then(res => res.ok ? res.json() : [])
@@ -314,7 +333,10 @@ const AdminPanel = () => {
                                                     <img src={getFotoUrl(f)} alt="mini" className="mini-thumb" onError={(e) => e.target.src = PLACEHOLDER_IMG} />
                                                 </td>
                                                 <td className="td-info-clean">
-                                                    <span className="info-title">{f.titulo || "Sin título"}</span>
+                                                    <span className="info-title">
+                                                        {f.titulo || "Sin título"}
+                                                        {f.latitud && <span title="Tiene coordenadas GPS" style={{marginLeft:'8px', cursor:'help'}}>📍</span>}
+                                                    </span>
                                                     <span className="info-tags">{f.etiquetas || "Sin etiquetas"}</span>
                                                 </td>
                                                 <td className="td-date">{f.mes}/{f.anio}</td>
@@ -329,7 +351,17 @@ const AdminPanel = () => {
 
                             <div className="pagination-sleek">
                                 <button disabled={paginaActual === 1} onClick={() => setPaginaActual(p => p - 1)} className="btn-pag">ANTERIOR</button>
-                                <span>Página {paginaActual} de {totalPaginas}</span>
+                                <div className="pagi-jump-box">
+                                    <span>Página {paginaActual} de {totalPaginas}</span>
+                                    <input 
+                                        type="number" 
+                                        className="sleek-input-jump" 
+                                        value={inputPage} 
+                                        onChange={(e) => setInputPage(e.target.value)}
+                                        onKeyDown={ejecutarSalto}
+                                        placeholder="..."
+                                    />
+                                </div>
                                 <button disabled={paginaActual >= totalPaginas} onClick={() => setPaginaActual(p => p + 1)} className="btn-pag">SIGUIENTE</button>
                             </div>
                         </section>
@@ -425,6 +457,7 @@ const AdminPanel = () => {
                 <ModalZoom 
                     foto={fotoEnZoom} 
                     onClose={() => setFotoEnZoom(null)} 
+                    onNavigate={navegarFoto}
                     getFotoUrl={getFotoUrl}
                     onFavoritoToggle={(updated) => setFotos(prev => prev.map(f => f.id === updated.id ? updated : f))}
                 />
