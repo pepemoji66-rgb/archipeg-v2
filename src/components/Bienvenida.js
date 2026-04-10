@@ -98,6 +98,19 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                             autoComplete="new-password"
                             required
                         />
+                        <input
+                            className="indice-auth-input"
+                            type="text"
+                            name="system_key"
+                            id="system_key"
+                            placeholder="Clave de Sistema (Opcional)"
+                            value={systemKey}
+                            onChange={e => setSystemKey(e.target.value)}
+                            autoComplete="off"
+                        />
+                        <p style={{ fontSize: '0.7rem', color: '#ffcc00', marginTop: '-5px' }}>
+                            * Solo si eres administrador o tienes invitación Pro.
+                        </p>
                     </>
                 )}
 

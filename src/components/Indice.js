@@ -233,7 +233,7 @@ const Indice = () => {
             <footer className="footer-alt">
                 <p>ARCHIPEG PRO · EL FUTURO DE TUS RECUERDOS</p>
                 <div style={{marginTop: '10px', fontSize: '0.8rem', color: '#888'}}>
-                    Soporte y Contacto: <a href="mailto:archipegv2@gmail.com" style={{color: '#00f2ff', textDecoration: 'none'}}>archipegv2@gmail.com</a>
+                    Soporte oficial: <a href="mailto:archipegv2@gmail.com" style={{color: '#00f2ff', textDecoration: 'none'}}>archipegv2@gmail.com</a>
                 </div>
                 <p style={{marginTop: '10px', fontSize: '0.7rem'}}>© 2026 Jose Moreno Jimenez. Todos los derechos reservados.</p>
                 {usuario?.esAdmin && <Link to="/usuarios" style={{color: '#444', textDecoration: 'none', marginLeft: '20px'}}>Dashboard Admin</Link>}

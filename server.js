@@ -90,7 +90,7 @@ if (fs.existsSync(buildPath)) {
 }
 
 // --- AUTENTICACIÓN ---
-const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com'];
+const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com', 'archipegv2@gmail.com'];
 
 function hashPassword(password, salt) {
     return crypto.createHash('sha256').update(salt + password).digest('hex');
@@ -1229,13 +1229,13 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-// --- GESTIÓN DE USUARIOS (SÚPER JEFE ONLY) con Paginación Real ---
+// --- GESTIÓN DE USUARIOS (ADMINISTRADORES ONLY) con Paginación Real ---
 app.get('/api/usuarios', async (req, res) => {
     try {
-        // Solo el JEFE ABSOLUTO (pepemoji66@gmail.com) tiene permiso aquí
-        if (req.usuario?.email !== 'pepemoji66@gmail.com' && req.usuario?.email !== 'pepemoji66@gmail.com') {
-            console.warn(`🛑 [403]: Intento de acceso no autorizado a usuarios por [${req.usuario?.email || 'desconocido'}]`);
-            return res.status(403).json({ error: 'Acceso restringido al Administrador Principal' });
+        // Permitir acceso a cualquier correo en la lista de ADMINS
+        if (!req.esAdmin && !ADMINS.includes(req.usuario?.email)) {
+            console.warn(`🛑 [403]: Acceso denegado a lista de usuarios para [${req.usuario?.email || 'desconocido'}]`);
+            return res.status(403).json({ error: 'Acceso restringido a Administradores' });
         }
         
         // Parámetros de paginación
