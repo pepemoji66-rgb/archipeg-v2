@@ -1574,13 +1574,13 @@ app.post('/api/importar-masivo', async (req, res) => {
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
+    family: 4, // 🛡️ FUERZA EL USO DE IPv4 (Soluciona ENETUNREACH en Render)
     secure: false, // false para puerto 587 (STARTTLS)
     auth: {
         user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
         pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
     },
     tls: {
-        // Esto ayuda a evitar problemas con certificados en algunos servidores
         rejectUnauthorized: false
     }
 });
