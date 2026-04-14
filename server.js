@@ -1574,12 +1574,16 @@ app.post('/api/importar-masivo', async (req, res) => {
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'archipegv2@gmail.com',
-        pass: process.env.EMAIL_PASS
+        user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+        // Limpiamos los espacios que suelen venir en las contraseñas de aplicación de Google
+        pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
     }
 });
 
+console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USER || 'No definido'}`);
+
 async function enviarEmailAprobacion(email) {
+    console.log(`⏳ Iniciando envío de email de aprobación a: ${email}...`);
     const baseUrl = process.env.BASE_URL || 'https://archipeg-pro.onrender.com';
     const setupName = "Archipeg Pro Setup 2.0.0.exe";
     const downloadLink = `${baseUrl}/downloads/${encodeURIComponent(setupName)}`;
