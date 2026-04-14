@@ -1,6 +1,6 @@
 {
   "name": "archipeg",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "homepage": ".",
   "description": "Sistema Archipeg - Gestión de Activos y Geo-localización",
   "main": "main.js",
@@ -35,6 +35,7 @@
     "leaflet": "^1.9.4",
     "multer": "^2.1.1",
     "mysql2": "^3.18.2",
+    "nodemailer": "^8.0.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",

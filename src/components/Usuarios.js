@@ -10,7 +10,8 @@ export default function Usuarios() {
     const navigate = useNavigate();
     const [usuarios, setUsuarios] = useState([]);
     const [cargando, setCargando] = useState(false);
-    const [totalUsuarios, setTotalUsuarios] = useState(0); // Para saber cuántos hay en total
+    const [totalUsuarios, setTotalUsuarios] = useState(0); 
+    const [enviandoEmail, setEnviandoEmail] = useState(null); // ID del usuario al que se envía
     
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1);
@@ -73,6 +74,23 @@ export default function Usuarios() {
                 cargarUsuarios(paginaActual);
             }
         } catch (_) {}
+    };
+
+    const enviarEmailPro = async (id) => {
+        setEnviandoEmail(id);
+        try {
+            const res = await apiFetch(`${API}/usuarios/${id}/enviar-pro`, { method: 'POST' });
+            if (res.ok) {
+                alert("✅ Correo enviado con éxito con el enlace de descarga.");
+            } else {
+                const err = await res.json();
+                alert("❌ Error al enviar correo: " + (err.error || "Desconocido"));
+            }
+        } catch (error) {
+            alert("❌ Fallo crítico al conectar con el servidor de correo.");
+        } finally {
+            setEnviandoEmail(null);
+        }
     };
 
     // Cálculos de Paginación REAL (Basados en el total que nos da el servidor)
@@ -167,15 +185,17 @@ export default function Usuarios() {
                                                 {u.aprobado === 1 && u.id !== 1 && (
                                                     <button 
                                                         className="btn-usr-action"
-                                                        style={{ backgroundColor: '#ffcc00', color: '#000', fontWeight: '900', border: '1px solid #000' }}
-                                                        onClick={() => {
-                                                            const link = `${window.location.origin}/downloads/Archipeg_Setup.exe`;
-                                                            const subject = encodeURIComponent("Archipeg Pro - Acceso Concedido 🛡️");
-                                                            const body = encodeURIComponent(`¡Hola!\n\nTu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión Pro de Archipeg para tu PC haciendo clic en el siguiente enlace:\n\n${link}\n\nSi tienes cualquier duda, puedes escribirnos directamente a archipegv2@gmail.com\n\n¡Bienvenido al futuro de tus activos digitales!\n\nAtentamente,\nEl equipo de Archipeg Pro`);
-                                                            window.location.href = `mailto:${u.email}?subject=${subject}&body=${body}`;
+                                                        style={{ 
+                                                            backgroundColor: enviandoEmail === u.id ? '#666' : '#ffcc00', 
+                                                            color: '#000', 
+                                                            fontWeight: '900', 
+                                                            border: '1px solid #000',
+                                                            cursor: enviandoEmail === u.id ? 'wait' : 'pointer'
                                                         }}
+                                                        onClick={() => enviarEmailPro(u.id)}
+                                                        disabled={enviandoEmail !== null}
                                                     >
-                                                        ✉️ ENVIAR PRO
+                                                        {enviandoEmail === u.id ? '⌛ ENVIANDO...' : '✉️ ENVIAR PRO'}
                                                     </button>
                                                 )}
                                             </td>

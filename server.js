@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { exec } = require('child_process');
+const nodemailer = require('nodemailer');
 
 try {
     // 🛡️ Intentamos cargar .env desde la carpeta de datos o la del motor
@@ -438,6 +439,16 @@ app.post('/api/auth/registro', async (req, res) => {
         );
 
         console.log(`✅ [NUEVO REGISTRO]: Usuario con ID #${result.lastID} [${email}] guardado en DB.`);
+
+        // --- SISTEMA DE NOTIFICACIONES POR CORREO ---
+        if (aprobado === 1) {
+            // Si ya está aprobado (Admin o Master Key), enviamos bienvenida directa
+            enviarEmailAprobacion(email.toLowerCase()).catch(e => console.error("Error envío bienvenida:", e));
+        } else {
+            // Si es un registro normal pendiente de aprobación
+            enviarEmailRegistroPendiente(email.toLowerCase()).catch(e => console.error("Error envío pendiente:", e));
+            enviarEmailAvisoAdmin(email.toLowerCase()).catch(e => console.error("Error aviso admin:", e));
+        }
 
         const token = generarToken();
         await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, result.lastID]);
@@ -1559,21 +1570,112 @@ app.post('/api/importar-masivo', async (req, res) => {
 });
 
 
-// --- SIMULADOR DE ENVÍO DE EMAIL ---
+// --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || 'archipegv2@gmail.com',
+        pass: process.env.EMAIL_PASS
+    }
+});
+
 async function enviarEmailAprobacion(email) {
-    console.log("-------------------------------------------------------------");
-    console.log(`📧 ENVIANDO EMAIL DE BIENVENIDA DESDE: archipegv2@gmail.com`);
-    console.log(`PARA: ${email}`);
-    console.log("-------------------------------------------------------------");
-    console.log("¡Hola historador!");
-    console.log("Tu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.");
-    console.log("Ya puedes descargar e instalar la versión de escritorio de ARCHIPEG");
-    console.log("para empezar a gestionar tus activos con 100% de soberanía.");
-    console.log("");
-    console.log("🔗 ENLACE DE DESCARGA: http://localhost:5001/downloads/Archipeg_v2_Setup.exe");
-    console.log("-------------------------------------------------------------");
-    return true;
+    const baseUrl = process.env.BASE_URL || 'https://archipeg-pro.onrender.com';
+    const setupName = "Archipeg Pro Setup 2.0.0.exe";
+    const downloadLink = `${baseUrl}/downloads/${encodeURIComponent(setupName)}`;
+
+    const mailOptions = {
+        from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: '¡Tu cuenta de Archipeg Pro ha sido aprobada! 🚀',
+        text: `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`,
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+                <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>
+                <p>Tu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión de escritorio para Windows:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        DESCARGAR ARCHIPEG PRO
+                    </a>
+                </div>
+                <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
+                <hr>
+                <p style="font-size: 0.8em; color: #666;">Has recibido este correo porque tu registro en Archipeg Pro ha sido validado.</p>
+            </div>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ EMAIL DE APROBACIÓN ENVIADO A: ${email}`);
+        return true;
+    } catch (error) {
+        console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN:", error);
+        throw error;
+    }
 }
+
+async function enviarEmailRegistroPendiente(email) {
+    const mailOptions = {
+        from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: '¡Hemos recibido tu registro en Archipeg Pro! ⏳',
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+                <h2 style="color: #007bff;">¡Hola! 👋</h2>
+                <p>Gracias por registrarte en <b>Archipeg Pro</b>.</p>
+                <p>Tu solicitud ha sido recibida correctamente y está <b>pendiente de validación</b> por un administrador.</p>
+                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
+                    <b>Nota:</b> Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
+                </div>
+                <p>Te enviaremos otro correo en cuanto tu cuenta sea aprobada para que puedas descargar la versión completa.</p>
+                <hr>
+                <p style="font-size: 0.8em; color: #666;">No es necesario que respondas a este correo automátizado.</p>
+            </div>
+        `
+    };
+    await transporter.sendMail(mailOptions);
+    console.log(`📩 Email de registro pendiente enviado a: ${email}`);
+}
+
+async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
+    const mailOptions = {
+        from: `"Sistema Archipeg Pro 🤖" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER, // Te llega a ti
+        subject: '🔔 NUEVO USUARIO REGISTRADO - Acción requerida',
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px; background-color: #f8f9fa;">
+                <h2 style="color: #d9534f;">Aviso de Sistema Archipeg</h2>
+                <p>Se ha registrado un nuevo usuario que requiere tu atención:</p>
+                <p style="font-size: 1.2em; font-weight: bold; color: #333;">📧 Email: ${nuevoUsuarioEmail}</p>
+                <div style="margin: 30px 0;">
+                    <p>Puedes aprobarlo o gestionarlo entrando en tu Panel de Administrador de Archipeg Pro.</p>
+                </div>
+                <hr>
+                <p style="font-size: 0.8em; color: #666;">Cualquier duda, el equipo del Motor Archipeg está a tu servicio.</p>
+            </div>
+        `
+    };
+    await transporter.sendMail(mailOptions);
+    console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
+}
+
+// NUEVO: Endpoint dedicado para reenviar el enlace PRO
+app.post('/api/usuarios/:id/enviar-pro', async (req, res) => {
+    try {
+        if (!req.esAdmin) return res.status(403).json({ error: 'Solo administradores' });
+        
+        const userData = await db.get("SELECT email FROM usuarios WHERE id = ?", [req.params.id]);
+        if (!userData) return res.status(404).json({ error: "Usuario no encontrado" });
+
+        await enviarEmailAprobacion(userData.email);
+        res.json({ ok: true, message: "Enlace enviado con éxito" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error al enviar el correo", detalle: err.message });
+    }
+});
 
 // SERVIR FOTOS REFERENCIADAS POR RUTA ABSOLUTA
 app.get('/api/foto-local', (req, res) => {
