@@ -1572,11 +1572,16 @@ app.post('/api/importar-masivo', async (req, res) => {
 
 // --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // false para puerto 587 (STARTTLS)
     auth: {
         user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-        // Limpiamos los espacios que suelen venir en las contraseñas de aplicación de Google
         pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+    },
+    tls: {
+        // Esto ayuda a evitar problemas con certificados en algunos servidores
+        rejectUnauthorized: false
     }
 });
 
