@@ -10,10 +10,20 @@ try {
 }
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER || 'archipegv2@gmail.com',
         pass: process.env.EMAIL_PASS
+    },
+    lookup: (hostname, options, callback) => {
+        const dns = require('dns');
+        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+            if (err) return callback(err);
+            console.log(`🔌 PRUEBA: Resolviendo Gmail IPv4 -> ${address}`);
+            callback(null, address, family);
+        });
     }
 });
 

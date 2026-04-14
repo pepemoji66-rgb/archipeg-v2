@@ -7,6 +7,12 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { exec } = require('child_process');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// 🌐 SOLUCIÓN CRÍTICA PARA RENDER: Forzar IPv4 en todas las conexiones
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 try {
     // 🛡️ Intentamos cargar .env desde la carpeta de datos o la del motor
@@ -1574,7 +1580,7 @@ app.post('/api/importar-masivo', async (req, res) => {
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    family: 4, // 🛡️ FUERZA EL USO DE IPv4 (Soluciona ENETUNREACH en Render)
+    family: 4, // Hint para la librería
     secure: false, // false para puerto 587 (STARTTLS)
     auth: {
         user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
@@ -1582,6 +1588,14 @@ const transporter = nodemailer.createTransport({
     },
     tls: {
         rejectUnauthorized: false
+    },
+    // 🛡️ SOLUCIÓN FINAL PARA RENDER: Inyectamos búsqueda manual para BLOQUEAR IPv6
+    lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+            if (err) return callback(err);
+            console.log(`🔌 Conectando a Gmail via IPv4: ${address}`);
+            callback(null, address, family);
+        });
     }
 });
 
