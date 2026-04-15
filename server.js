@@ -477,26 +477,21 @@ app.get('/api/sistema/status-import', dbCheck, (req, res) => {
 
 // NUEVO: Endpoint de Diagnóstico Profundo para el Email (Acceso directo por URL)
 app.get('/api/sistema/debug-email', async (req, res) => {
-    console.log("⚙️ INICIANDO DIAGNÓSTICO DE EMAIL...");
+    console.log("⚙️ INICIANDO DIAGNÓSTICO DE EMAIL (VÍA BRIDGE)...");
     try {
-        const t = await obtenerTransporter(true); 
-        const mailOptions = {
-            from: `"Diagnóstico Archipeg 🤖" <${process.env.EMAIL_USER}>`,
+        await enviarViaGoogleBridge({
             to: (process.env.EMAIL_USER || 'pepemoji66@gmail.com').trim(),
-            subject: 'Prueba de Diagnóstico SMTP',
-            text: 'Si recibes esto, el servidor tiene salida a internet por SMTP desde Render.'
-        };
-        
-        await t.sendMail(mailOptions);
-        res.json({ ok: true, mensaje: "¡Email enviado con éxito! Revisa tu bandeja de entrada." });
+            subject: 'Prueba de Diagnóstico GOOGLE BRIDGE',
+            html: '<h3>¡El puente funciona! 🚀</h3><p>Si ves esto, Render puede hablar con Google sin problemas.</p>'
+        });
+        res.json({ ok: true, mensaje: "¡Email enviado con éxito vía Puente Google! Revisa tu bandeja de entrada." });
     } catch (err) {
-        console.error("🔥 FALLO DE DIAGNÓSTICO:", err);
+        console.error("🔥 FALLO DE DIAGNÓSTICO (BRIDGE):", err);
         res.status(500).json({ 
             ok: false, 
             error: err.message, 
             stack: err.stack,
-            code: err.code,
-            details: "Verifica los logs de Render para ver la traza completa de la conexión."
+            details: "El puente de Google ha respondido con un error. Revisa el script en Google Apps Script."
         });
     }
 });
