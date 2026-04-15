@@ -1257,7 +1257,7 @@ app.get('/api/usuarios', async (req, res) => {
         
         // Parámetros de paginación
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 8;
         const offset = (page - 1) * limit;
 
         // 1. Obtener el total para calcular páginas en el frontend
@@ -1603,9 +1603,7 @@ console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USE
 
 async function enviarEmailAprobacion(email) {
     console.log(`⏳ Iniciando envío de email de aprobación a: ${email}...`);
-    const baseUrl = process.env.BASE_URL || 'https://archipeg-pro.onrender.com';
-    const setupName = "Archipeg Pro Setup 2.0.0.exe";
-    const downloadLink = `${baseUrl}/downloads/${encodeURIComponent(setupName)}`;
+    const downloadLink = "https://drive.google.com/file/d/1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4/view?usp=sharing";
 
     const mailOptions = {
         from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,

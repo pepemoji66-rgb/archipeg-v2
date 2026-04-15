@@ -15,7 +15,7 @@ export default function Usuarios() {
     
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1);
-    const limite = 10;
+    const limite = 8;
 
     const cargarUsuarios = async (page = 1) => {
         setCargando(true);

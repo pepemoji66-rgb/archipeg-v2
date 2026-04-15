@@ -63,7 +63,7 @@
 .usuarios-table {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 12px; /* Separation between rows */
+    border-spacing: 0 6px; /* Reducción de 12px a 6px para mayor compacidad */
 }
 
 .usuarios-table th {
@@ -78,7 +78,7 @@
 }
 
 .usuarios-table td {
-    padding: 1.2rem 1.5rem;
+    padding: 0.8rem 1.2rem; /* Reducción de 1.2rem 1.5rem */
     background: rgba(255, 255, 255, 0.03);
     vertical-align: middle;
     color: #fff;
@@ -152,7 +152,7 @@
 /* Botones de Acción (Acciones de Poder) */
 .td-acciones {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -161,10 +161,10 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #aaa;
-    padding: 8px 14px;
+    padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
     font-weight: 600;

@@ -27,3 +27,6 @@ Thumbs.db
 # Editores
 .vscode/
 .idea/
+
+# Instaladores Pro (Hospedados en Drive para no saturar Git)
+downloads/*.exe
