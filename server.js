@@ -1694,12 +1694,7 @@ console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USE
 
 async function enviarEmailAprobacion(email) {
     console.log(`⏳ [SMTP-DEBUG]: Preparando envío para: ${email}`);
-    console.log(`🔌 [SMTP-DEBUG]: Usando cuenta: ${process.env.EMAIL_USER}`);
     
-    // Verificamos si la clave existe (sin mostrarla toda por seguridad)
-    const passCheck = process.env.EMAIL_PASS ? "CONFIGURADA ✅" : "VACÍA ❌";
-    console.log(`🔐 [SMTP-DEBUG]: Clave de aplicación: ${passCheck}`);
-
     const downloadLink = "https://drive.google.com/file/d/1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4/view?usp=sharing";
 
     const mailOptions = {
@@ -1732,7 +1727,6 @@ async function enviarEmailAprobacion(email) {
     } catch (error) {
         console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN (Intentando Port 465 Fallback):", error.message);
         
-        // ÚLTIMO RECURSO: Intentar Port 465 si el 587 falló (poco probable pero por seguridad)
         try {
             const t465 = nodemailer.createTransport({
                 host: 'smtp.gmail.com', port: 465, secure: true, auth: {
@@ -1747,7 +1741,6 @@ async function enviarEmailAprobacion(email) {
             console.error("🔥 FALLO TOTAL SMTP (465 & 587):", e2.message);
             throw e2;
         }
-    }
     }
 }
 
