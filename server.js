@@ -475,6 +475,33 @@ app.get('/api/sistema/status-import', dbCheck, (req, res) => {
     res.json(progresoOperacion);
 });
 
+// NUEVO: Endpoint de Diagnóstico Profundo para el Email (Acceso directo por URL)
+app.get('/api/sistema/debug-email', async (req, res) => {
+    console.log("⚙️ INICIANDO DIAGNÓSTICO DE EMAIL...");
+    try {
+        const t = await obtenerTransporter(true); 
+        const mailOptions = {
+            from: `"Diagnóstico Archipeg 🤖" <${process.env.EMAIL_USER}>`,
+            to: (process.env.EMAIL_USER || 'pepemoji66@gmail.com').trim(),
+            subject: 'Prueba de Diagnóstico SMTP',
+            text: 'Si recibes esto, el servidor tiene salida a internet por SMTP desde Render.'
+        };
+        
+        await t.sendMail(mailOptions);
+        res.json({ ok: true, mensaje: "¡Email enviado con éxito! Revisa tu bandeja de entrada." });
+    } catch (err) {
+        console.error("🔥 FALLO DE DIAGNÓSTICO:", err);
+        res.status(500).json({ 
+            ok: false, 
+            error: err.message, 
+            stack: err.stack,
+            code: err.code,
+            details: "Verifica los logs de Render para ver la traza completa de la conexión."
+        });
+    }
+});
+
+
 // --- AUTH: REGISTRO ---
 const MASTER_ADMIN_KEY = 'ARCHIPEG-PRO-2026'; // Clave de sistema solicitada por el usuario
 
@@ -1840,29 +1867,26 @@ app.post('/api/usuarios/:id/enviar-pro', dbCheck, async (req, res) => {
         if (!req.esAdmin && !ADMINS.includes(req.usuario?.email)) {
             return res.status(403).json({ error: 'Solo administradores' });
         }
-        
-        const userId = parseInt(req.params.id);
-        const userData = await db.get("SELECT email FROM usuarios WHERE id = ?", [userId]);
-        
-        if (!userData) {
-            console.error(`🛑 [500]: Usuario con ID ${userId} no encontrado en la DB.`);
-            return res.status(404).json({ error: "Usuario no encontrado" });
-        }
+        const user = await db.get("SELECT email FROM usuarios WHERE id = ?", [req.params.id]);
+        if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-        console.log(`📧 [DEBUG]: Intentando enviar Pro Email a ${userData.email}...`);
-        await enviarEmailAprobacion(userData.email);
+        console.log(`📧 [DEBUG]: Intentando enviar Pro Email a ${user.email}...`);
         
-        // Marcar en la base de datos como enviado
-        await db.run("UPDATE usuarios SET pro_enviado = 1 WHERE id = ?", [userId]);
-        
-        res.json({ ok: true, message: "Enlace enviado con éxito" });
+        try {
+            await enviarEmailAprobacion(user.email);
+            await db.run("UPDATE usuarios SET pro_enviado = 1 WHERE id = ?", [req.params.id]);
+            res.json({ ok: true, message: "Email enviado correctamente" });
+        } catch (emailErr) {
+            console.error("🛑 [SMTP-ERROR-DETALLE]:", emailErr);
+            res.status(502).json({ 
+                error: "Fallo en el servidor de correo", 
+                detalle: emailErr.message,
+                status: "Connection Timeout / IPv6 Issue"
+            });
+        }
     } catch (err) {
-        console.error("🛑 [SMTP-ERROR]:", err);
-        res.status(500).json({ 
-            error: "Error al enviar el correo", 
-            detalle: err.message,
-            codigo: err.code || 'UNKNOWN'
-        });
+        console.error("🛑 [SERVER-ERROR]:", err);
+        res.status(500).json({ error: "Error interno", detalle: err.message });
     }
 });
 
