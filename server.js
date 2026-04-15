@@ -42,21 +42,31 @@ let dbLock = false;
 class LibSqlAdapter {
     constructor(client) { this.client = client; }
     async get(sql, args = []) {
-        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
-        return res.rows[0] ? { ...res.rows[0] } : null;
+        try {
+            const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+            return res.rows[0] ? { ...res.rows[0] } : null;
+        } catch (e) { console.error("🛑 [DB-GET-ERROR]:", e.message); throw e; }
     }
     async all(sql, args = []) {
-        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
-        return res.rows.map(r => ({ ...r }));
+        try {
+            const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+            return res.rows.map(r => ({ ...r }));
+        } catch (e) { console.error("🛑 [DB-ALL-ERROR]:", e.message); throw e; }
     }
     async run(sql, args = []) {
-        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
-        return { 
-            lastID: res.lastInsertRowid !== undefined ? Number(res.lastInsertRowid) : null, 
-            changes: res.rowsAffected 
-        };
+        try {
+            const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+            return { 
+                lastID: res.lastInsertRowid !== undefined ? Number(res.lastInsertRowid) : null, 
+                changes: res.rowsAffected 
+            };
+        } catch (e) { console.error("🛑 [DB-RUN-ERROR]:", e.message); throw e; }
     }
-    async exec(sql) { return await this.client.executeMultiple(sql); }
+    async exec(sql) { 
+        try {
+            return await this.client.executeMultiple(sql); 
+        } catch (e) { console.error("🛑 [DB-EXEC-ERROR]:", e.message); throw e; }
+    }
 }
 
 // --- MIDDLEWARES ---
@@ -81,11 +91,22 @@ async function authMiddleware(req, res, next) {
                 req.esAdmin = sesion.es_admin === 1;
                 req.usuario = { id: sesion.id, email: sesion.email, aprobado: sesion.aprobado === 1 };
             }
-        } catch (e) { /* db no lista todavía */ }
+        } catch (e) { /* db no lista todavía o token inválido */ }
     }
     next();
 }
 app.use(authMiddleware);
+
+// --- MIDDLEWARE DE SALUD DE DB (PROTECTOR 500) ---
+function dbCheck(req, res, next) {
+    if (!db) {
+        return res.status(503).json({ 
+            error: 'El Motor ARCHIPEG está desconectado o inicializándose.',
+            detalle: 'Reintenta en unos segundos. Si el error persiste, verifica la base de datos Turso.'
+        });
+    }
+    next();
+}
 
 // 🟢 SERVIR ARCHIVOS ESTÁTICOS: El puente entre la URL /uploads y la carpeta física
 const basePath = process.env.ARCHIPEG_DATA_DIR || __dirname;
@@ -278,8 +299,8 @@ const upload = multer({ storage: storage });
 // --- INICIALIZACIÓN DEL MOTOR SQLITE ---
 async function inicializarMotor() {
     try {
-        const tursoUrl = process.env.TURSO_URL;
-        const tursoToken = process.env.TURSO_AUTH_TOKEN;
+        const tursoUrl = (process.env.TURSO_URL || '').trim();
+        const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
 
         if (tursoUrl && tursoToken) {
             console.log("☁️ CONECTANDO A TURSO CLOUD (Modo Persistente)...");
@@ -299,8 +320,9 @@ async function inicializarMotor() {
             await db.run('PRAGMA busy_timeout = 5000').catch(() => {});
         }
 
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS fotos (
+        // 🛡️ CREACIÓN DE TABLAS UNA POR UNA (Resiliencia Extrema)
+        const tablas = [
+            `CREATE TABLE IF NOT EXISTS fotos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 titulo TEXT,
                 descripcion TEXT,
@@ -311,86 +333,87 @@ async function inicializarMotor() {
                 latitud REAL,
                 longitud REAL,
                 en_papelera INTEGER DEFAULT 0
-            )
-        `).catch(err => {
-            if (err.message.includes('readonly')) {
-                console.warn("⚠️ BASE DE DATOS EN MODO SOLO LECTURA (Vercel Detectado)");
-            } else { throw err; }
-        });
+            )`,
+            `CREATE TABLE IF NOT EXISTS albumes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                descripcion TEXT,
+                portada_id INTEGER,
+                creado_en TEXT DEFAULT (datetime('now'))
+            )`,
+            `CREATE TABLE IF NOT EXISTS album_fotos (
+                album_id INTEGER,
+                foto_id INTEGER,
+                PRIMARY KEY (album_id, foto_id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS eventos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                fecha_inicio TEXT,
+                fecha_fin TEXT,
+                descripcion TEXT
+            )`,
+            `CREATE TABLE IF NOT EXISTS evento_fotos (
+                evento_id INTEGER,
+                foto_id INTEGER,
+                PRIMARY KEY (evento_id, foto_id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS personas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL
+            )`,
+            `CREATE TABLE IF NOT EXISTS foto_personas (
+                foto_id INTEGER,
+                persona_id INTEGER,
+                PRIMARY KEY (foto_id, persona_id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                es_admin INTEGER DEFAULT 0,
+                aprobado INTEGER DEFAULT 0,
+                creado_en TEXT DEFAULT (datetime('now'))
+            )`,
+            `CREATE TABLE IF NOT EXISTS sesiones (
+                token TEXT PRIMARY KEY,
+                usuario_id INTEGER NOT NULL
+            )`
+        ];
 
-    // Migraciones para columnas nuevas en fotos (Soporte Multiusuario y Duplicados)
-    await db.exec(`ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0`).catch(() => {});
-    await db.exec(`ALTER TABLE fotos ADD COLUMN lugar TEXT`).catch(() => {});
-    await db.exec(`ALTER TABLE fotos ADD COLUMN usuario_id INTEGER`).catch(() => {});
-    await db.exec(`ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0`).catch(() => {});
-    
-    await db.exec(`ALTER TABLE albumes ADD COLUMN privado INTEGER DEFAULT 0`).catch(() => {});
-    await db.exec(`ALTER TABLE albumes ADD COLUMN usuario_id INTEGER`).catch(() => {});
+        for (const sql of tablas) {
+            await db.exec(sql).catch(err => {
+                if (err.message.includes('readonly')) {
+                    console.warn("⚠️ MODO SOLO LECTURA: No se pudo crear/modificar tabla.");
+                } else {
+                    console.error("❌ Error creando tabla:", err.message);
+                }
+            });
+        }
 
-    await db.exec(`ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`).catch(() => {});
-    await db.exec(`ALTER TABLE personas ADD COLUMN usuario_id INTEGER`).catch(() => {});
-    
-    // Migraciones para usuarios (Seguimiento PRO y Pagos)
-    await db.exec(`ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0`).catch(() => {});
-    await db.exec(`ALTER TABLE usuarios ADD COLUMN pago_estado TEXT DEFAULT 'Gratis'`).catch(() => {});
+        // 🧬 MIGRACIONES INDIVIDUALES
+        const migraciones = [
+            `ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0`,
+            `ALTER TABLE fotos ADD COLUMN lugar TEXT`,
+            `ALTER TABLE fotos ADD COLUMN usuario_id INTEGER`,
+            `ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0`,
+            `ALTER TABLE albumes ADD COLUMN privado INTEGER DEFAULT 0`,
+            `ALTER TABLE albumes ADD COLUMN usuario_id INTEGER`,
+            `ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`,
+            `ALTER TABLE personas ADD COLUMN usuario_id INTEGER`,
+            `ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0`,
+            `ALTER TABLE usuarios ADD COLUMN pago_estado TEXT DEFAULT 'Gratis'`
+        ];
 
-    // Nuevas tablas
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS albumes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            descripcion TEXT,
-            portada_id INTEGER,
-            creado_en TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS album_fotos (
-            album_id INTEGER,
-            foto_id INTEGER,
-            PRIMARY KEY (album_id, foto_id)
-        );
-        CREATE TABLE IF NOT EXISTS eventos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            fecha_inicio TEXT,
-            fecha_fin TEXT,
-            descripcion TEXT
-        );
-        CREATE TABLE IF NOT EXISTS evento_fotos (
-            evento_id INTEGER,
-            foto_id INTEGER,
-            PRIMARY KEY (evento_id, foto_id)
-        );
-        CREATE TABLE IF NOT EXISTS personas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS foto_personas (
-            foto_id INTEGER,
-            persona_id INTEGER,
-            PRIMARY KEY (foto_id, persona_id)
-        );
-    `);
+        for (const sql of migraciones) {
+            await db.exec(sql).catch(() => {}); // Ya existen generalmente
+        }
 
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            salt TEXT NOT NULL,
-            es_admin INTEGER DEFAULT 0,
-            aprobado INTEGER DEFAULT 0,
-            creado_en TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS sesiones (
-            token TEXT PRIMARY KEY,
-            usuario_id INTEGER NOT NULL
-        );
-    `);
-
-    console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y archivos estáticos listos.");
+        console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
     } catch (err) {
-        console.error("⚠️ ERROR DE INICIALIZACIÓN (Modo Degradado Activo):", err.message);
-        // No relanzamos el error para permitir que el servidor Express arranque sin DB si es necesario
+        console.error("🔥 FALLO CRÍTICO EN INICIALIZACIÓN:", err.message);
+        db = null; // Aseguramos que dbCheck detecte el fallo
     }
 }
 
@@ -448,14 +471,14 @@ app.get('/api/test', (req, res) => {
 });
 
 // NUEVO: Endpoint para que el frontal consulte el progreso de tareas largas
-app.get('/api/sistema/status-import', (req, res) => {
+app.get('/api/sistema/status-import', dbCheck, (req, res) => {
     res.json(progresoOperacion);
 });
 
 // --- AUTH: REGISTRO ---
 const MASTER_ADMIN_KEY = 'ARCHIPEG-PRO-2026'; // Clave de sistema solicitada por el usuario
 
-app.post('/api/auth/registro', async (req, res) => {
+app.post('/api/auth/registro', dbCheck, async (req, res) => {
     try {
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
         const { email, password, systemKey } = req.body;
@@ -508,7 +531,7 @@ app.post('/api/auth/registro', async (req, res) => {
 });
 
 // --- AUTH: LOGIN ---
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', dbCheck, async (req, res) => {
     try {
         const { email, password } = req.body;
         console.log(`🔑 INTENTO DE LOGIN: [${email}] | Clave: [${password}]`);
@@ -592,7 +615,7 @@ app.get('/api/auth/perfil', (req, res) => {
 });
 
 // --- AUTH: VERIFICAR PASSWORD (PARA ÁLBUMES PRIVADOS) ---
-app.post('/api/auth/verificar-password', async (req, res) => {
+app.post('/api/auth/verificar-password', dbCheck, async (req, res) => {
     try {
         const { password } = req.body;
         if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
@@ -613,7 +636,7 @@ app.post('/api/auth/verificar-password', async (req, res) => {
 // --- RUTAS API ---
 
 // 0. SUBIR FOTOS
-app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
+app.post('/api/fotos/subir', dbCheck, upload.array('foto'), async (req, res) => {
     try {
         if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso. Espera unos segundos.' });
         const { titulo, anio, mes, descripcion, etiquetas, lugar } = req.body;
@@ -665,7 +688,7 @@ app.post('/api/fotos/subir', upload.array('foto'), async (req, res) => {
 });
 
 // --- ZONA DE MANTENIMIENTO: RESET DE BASE DE DATOS ---
-app.post('/api/sistema/limpiar-todo', async (req, res) => {
+app.post('/api/sistema/limpiar-todo', dbCheck, async (req, res) => {
     try {
         if (!req.esAutenticado || !req.esAdmin) return res.status(403).json({ error: 'Solo Admin' });
         if (dbLock) return res.status(429).json({ error: 'Operación en curso. Espera.' });
@@ -699,7 +722,7 @@ app.post('/api/sistema/limpiar-todo', async (req, res) => {
     }
 });
 
-app.post('/api/sistema/rescan-gps', async (req, res) => {
+app.post('/api/sistema/rescan-gps', dbCheck, async (req, res) => {
     try {
         if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
         if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso.' });
@@ -746,7 +769,7 @@ app.post('/api/sistema/rescan-gps', async (req, res) => {
 });
 
 // NUEVO: ESCANEAR ETIQUETAS MASIVO
-app.post('/api/sistema/rescan-tags', async (req, res) => {
+app.post('/api/sistema/rescan-tags', dbCheck, async (req, res) => {
     try {
         if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
         if (dbLock) return res.status(429).json({ error: 'Ya hay una operación en curso.' });
@@ -802,7 +825,7 @@ app.post('/api/sistema/rescan-tags', async (req, res) => {
 });
 
 // NUEVO: Endpoint VIP para obtener una sola foto (acelera el salto desde el mapa)
-app.get('/api/fotos/:id', async (req, res) => {
+app.get('/api/fotos/:id', dbCheck, async (req, res) => {
     try {
         if (!req.esAutenticado) return res.status(401).json({ error: 'No autorizado' });
         const foto = await db.get("SELECT * FROM fotos WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario.id]);
@@ -814,7 +837,7 @@ app.get('/api/fotos/:id', async (req, res) => {
 });
 
 // 1. GALERÍA PRINCIPAL
-app.get('/api/imagenes', async (req, res) => {
+app.get('/api/imagenes', dbCheck, async (req, res) => {
     try {
         const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
         const query = !req.esAutenticado
@@ -834,7 +857,7 @@ app.get('/api/imagenes', async (req, res) => {
 });
 
 // 2. MAPA
-app.get('/api/fotos-mapa', async (req, res) => {
+app.get('/api/fotos-mapa', dbCheck, async (req, res) => {
     try {
         const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
         const query = !req.esAutenticado
@@ -849,7 +872,7 @@ app.get('/api/fotos-mapa', async (req, res) => {
 });
 
 // 3. OBTENER AÑOS
-app.get('/api/anios', async (req, res) => {
+app.get('/api/anios', dbCheck, async (req, res) => {
     try {
         const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
         const anios = await db.all(!req.esAutenticado ? `SELECT DISTINCT anio FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id IS NULL ${excludes} ORDER BY anio DESC` : `SELECT DISTINCT anio FROM fotos WHERE en_papelera = 0 AND es_duplicado = 0 AND usuario_id = ? ${excludes}` , !req.esAutenticado ? [] : [req.usuario?.id]);
@@ -858,7 +881,7 @@ app.get('/api/anios', async (req, res) => {
 });
 
 // ACTUALIZAR CAMPOS BÁSICOS DE UNA FOTO
-app.patch('/api/fotos/:id', async (req, res) => {
+app.patch('/api/fotos/:id', dbCheck, async (req, res) => {
     try {
         const { titulo, descripcion, anio, mes, etiquetas, lugar } = req.body;
         await db.run(
@@ -870,7 +893,7 @@ app.patch('/api/fotos/:id', async (req, res) => {
 });
 
 // ÁLBUMES DE UNA FOTO
-app.get('/api/fotos/:id/albumes', async (req, res) => {
+app.get('/api/fotos/:id/albumes', dbCheck, async (req, res) => {
     try {
         const albumes = await db.all(
             "SELECT a.* FROM albumes a JOIN album_fotos af ON a.id = af.album_id WHERE af.foto_id = ? AND a.usuario_id = ?",
@@ -881,7 +904,7 @@ app.get('/api/fotos/:id/albumes', async (req, res) => {
 });
 
 // EVENTOS DE UNA FOTO
-app.get('/api/fotos/:id/eventos', async (req, res) => {
+app.get('/api/fotos/:id/eventos', dbCheck, async (req, res) => {
     try {
         const eventos = await db.all(
             "SELECT e.* FROM eventos e JOIN evento_fotos ef ON e.id = ef.evento_id WHERE ef.foto_id = ? AND e.usuario_id = ?", [req.params.id, req.usuario?.id]
@@ -891,7 +914,7 @@ app.get('/api/fotos/:id/eventos', async (req, res) => {
 });
 
 // QUITAR FOTO DE EVENTO
-app.delete('/api/eventos/:id/fotos/:fotoId', async (req, res) => {
+app.delete('/api/eventos/:id/fotos/:fotoId', dbCheck, async (req, res) => {
     try {
         await db.run("DELETE FROM evento_fotos WHERE evento_id = ? AND foto_id = ?", [req.params.id, req.params.fotoId]);
         res.json({ ok: true });
@@ -899,7 +922,7 @@ app.delete('/api/eventos/:id/fotos/:fotoId', async (req, res) => {
 });
 
 // 4. FILTRAR POR AÑO
-app.get('/api/fotos/:anio', async (req, res) => {
+app.get('/api/fotos/:anio', dbCheck, async (req, res) => {
     try {
         const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
         const query = !req.esAutenticado
@@ -913,7 +936,7 @@ app.get('/api/fotos/:anio', async (req, res) => {
 });
 
 // 5. MOVER A PAPELERA
-app.delete('/api/imagenes/:id', async (req, res) => {
+app.delete('/api/imagenes/:id', dbCheck, async (req, res) => {
     try {
         await db.run("UPDATE fotos SET en_papelera = 1 WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario?.id]);
         res.json({ message: "Movido a papelera" });
@@ -921,7 +944,7 @@ app.delete('/api/imagenes/:id', async (req, res) => {
 });
 
 // 6. VER PAPELERA
-app.get('/api/papelera', async (req, res) => {
+app.get('/api/papelera', dbCheck, async (req, res) => {
     try {
         const fotos = await db.all("SELECT * FROM fotos WHERE en_papelera = 1 AND usuario_id = ? ORDER BY id DESC", [req.usuario?.id]);
         res.json(fotos);
@@ -929,7 +952,7 @@ app.get('/api/papelera', async (req, res) => {
 });
 
 // 7. OPERACIONES PAPELERA
-app.post('/api/papelera/operaciones', async (req, res) => {
+app.post('/api/papelera/operaciones', dbCheck, async (req, res) => {
     try {
         const { id, accion } = req.body;
         if (!['restaurar', 'eliminar_permanente'].includes(accion)) {
@@ -945,7 +968,7 @@ app.post('/api/papelera/operaciones', async (req, res) => {
 });
 
 // FAVORITO — toggle
-app.patch('/api/fotos/:id/favorito', async (req, res) => {
+app.patch('/api/fotos/:id/favorito', dbCheck, async (req, res) => {
     try {
         const foto = await db.get("SELECT favorito FROM fotos WHERE id = ? AND usuario_id = ?", [req.params.id, req.usuario?.id]);
         if (!foto) return res.status(404).json({ error: "No encontrada" });
@@ -956,7 +979,7 @@ app.patch('/api/fotos/:id/favorito', async (req, res) => {
 });
 
 // FAVORITOS — listar
-app.get('/api/favoritos', async (req, res) => {
+app.get('/api/favoritos', dbCheck, async (req, res) => {
     try {
         const excludes = "AND id NOT IN (SELECT af.foto_id FROM album_fotos af JOIN albumes a ON af.album_id = a.id WHERE a.privado = 1)";
         
@@ -982,7 +1005,7 @@ app.get('/api/favoritos', async (req, res) => {
 });
 
 // LUGAR — actualizar
-app.patch('/api/fotos/:id/lugar', async (req, res) => {
+app.patch('/api/fotos/:id/lugar', dbCheck, async (req, res) => {
     try {
         const { lugar } = req.body;
         await db.run("UPDATE fotos SET lugar = ? WHERE id = ? AND usuario_id = ?", [lugar, req.params.id, req.usuario?.id]);
@@ -991,7 +1014,7 @@ app.patch('/api/fotos/:id/lugar', async (req, res) => {
 });
 
 // LUGARES — listar únicos con conteo
-app.get('/api/lugares', async (req, res) => {
+app.get('/api/lugares', dbCheck, async (req, res) => {
     try {
         const lugares = await db.all(
             "SELECT lugar, COUNT(*) as total FROM fotos WHERE lugar IS NOT NULL AND lugar != '' AND en_papelera = 0 AND usuario_id = ? GROUP BY lugar ORDER BY total DESC",
@@ -1002,7 +1025,7 @@ app.get('/api/lugares', async (req, res) => {
 });
 
 // TAGS — listar únicos con frecuencia
-app.get('/api/tags', async (req, res) => {
+app.get('/api/tags', dbCheck, async (req, res) => {
     try {
         const fotos = await db.all("SELECT etiquetas FROM fotos WHERE etiquetas IS NOT NULL AND etiquetas != '' AND en_papelera = 0 AND usuario_id = ?", [req.usuario?.id]);
         const contador = {};
@@ -1018,14 +1041,14 @@ app.get('/api/tags', async (req, res) => {
 });
 
 // ÁLBUMES — CRUD
-app.get('/api/albumes', async (req, res) => {
+app.get('/api/albumes', dbCheck, async (req, res) => {
     try {
         const albumes = await db.all("SELECT a.*, COUNT(af.foto_id) as total FROM albumes a LEFT JOIN album_fotos af ON a.id = af.album_id WHERE a.usuario_id = ? GROUP BY a.id ORDER BY a.creado_en DESC", [req.usuario?.id]);
         res.json(albumes);
     } catch (err) { res.status(500).json(err); }
 });
 
-app.post('/api/albumes', async (req, res) => {
+app.post('/api/albumes', dbCheck, async (req, res) => {
     try {
         const { nombre, descripcion, privado } = req.body;
         if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
@@ -1104,7 +1127,7 @@ app.delete('/api/albumes/:id/fotos/:fotoId', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-app.get('/api/eventos', async (req, res) => {
+app.get('/api/eventos', dbCheck, async (req, res) => {
     try {
         const eventos = await db.all("SELECT e.*, COUNT(ef.foto_id) as total FROM eventos e LEFT JOIN evento_fotos ef ON e.id = ef.evento_id WHERE e.usuario_id = ? GROUP BY e.id ORDER BY e.fecha_inicio DESC", [req.usuario?.id]);
         res.json(eventos);
@@ -1224,7 +1247,7 @@ app.post('/api/eventos/:id/auto-scan', async (req, res) => {
 });
 
 // PERSONAS — CRUD
-app.get('/api/personas', async (req, res) => {
+app.get('/api/personas', dbCheck, async (req, res) => {
     try {
         const personas = await db.all("SELECT p.*, COUNT(fp.foto_id) as total FROM personas p LEFT JOIN foto_personas fp ON p.id = fp.persona_id WHERE p.usuario_id = ? GROUP BY p.id ORDER BY p.nombre", [req.usuario?.id]);
         res.json(personas);
@@ -1285,7 +1308,7 @@ app.get('/api/fotos/:id/personas', async (req, res) => {
 });
 
 // --- GESTIÓN DE USUARIOS (ADMINISTRADORES ONLY) con Paginación Real ---
-app.get('/api/usuarios', async (req, res) => {
+app.get('/api/usuarios', dbCheck, async (req, res) => {
     try {
         // Permitir acceso a cualquier correo en la lista de ADMINS
         if (!req.esAdmin && !ADMINS.includes(req.usuario?.email)) {
@@ -1642,15 +1665,19 @@ let transporter;
 /**
  * Función para asegurar que el transportador existe y usa una IP numérica
  */
-async function obtenerTransporter() {
-    if (transporter) return transporter;
+// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (RESISTENTE A RENDER) ---
+let transporter;
+
+async function obtenerTransporter(forzarReintento = false) {
+    if (transporter && !forzarReintento) return transporter;
 
     return new Promise((resolve) => {
-        const dns = require('dns');
-        dns.resolve4('smtp.gmail.com', (err, addresses) => {
-            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : 'smtp.gmail.com';
-            console.log(`🔌 [SMTP-PLAN-NUCLEAR]: Host resuelto a IPv4 -> ${hostIP}`);
+        const hostPrimario = 'smtp.gmail.com';
+        dns.resolve4(hostPrimario, (err, addresses) => {
+            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : hostPrimario;
+            console.log(`🔌 [SMTP-PLAN-NUCLEAR]: Host resuelto a -> ${hostIP} (DNS Error: ${err ? err.message : 'Ninguno'})`);
             
+            // Intentamos Port 465 (SSL)
             transporter = nodemailer.createTransport({
                 host: hostIP,
                 port: 465,
@@ -1660,8 +1687,9 @@ async function obtenerTransporter() {
                     pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
                 },
                 family: 4,
+                connectionTimeout: 10000, // 10s
                 tls: {
-                    servername: 'smtp.gmail.com', // Crítico para que Gmail acepte la IP
+                    servername: hostPrimario,
                     rejectUnauthorized: false
                 }
             });
@@ -1708,8 +1736,22 @@ async function enviarEmailAprobacion(email) {
     };
 
     try {
-        const t = await obtenerTransporter();
-        await t.sendMail(mailOptions);
+        let t = await obtenerTransporter();
+        try {
+            await t.sendMail(mailOptions);
+        } catch (error465) {
+            console.warn("⚠️ Port 465 fallido, intentando fallback Port 587...");
+            // Re-configurar transporter para puerto 587 (STARTTLS)
+            t = nodemailer.createTransport({
+                host: t.options.host,
+                port: 587,
+                secure: false, // TLS
+                auth: t.options.auth,
+                family: 4,
+                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
+            });
+            await t.sendMail(mailOptions);
+        }
         console.log(`✅ EMAIL DE APROBACIÓN ENVIADO A: ${email}`);
         return true;
     } catch (error) {
@@ -1744,11 +1786,24 @@ async function enviarEmailRegistroPendiente(email) {
             </div>
         `
     };
-    const t = await obtenerTransporter();
-    const info = await t.sendMail(mailOptions);
-    console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}. ID: ${info.messageId}`);
+    try {
+        let t = await obtenerTransporter();
+        try {
+            await t.sendMail(mailOptions);
+            console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}`);
+        } catch (e) {
+            console.warn("⚠️ Reintentando con Port 587...");
+            t = nodemailer.createTransport({
+                host: t.options.host, port: 587, secure: false, auth: t.options.auth, family: 4,
+                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
+            });
+            await t.sendMail(mailOptions);
+            console.log(`📩 [SMTP-SUCCESS-FALLBACK]: Email enviado a ${email}`);
+        }
+    } catch (err) {
+        console.error("❌ Fallo total en envío de registro pendiente:", err.message);
+    }
 }
-
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
     const mailOptions = {
         from: `"Sistema Archipeg Pro 🤖" <${process.env.EMAIL_USER}>`,
@@ -1767,13 +1822,25 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
             </div>
         `
     };
-    const t = await obtenerTransporter();
-    await t.sendMail(mailOptions);
-    console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
+    try {
+        let t = await obtenerTransporter();
+        try {
+            await t.sendMail(mailOptions);
+        } catch (e) {
+            t = nodemailer.createTransport({
+                host: t.options.host, port: 587, secure: false, auth: t.options.auth, family: 4,
+                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
+            });
+            await t.sendMail(mailOptions);
+        }
+        console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
+    } catch (err) {
+        console.error("❌ Fallo aviso admin:", err.message);
+    }
 }
 
 // NUEVO: Endpoint dedicado para reenviar el enlace PRO
-app.post('/api/usuarios/:id/enviar-pro', async (req, res) => {
+app.post('/api/usuarios/:id/enviar-pro', dbCheck, async (req, res) => {
     try {
         if (!req.esAdmin && !ADMINS.includes(req.usuario?.email)) {
             return res.status(403).json({ error: 'Solo administradores' });
