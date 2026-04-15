@@ -1689,33 +1689,48 @@ app.post('/api/importar-masivo', async (req, res) => {
 // --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V4: HIPER-NUCLEAR IPv4) ---
 let transporter;
 
-async function obtenerTransporter(forzarReintento = false) {
-    if (transporter && !forzarReintento) return transporter;
+// --- MOTOR DE ENVÍO DE EMAIL "API-SYNC" (BYPASS RENDER SMTP) ---
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_ZmHViBDJ_FtVdQYfGpwgsWsiLPD8zhi2j';
 
-    const hostNombre = 'smtp.gmail.com';
-    console.log(`🔌 [SMTP-V6]: Intentando conexión segura por Puerto 465 (SSL) a ${hostNombre}...`);
+/**
+ * Función central para enviar emails vía API de Resend (Puerto 443 / HTTPS)
+ * Esto evita todos los bloqueos de puertos de Render.
+ */
+async function enviarViaResend({ to, subject, html, text }) {
+    console.log(`📡 [RESEND-API]: Enviando email a ${to}...`);
+    
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+                from: 'Archipeg Pro <onboarding@resend.dev>', // Por defecto en modo onboarding
+                to: [to],
+                subject: subject,
+                html: html,
+                text: text || ''
+            })
+        });
 
-    transporter = nodemailer.createTransport({
-        host: hostNombre,
-        port: 465,
-        secure: true, // SSL directo (Suele saltarse bloqueos que afectan al 587)
-        auth: {
-            user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-            pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-        },
-        family: 4, 
-        debug: true,
-        logger: true,
-        connectionTimeout: 30000, // 30 segundazos de paciencia
-        greetingTimeout: 20000,
-        socketTimeout: 30000,
-        tls: {
-            rejectUnauthorized: false
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Error desconocido en Resend API');
         }
-    });
 
-    return transporter;
+        console.log(`✅ [RESEND-SUCCESS]: Email enviado con éxito. ID: ${data.id}`);
+        return data;
+    } catch (error) {
+        console.error(`🔥 [RESEND-ERROR]: No se pudo enviar el correo:`, error.message);
+        throw error;
+    }
 }
+
+// Mantenemos obtenerTransporter solo como placeholder vacío para evitar errores de sintaxis si algo lo llama
+async function obtenerTransporter() { return null; }
 
 // Inicialización silenciosa al arranque
 obtenerTransporter().catch(() => console.error("⚠️ Fallo en inicialización nuclear de SMTP"));
@@ -1750,27 +1765,30 @@ async function enviarEmailAprobacion(email) {
     };
 
     try {
-        const t = await obtenerTransporter();
-        await t.sendMail(mailOptions);
-        console.log(`✅ EMAIL DE APROBACIÓN ENVIADO A: ${email}`);
+        await enviarViaResend({
+            to: email,
+            subject: '¡Tu cuenta de Archipeg Pro ha sido aprobada! 🚀',
+            text: `Tu cuenta ha sido aprobada. Descarga aquí: ${downloadLink}`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+                    <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>
+                    <p>Tu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión de escritorio para Windows:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            DESCARGAR ARCHIPEG PRO
+                        </a>
+                    </div>
+                    <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                    <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
+                    <hr>
+                    <p style="font-size: 0.8em; color: #666;">Has recibido este correo porque tu registro en Archipeg Pro ha sido validado.</p>
+                </div>
+            `
+        });
         return true;
     } catch (error) {
-        console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN (Intentando Port 465 Fallback):", error.message);
-        
-        try {
-            const t465 = nodemailer.createTransport({
-                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
-                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-                },
-                tls: { rejectUnauthorized: false }
-            });
-            await t465.sendMail(mailOptions);
-            return true;
-        } catch (e2) {
-            console.error("🔥 FALLO TOTAL SMTP (465 & 587):", e2.message);
-            throw e2;
-        }
+        console.error("❌ FALLO TOTAL ENVÍO RESEND:", error.message);
+        throw error;
     }
 }
 
@@ -1801,23 +1819,32 @@ async function enviarEmailRegistroPendiente(email) {
         `
     };
     try {
-        const t = await obtenerTransporter();
-        await t.sendMail(mailOptions);
-        console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}`);
+        await enviarViaResend({
+            to: email,
+            subject: '¡Hemos recibido tu registro en Archipeg Pro! ⏳',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+                    <h2 style="color: #007bff;">¡Hola! 👋</h2>
+                    <p>Gracias por registrarte en <b>Archipeg Pro</b>.</p>
+                    <p>Tu solicitud ha sido recibida correctamente y está <b>pendiente de validación</b> por un administrador.</p>
+                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
+                        <b>Nota:</b> Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
+                    </div>
+                    <h3 style="color: #28a745;">🚀 Activa la Versión Pro (Pago Único)</h3>
+                    <p>Para desbloquear todas las funciones y obtener la versión de escritorio soberana, puedes realizar un <b>pago único de 5€</b>:</p>
+                    <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6;">
+                        <p style="margin: 5px 0;"><b>📲 Bizum:</b> 667657244</p>
+                        <p style="margin: 5px 0;"><b>📝 Concepto:</b> Archipeg Pro [tu email]</p>
+                        <p style="margin: 5px 0;"><b>💰 Precio:</b> 5€ (Acceso de por vida)</p>
+                    </div>
+                    <p>Te enviaremos otro correo en cuanto tu cuenta sea aprobada para que puedas descargar la versión completa.</p>
+                    <hr>
+                    <p style="font-size: 0.8em; color: #666;">No es necesario que respondas a este correo automátizado.</p>
+                </div>
+            `
+        });
     } catch (err) {
-        console.error("❌ Error envío registro pendiente (587) - Intentando 465...", err.message);
-        try {
-            const t465 = nodemailer.createTransport({
-                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
-                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-                },
-                tls: { rejectUnauthorized: false }
-            });
-            await t465.sendMail(mailOptions);
-        } catch (e2) {
-            console.error("🔥 Fallo total envío pendiente:", e2.message);
-        }
+        console.error("🔥 FALLO ENVÍO REGISTRO PENDIENTE (RESEND):", err.message);
     }
 }
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
@@ -1839,21 +1866,24 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
         `
     };
     try {
-        const t = await obtenerTransporter();
-        await t.sendMail(mailOptions);
-        console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
+        await enviarViaResend({
+            to: process.env.EMAIL_USER || 'pepemoji66@gmail.com',
+            subject: '🔔 NUEVO USUARIO REGISTRADO - Acción requerida',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px; background-color: #f8f9fa;">
+                    <h2 style="color: #d9534f;">Aviso de Sistema Archipeg</h2>
+                    <p>Se ha registrado un nuevo usuario que requiere tu atención:</p>
+                    <p style="font-size: 1.2em; font-weight: bold; color: #333;">📧 Email: ${nuevoUsuarioEmail}</p>
+                    <div style="margin: 30px 0;">
+                        <p>Puedes aprobarlo o gestionarlo entrando en tu Panel de Administrador de Archipeg Pro.</p>
+                    </div>
+                    <hr>
+                    <p style="font-size: 0.8em; color: #666;">Cualquier duda, el equipo del Motor Archipeg está a tu servicio.</p>
+                </div>
+            `
+        });
     } catch (err) {
-        console.error("❌ Fallo aviso admin (587) - Intentando 465...", err.message);
-        try {
-            const t465 = nodemailer.createTransport({
-                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
-                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-                },
-                tls: { rejectUnauthorized: false }
-            });
-            await t465.sendMail(mailOptions);
-        } catch(e2){}
+        console.error("🔥 FALLO AVISO ADMIN (RESEND):", err.message);
     }
 }
 
