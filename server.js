@@ -65,7 +65,14 @@ class LibSqlAdapter {
     async exec(sql) { 
         try {
             return await this.client.executeMultiple(sql); 
-        } catch (e) { console.error("🛑 [DB-EXEC-ERROR]:", e.message); throw e; }
+        } catch (e) { 
+            if (e.message.includes('duplicate column name')) {
+                console.log(`ℹ️ [DB-INFO]: Estructura ya actualizada (${e.message.split(':').pop().trim()})`);
+            } else {
+                console.error("🛑 [DB-EXEC-ERROR]:", e.message); 
+            }
+            throw e; 
+        }
     }
 }
 
