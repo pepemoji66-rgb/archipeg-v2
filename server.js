@@ -329,6 +329,10 @@ async function inicializarMotor() {
 
     await db.exec(`ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`).catch(() => {});
     await db.exec(`ALTER TABLE personas ADD COLUMN usuario_id INTEGER`).catch(() => {});
+    
+    // Migraciones para usuarios (Seguimiento PRO y Pagos)
+    await db.exec(`ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0`).catch(() => {});
+    await db.exec(`ALTER TABLE usuarios ADD COLUMN pago_estado TEXT DEFAULT 'Gratis'`).catch(() => {});
 
     // Nuevas tablas
     await db.exec(`
@@ -1297,9 +1301,9 @@ app.get('/api/usuarios', async (req, res) => {
         // 1. Obtener el total para calcular páginas en el frontend
         const { count } = await db.get("SELECT COUNT(*) as count FROM usuarios");
         
-        // 2. Obtener solo los de esta página
+        // 2. Obtener solo los de esta página (incluyendo estado pro y pago)
         const usuarios = await db.all(
-            "SELECT id, email, es_admin, aprobado, creado_en FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?",
+            "SELECT id, email, es_admin, aprobado, creado_en, pro_enviado, pago_estado FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?",
             [limit, offset]
         );
 
@@ -1347,6 +1351,18 @@ app.patch('/api/usuarios/:id/admin', async (req, res) => {
         const nuevoRol = user.es_admin === 1 ? 0 : 1;
         await db.run("UPDATE usuarios SET es_admin = ? WHERE id = ?", [nuevoRol, req.params.id]);
         res.json({ es_admin: nuevoRol });
+    } catch (err) { res.status(500).json(err); }
+});
+
+app.patch('/api/usuarios/:id/pago', async (req, res) => {
+    try {
+        if (!req.esAdmin) return res.status(403).json({ error: 'Acceso denegado' });
+        const user = await db.get("SELECT pago_estado FROM usuarios WHERE id = ?", [req.params.id]);
+        if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+        
+        const nuevoEstado = user.pago_estado === 'Pagado' ? 'Gratis' : 'Pagado';
+        await db.run("UPDATE usuarios SET pago_estado = ? WHERE id = ?", [nuevoEstado, req.params.id]);
+        res.json({ pago_estado: nuevoEstado });
     } catch (err) { res.status(500).json(err); }
 });
 
@@ -1756,6 +1772,10 @@ app.post('/api/usuarios/:id/enviar-pro', async (req, res) => {
 
         console.log(`📧 [DEBUG]: Intentando enviar Pro Email a ${userData.email}...`);
         await enviarEmailAprobacion(userData.email);
+        
+        // Marcar en la base de datos como enviado
+        await db.run("UPDATE usuarios SET pro_enviado = 1 WHERE id = ?", [userId]);
+        
         res.json({ ok: true, message: "Enlace enviado con éxito" });
     } catch (err) {
         console.error("🛑 [SMTP-ERROR]:", err);

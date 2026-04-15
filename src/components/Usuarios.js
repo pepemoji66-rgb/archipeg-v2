@@ -76,12 +76,26 @@ export default function Usuarios() {
         } catch (_) {}
     };
 
+    const togglePago = async (id) => {
+        try {
+            const res = await apiFetch(`${API}/usuarios/${id}/pago`, { method: 'PATCH' });
+            if (res.ok) {
+                const { pago_estado } = await res.json();
+                setUsuarios(prev => prev.map(u => u.id === id ? { ...u, pago_estado } : u));
+            }
+        } catch (error) {
+            console.error("Error al cambiar estado de pago:", error);
+        }
+    };
+
     const enviarEmailPro = async (id) => {
         setEnviandoEmail(id);
         try {
             const res = await apiFetch(`${API}/usuarios/${id}/enviar-pro`, { method: 'POST' });
             if (res.ok) {
                 alert("✅ Correo enviado con éxito con el enlace de descarga.");
+                // Actualizamos el estado local para mostrar el check inmediatamente
+                setUsuarios(prev => prev.map(u => u.id === id ? { ...u, pro_enviado: 1 } : u));
             } else {
                 const err = await res.json();
                 alert("❌ Error al enviar correo: " + (err.error || "Desconocido"));
@@ -122,6 +136,7 @@ export default function Usuarios() {
                                     <tr>
                                         <th>ID / EMAIL</th>
                                         <th>ESTADO</th>
+                                        <th>PAGO</th>
                                         <th>ROL</th>
                                         <th>REGISTRO</th>
                                         <th>ACCIONES DE PODER</th>
@@ -142,6 +157,16 @@ export default function Usuarios() {
                                                 ) : (
                                                     <span className="badge badge-red">BLOQUEADO</span>
                                                 )}
+                                            </td>
+                                            <td>
+                                                <button 
+                                                    className={`badge ${u.pago_estado === 'Pagado' ? 'badge-green' : 'badge-role-user'}`}
+                                                    onClick={() => togglePago(u.id)}
+                                                    style={{ cursor: 'pointer', border: 'none', padding: '5px 10px' }}
+                                                    title="Haz clic para cambiar estado de pago"
+                                                >
+                                                    {u.pago_estado === 'Pagado' ? 'PAGADO ✅' : 'GRATIS 🎁'}
+                                                </button>
                                             </td>
                                             <td>
                                                 {u.es_admin === 1 ? (
@@ -195,7 +220,7 @@ export default function Usuarios() {
                                                         onClick={() => enviarEmailPro(u.id)}
                                                         disabled={enviandoEmail !== null}
                                                     >
-                                                        {enviandoEmail === u.id ? '⌛ ENVIANDO...' : '✉️ ENVIAR PRO'}
+                                                        {enviandoEmail === u.id ? '⌛ ENVIANDO...' : u.pro_enviado === 1 ? '✅ PRO ENVIADO' : '✉️ ENVIAR PRO'}
                                                     </button>
                                                 )}
                                             </td>
