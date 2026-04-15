@@ -1614,22 +1614,19 @@ app.post('/api/importar-masivo', async (req, res) => {
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    family: 4, // Hint para la librería
-    secure: false, // false para puerto 587 (STARTTLS)
+    secure: false, 
     auth: {
         user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
         pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
     },
+    // 🔥 CONFIGURACIÓN CRÍTICA PARA RENDER (IPv4)
+    family: 4, 
+    connectionTimeout: 10000, // 10 segundos para no quedar colgado
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
     tls: {
-        rejectUnauthorized: false
-    },
-    // 🛡️ SOLUCIÓN FINAL PARA RENDER: Inyectamos búsqueda manual para BLOQUEAR IPv6
-    lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
-            if (err) return callback(err);
-            console.log(`🔌 Conectando a Gmail via IPv4: ${address}`);
-            callback(null, address, family);
-        });
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
     }
 });
 
