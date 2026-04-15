@@ -1636,7 +1636,13 @@ const transporter = nodemailer.createTransport({
 console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USER || 'No definido'}`);
 
 async function enviarEmailAprobacion(email) {
-    console.log(`⏳ Iniciando envío de email de aprobación a: ${email}...`);
+    console.log(`⏳ [SMTP-DEBUG]: Preparando envío para: ${email}`);
+    console.log(`🔌 [SMTP-DEBUG]: Usando cuenta: ${process.env.EMAIL_USER}`);
+    
+    // Verificamos si la clave existe (sin mostrarla toda por seguridad)
+    const passCheck = process.env.EMAIL_PASS ? "CONFIGURADA ✅" : "VACÍA ❌";
+    console.log(`🔐 [SMTP-DEBUG]: Clave de aplicación: ${passCheck}`);
+
     const downloadLink = "https://drive.google.com/file/d/1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4/view?usp=sharing";
 
     const mailOptions = {
@@ -1690,8 +1696,8 @@ async function enviarEmailRegistroPendiente(email) {
             </div>
         `
     };
-    await transporter.sendMail(mailOptions);
-    console.log(`📩 Email de registro pendiente enviado a: ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}. ID: ${info.messageId}`);
 }
 
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
@@ -1719,16 +1725,28 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
 // NUEVO: Endpoint dedicado para reenviar el enlace PRO
 app.post('/api/usuarios/:id/enviar-pro', async (req, res) => {
     try {
-        if (!req.esAdmin) return res.status(403).json({ error: 'Solo administradores' });
+        if (!req.esAdmin && !ADMINS.includes(req.usuario?.email)) {
+            return res.status(403).json({ error: 'Solo administradores' });
+        }
         
-        const userData = await db.get("SELECT email FROM usuarios WHERE id = ?", [req.params.id]);
-        if (!userData) return res.status(404).json({ error: "Usuario no encontrado" });
+        const userId = parseInt(req.params.id);
+        const userData = await db.get("SELECT email FROM usuarios WHERE id = ?", [userId]);
+        
+        if (!userData) {
+            console.error(`🛑 [500]: Usuario con ID ${userId} no encontrado en la DB.`);
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
 
+        console.log(`📧 [DEBUG]: Intentando enviar Pro Email a ${userData.email}...`);
         await enviarEmailAprobacion(userData.email);
         res.json({ ok: true, message: "Enlace enviado con éxito" });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Error al enviar el correo", detalle: err.message });
+        console.error("🛑 [SMTP-ERROR]:", err);
+        res.status(500).json({ 
+            error: "Error al enviar el correo", 
+            detalle: err.message,
+            codigo: err.code || 'UNKNOWN'
+        });
     }
 });
 
