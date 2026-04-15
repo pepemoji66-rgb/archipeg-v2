@@ -1692,33 +1692,29 @@ let transporter;
 async function obtenerTransporter(forzarReintento = false) {
     if (transporter && !forzarReintento) return transporter;
 
-    return new Promise((resolve) => {
-        const hostNombre = 'smtp.gmail.com';
-        dns.resolve4(hostNombre, (err, addresses) => {
-            // Si falla la resolución, usamos el nombre, pero lo normal es que devuelva una IPv4
-            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : hostNombre;
-            console.log(`🔌 [SMTP-V4-LOG]: Host resuelto a IPv4 -> ${hostIP} (Error DNS: ${err ? err.message : 'Ninguno'})`);
+    const hostNombre = 'smtp.gmail.com';
+    console.log(`🔌 [SMTP-V6]: Intentando conexión segura por Puerto 465 (SSL) a ${hostNombre}...`);
 
-            transporter = nodemailer.createTransport({
-                host: hostIP,
-                port: 587,
-                secure: false, // STARTTLS
-                auth: {
-                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-                },
-                family: 4, // Forzar IPv4 en el socket
-                debug: true, // Veremos todo en Render
-                logger: true, // Veremos todo en Render
-                connectionTimeout: 20000,
-                tls: {
-                    servername: hostNombre, // NECESARIO para que el certificado de Google sea válido al conectar por IP
-                    rejectUnauthorized: false
-                }
-            });
-            resolve(transporter);
-        });
+    transporter = nodemailer.createTransport({
+        host: hostNombre,
+        port: 465,
+        secure: true, // SSL directo (Suele saltarse bloqueos que afectan al 587)
+        auth: {
+            user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+            pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+        },
+        family: 4, 
+        debug: true,
+        logger: true,
+        connectionTimeout: 30000, // 30 segundazos de paciencia
+        greetingTimeout: 20000,
+        socketTimeout: 30000,
+        tls: {
+            rejectUnauthorized: false
+        }
     });
+
+    return transporter;
 }
 
 // Inicialización silenciosa al arranque
