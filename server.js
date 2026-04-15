@@ -1610,25 +1610,42 @@ app.post('/api/importar-masivo', async (req, res) => {
 });
 
 
-// --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
-// --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465, // Puerto SSL directo
-    secure: true, // true para puerto 465
-    auth: {
-        user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-        pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-    },
-    // 🔥 CONFIGURACIÓN CRÍTICA PARA RENDER (IPv4)
-    family: 4, 
-    connectionTimeout: 10000,
-    greetingTimeout: 5000,
-    socketTimeout: 10000,
-    tls: {
-        rejectUnauthorized: false
-    }
-});
+// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (FORZAR IPv4) ---
+let transporter;
+
+/**
+ * Función para asegurar que el transportador existe y usa una IP numérica
+ */
+async function obtenerTransporter() {
+    if (transporter) return transporter;
+
+    return new Promise((resolve) => {
+        const dns = require('dns');
+        dns.resolve4('smtp.gmail.com', (err, addresses) => {
+            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : 'smtp.gmail.com';
+            console.log(`🔌 [SMTP-PLAN-NUCLEAR]: Host resuelto a IPv4 -> ${hostIP}`);
+            
+            transporter = nodemailer.createTransport({
+                host: hostIP,
+                port: 465,
+                secure: true,
+                auth: {
+                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+                },
+                family: 4,
+                tls: {
+                    servername: 'smtp.gmail.com', // Crítico para que Gmail acepte la IP
+                    rejectUnauthorized: false
+                }
+            });
+            resolve(transporter);
+        });
+    });
+}
+
+// Inicialización silenciosa al arranque
+obtenerTransporter().catch(() => console.error("⚠️ Fallo en inicialización nuclear de SMTP"));
 
 console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USER || 'No definido'}`);
 
@@ -1665,7 +1682,8 @@ async function enviarEmailAprobacion(email) {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const t = await obtenerTransporter();
+        await t.sendMail(mailOptions);
         console.log(`✅ EMAIL DE APROBACIÓN ENVIADO A: ${email}`);
         return true;
     } catch (error) {
@@ -1693,7 +1711,8 @@ async function enviarEmailRegistroPendiente(email) {
             </div>
         `
     };
-    const info = await transporter.sendMail(mailOptions);
+    const t = await obtenerTransporter();
+    const info = await t.sendMail(mailOptions);
     console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}. ID: ${info.messageId}`);
 }
 
@@ -1715,7 +1734,8 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
             </div>
         `
     };
-    await transporter.sendMail(mailOptions);
+    const t = await obtenerTransporter();
+    await t.sendMail(mailOptions);
     console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
 }
 
