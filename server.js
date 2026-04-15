@@ -1611,22 +1611,22 @@ app.post('/api/importar-masivo', async (req, res) => {
 
 
 // --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
+// --- MOTOR DE ENVÍO DE EMAIL REAL (SMTP) ---
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, 
+    port: 465, // Puerto SSL directo
+    secure: true, // true para puerto 465
     auth: {
         user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
         pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
     },
     // 🔥 CONFIGURACIÓN CRÍTICA PARA RENDER (IPv4)
     family: 4, 
-    connectionTimeout: 10000, // 10 segundos para no quedar colgado
+    connectionTimeout: 10000,
     greetingTimeout: 5000,
     socketTimeout: 10000,
     tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
+        rejectUnauthorized: false
     }
 });
 
