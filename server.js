@@ -1659,12 +1659,6 @@ app.post('/api/importar-masivo', async (req, res) => {
 });
 
 
-// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (FORZAR IPv4) ---
-let transporter;
-
-/**
- * Función para asegurar que el transportador existe y usa una IP numérica
- */
 // --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V3: OPTIMIZADO PARA RENDER) ---
 let transporter;
 
