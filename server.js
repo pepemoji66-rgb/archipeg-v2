@@ -1665,37 +1665,32 @@ let transporter;
 /**
  * Función para asegurar que el transportador existe y usa una IP numérica
  */
-// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (RESISTENTE A RENDER) ---
+// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V3: OPTIMIZADO PARA RENDER) ---
 let transporter;
 
 async function obtenerTransporter(forzarReintento = false) {
     if (transporter && !forzarReintento) return transporter;
 
-    return new Promise((resolve) => {
-        const hostPrimario = 'smtp.gmail.com';
-        dns.resolve4(hostPrimario, (err, addresses) => {
-            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : hostPrimario;
-            console.log(`🔌 [SMTP-PLAN-NUCLEAR]: Host resuelto a -> ${hostIP} (DNS Error: ${err ? err.message : 'Ninguno'})`);
-            
-            // Intentamos Port 465 (SSL)
-            transporter = nodemailer.createTransport({
-                host: hostIP,
-                port: 465,
-                secure: true,
-                auth: {
-                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-                },
-                family: 4,
-                connectionTimeout: 10000, // 10s
-                tls: {
-                    servername: hostPrimario,
-                    rejectUnauthorized: false
-                }
-            });
-            resolve(transporter);
-        });
+    // Puerto 587 con STARTTLS es el estándar más compatible en la nube (Render/Heroku/AWS)
+    transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // TLS (STARTTLS)
+        auth: {
+            user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+            pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+        },
+        connectionTimeout: 15000, // 15s de gracia
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
+        tls: {
+            rejectUnauthorized: false,
+            servername: 'smtp.gmail.com'
+        }
     });
+
+    console.log(`📧 MOTOR DE EMAIL (V3): Configurado puerto 587 para ${(process.env.EMAIL_USER || 'pepemoji66@gmail.com')}`);
+    return transporter;
 }
 
 // Inicialización silenciosa al arranque
@@ -1736,25 +1731,30 @@ async function enviarEmailAprobacion(email) {
     };
 
     try {
-        let t = await obtenerTransporter();
-        try {
-            await t.sendMail(mailOptions);
-        } catch (error465) {
-            console.warn("⚠️ Port 465 fallido, intentando fallback Port 587...");
-            // Re-configurar transporter para puerto 587 (STARTTLS)
-            t = nodemailer.createTransport({
-                host: t.options.host,
-                port: 587,
-                secure: false, // TLS
-                auth: t.options.auth,
-                family: 4,
-                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
-            });
-            await t.sendMail(mailOptions);
-        }
+        const t = await obtenerTransporter();
+        await t.sendMail(mailOptions);
         console.log(`✅ EMAIL DE APROBACIÓN ENVIADO A: ${email}`);
         return true;
     } catch (error) {
+        console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN (Intentando Port 465 Fallback):", error.message);
+        
+        // ÚLTIMO RECURSO: Intentar Port 465 si el 587 falló (poco probable pero por seguridad)
+        try {
+            const t465 = nodemailer.createTransport({
+                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
+                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+                },
+                tls: { rejectUnauthorized: false }
+            });
+            await t465.sendMail(mailOptions);
+            return true;
+        } catch (e2) {
+            console.error("🔥 FALLO TOTAL SMTP (465 & 587):", e2.message);
+            throw e2;
+        }
+    }
+}
         console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN:", error);
         throw error;
     }
@@ -1787,21 +1787,23 @@ async function enviarEmailRegistroPendiente(email) {
         `
     };
     try {
-        let t = await obtenerTransporter();
-        try {
-            await t.sendMail(mailOptions);
-            console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}`);
-        } catch (e) {
-            console.warn("⚠️ Reintentando con Port 587...");
-            t = nodemailer.createTransport({
-                host: t.options.host, port: 587, secure: false, auth: t.options.auth, family: 4,
-                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
-            });
-            await t.sendMail(mailOptions);
-            console.log(`📩 [SMTP-SUCCESS-FALLBACK]: Email enviado a ${email}`);
-        }
+        const t = await obtenerTransporter();
+        await t.sendMail(mailOptions);
+        console.log(`📩 [SMTP-SUCCESS]: Email enviado a ${email}`);
     } catch (err) {
-        console.error("❌ Fallo total en envío de registro pendiente:", err.message);
+        console.error("❌ Error envío registro pendiente (587) - Intentando 465...", err.message);
+        try {
+            const t465 = nodemailer.createTransport({
+                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
+                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+                },
+                tls: { rejectUnauthorized: false }
+            });
+            await t465.sendMail(mailOptions);
+        } catch (e2) {
+            console.error("🔥 Fallo total envío pendiente:", e2.message);
+        }
     }
 }
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
@@ -1823,19 +1825,21 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
         `
     };
     try {
-        let t = await obtenerTransporter();
-        try {
-            await t.sendMail(mailOptions);
-        } catch (e) {
-            t = nodemailer.createTransport({
-                host: t.options.host, port: 587, secure: false, auth: t.options.auth, family: 4,
-                tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false }
-            });
-            await t.sendMail(mailOptions);
-        }
+        const t = await obtenerTransporter();
+        await t.sendMail(mailOptions);
         console.log(`🔔 Notificación de admin enviada para: ${nuevoUsuarioEmail}`);
     } catch (err) {
-        console.error("❌ Fallo aviso admin:", err.message);
+        console.error("❌ Fallo aviso admin (587) - Intentando 465...", err.message);
+        try {
+            const t465 = nodemailer.createTransport({
+                host: 'smtp.gmail.com', port: 465, secure: true, auth: {
+                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+                },
+                tls: { rejectUnauthorized: false }
+            });
+            await t465.sendMail(mailOptions);
+        } catch(e2){}
     }
 }
 
