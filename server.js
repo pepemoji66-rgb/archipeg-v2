@@ -1748,9 +1748,6 @@ async function enviarEmailAprobacion(email) {
             throw e2;
         }
     }
-}
-        console.error("❌ FALLO AL ENVIAR EMAIL DE APROBACIÓN:", error);
-        throw error;
     }
 }
 
