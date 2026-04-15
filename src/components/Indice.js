@@ -139,7 +139,7 @@ const Indice = () => {
 
                     <div className="price-card featured">
                         <div className="price-tier">PLAN PROFESIONAL</div>
-                        <div className="price-value">5€ <span>/ año</span></div>
+                        <div className="price-value">5€ <span>/ Pago Único</span></div>
                         <div className="price-features">
                             <div className="price-feature">✓ Activos ilimitados</div>
                             <div className="price-feature">✓ Reconocimiento Facial Avanzado</div>

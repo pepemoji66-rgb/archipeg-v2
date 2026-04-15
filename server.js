@@ -1293,21 +1293,31 @@ app.get('/api/usuarios', async (req, res) => {
             return res.status(403).json({ error: 'Acceso restringido a Administradores' });
         }
         
-        // Parámetros de paginación
+        // Parámetros de paginación y búsqueda
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 8;
+        const search = req.query.q || "";
         const offset = (page - 1) * limit;
+        
+        // Construcción dinámica de la consulta
+        let whereClause = "";
+        let params = [];
+        if (search) {
+            whereClause = " WHERE email LIKE ? ";
+            params.push(`%${search}%`);
+        }
 
-        // 1. Obtener el total para calcular páginas en el frontend
-        const { count } = await db.get("SELECT COUNT(*) as count FROM usuarios");
+        // 1. Obtener el total filtrado para calcular páginas
+        const { count } = await db.get(`SELECT COUNT(*) as count FROM usuarios ${whereClause}`, params);
         
         // 2. Obtener solo los de esta página (incluyendo estado pro y pago)
+        const queryParams = [...params, limit, offset];
         const usuarios = await db.all(
-            "SELECT id, email, es_admin, aprobado, creado_en, pro_enviado, pago_estado FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?",
-            [limit, offset]
+            `SELECT id, email, es_admin, aprobado, creado_en, pro_enviado, pago_estado FROM usuarios ${whereClause} ORDER BY id ASC LIMIT ? OFFSET ?`,
+            queryParams
         );
 
-        console.log(`📊 [DEBUG USUARIOS]: Total en DB: ${count} | Pag: ${page} | Lim: ${limit}`);
+        console.log(`📊 [DEBUG USUARIOS]: Total: ${count} | Search: "${search}" | Pag: ${page}`);
         
         res.json({
             usuarios,
@@ -1720,6 +1730,13 @@ async function enviarEmailRegistroPendiente(email) {
                 <p>Tu solicitud ha sido recibida correctamente y está <b>pendiente de validación</b> por un administrador.</p>
                 <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
                     <b>Nota:</b> Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
+                </div>
+                <h3 style="color: #28a745;">🚀 Activa la Versión Pro (Pago Único)</h3>
+                <p>Para desbloquear todas las funciones y obtener la versión de escritorio soberana, puedes realizar un <b>pago único de 5€</b>:</p>
+                <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6;">
+                    <p style="margin: 5px 0;"><b>📲 Bizum:</b> 667657244</p>
+                    <p style="margin: 5px 0;"><b>📝 Concepto:</b> Archipeg Pro [tu email]</p>
+                    <p style="margin: 5px 0;"><b>💰 Precio:</b> 5€ (Acceso de por vida)</p>
                 </div>
                 <p>Te enviaremos otro correo en cuanto tu cuenta sea aprobada para que puedas descargar la versión completa.</p>
                 <hr>

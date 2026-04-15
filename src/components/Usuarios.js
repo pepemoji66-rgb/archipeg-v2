@@ -13,20 +13,22 @@ export default function Usuarios() {
     const [totalUsuarios, setTotalUsuarios] = useState(0); 
     const [enviandoEmail, setEnviandoEmail] = useState(null); // ID del usuario al que se envía
     
+    const [terminoBusqueda, setTerminoBusqueda] = useState('');
+    
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1);
     const limite = 8;
 
-    const cargarUsuarios = async (page = 1) => {
+    const cargarUsuarios = async (page = 1, search = '') => {
         setCargando(true);
         try {
-            // Ahora le pedimos al servidor solo la página que queremos
-            const res = await apiFetch(`${API}/usuarios?page=${page}&limit=${limite}`);
+            // Enviamos tanto la página como el término de búsqueda
+            const res = await apiFetch(`${API}/usuarios?page=${page}&limit=${limite}&q=${encodeURIComponent(search)}`);
             if (res.ok) {
                 const data = await res.json();
-                console.log("📊 [DEBUG USUARIOS FRONTEND]:", data); // LOG CLAVE
-                setUsuarios(data.usuarios || []); // Guardamos solo los de esta página
-                setTotalUsuarios(data.total || 0); // Guardamos cuantos hay en TOTAL
+                console.log("📊 [DEBUG USUARIOS FRONTEND]:", data);
+                setUsuarios(data.usuarios || []);
+                setTotalUsuarios(data.total || 0);
             }
         } catch (error) {
             console.error("Error al cargar usuarios:", error);
@@ -35,9 +37,19 @@ export default function Usuarios() {
         }
     };
 
+    // Efecto para cargar cuando cambia la página
     useEffect(() => {
-        cargarUsuarios(paginaActual);
+        cargarUsuarios(paginaActual, terminoBusqueda);
     }, [paginaActual]);
+
+    // Efecto para búsqueda con debounce (evita peticiones excesivas)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (paginaActual !== 1) setPaginaActual(1); // Reiniciar a pag 1 al buscar
+            else cargarUsuarios(1, terminoBusqueda);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [terminoBusqueda]);
 
     // --- ACCIONES (Mantienen la lógica pero recargan la página actual si es necesario) ---
     // (Opcional: Si eliminas un usuario, podrías volver a cargarUsuarios(paginaActual))
@@ -120,8 +132,20 @@ export default function Usuarios() {
                 <div>
                     <h1 className="usuarios-title">PANEL DE USUARIOS</h1>
                 </div>
+                <div className="search-container">
+                    <input 
+                        type="text" 
+                        placeholder="🔍 Buscar por email..." 
+                        className="search-input-neon"
+                        value={terminoBusqueda}
+                        onChange={(e) => setTerminoBusqueda(e.target.value)}
+                    />
+                    {terminoBusqueda && (
+                        <button className="search-clear-btn" onClick={() => setTerminoBusqueda('')}>✕</button>
+                    )}
+                </div>
                 <div>
-                    <span className="badge badge-role" style={{ fontSize: '1rem' }}>{usuarios.length} REGISTRADOS</span>
+                    <span className="badge badge-role" style={{ fontSize: '1rem' }}>{totalUsuarios} REGISTRADOS</span>
                 </div>
             </header>
 
