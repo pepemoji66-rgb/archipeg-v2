@@ -1686,50 +1686,44 @@ app.post('/api/importar-masivo', async (req, res) => {
 });
 
 
-// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V4: HIPER-NUCLEAR IPv4) ---
-let transporter;
-
-// --- MOTOR DE ENVÍO DE EMAIL "API-SYNC" (BYPASS RENDER SMTP) ---
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_ZmHViBDJ_FtVdQYfGpwgsWsiLPD8zhi2j';
+// --- MOTOR DE ENVÍO DE EMAIL "GOOGLE-BRIDGE" (BYPASS TOTAL RENDER) ---
+const GOOGLE_BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbwSArSjyS40pUSnFCtEcsFOzJ9CHgmj5WKHKZdKInc9ZsaPuAvzkqFppvBfHfDoAUZVQw/exec';
+const BRIDGE_KEY = 'ARCHIPEG_BRIDGE_2026';
 
 /**
- * Función central para enviar emails vía API de Resend (Puerto 443 / HTTPS)
- * Esto evita todos los bloqueos de puertos de Render.
+ * Función central para enviar emails vía Google Apps Script Bridge
+ * Esto usa HTTPS (Puerto 443), imposible de bloquear por Render.
  */
-async function enviarViaResend({ to, subject, html, text }) {
-    console.log(`📡 [RESEND-API]: Enviando email a ${to}...`);
+async function enviarViaGoogleBridge({ to, subject, html }) {
+    console.log(`📡 [GOOGLE-BRIDGE]: Enviando email a ${to} vía Puente Google...`);
     
     try {
-        const response = await fetch('https://api.resend.com/emails', {
+        const response = await fetch(GOOGLE_BRIDGE_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${RESEND_API_KEY}`
-            },
             body: JSON.stringify({
-                from: 'Archipeg Pro <onboarding@resend.dev>', // Por defecto en modo onboarding
-                to: [to],
+                key: BRIDGE_KEY,
+                to: to,
                 subject: subject,
-                html: html,
-                text: text || ''
+                html: html
             })
         });
 
-        const data = await response.json();
+        const text = await response.text();
         
-        if (!response.ok) {
-            throw new Error(data.message || 'Error desconocido en Resend API');
+        if (text !== "OK_ENVIADO") {
+            throw new Error(`Error en el puente: ${text}`);
         }
 
-        console.log(`✅ [RESEND-SUCCESS]: Email enviado con éxito. ID: ${data.id}`);
-        return data;
+        console.log(`✅ [BRIDGE-SUCCESS]: Email enviado con éxito vía Google.`);
+        return true;
     } catch (error) {
-        console.error(`🔥 [RESEND-ERROR]: No se pudo enviar el correo:`, error.message);
+        console.error(`🔥 [BRIDGE-ERROR]: No se pudo enviar el correo:`, error.message);
         throw error;
     }
 }
 
-// Mantenemos obtenerTransporter solo como placeholder vacío para evitar errores de sintaxis si algo lo llama
+// Placeholder para no romper dependencias antiguas
+async function enviarViaResend() { return null; }
 async function obtenerTransporter() { return null; }
 
 // Inicialización silenciosa al arranque
@@ -1819,7 +1813,7 @@ async function enviarEmailRegistroPendiente(email) {
         `
     };
     try {
-        await enviarViaResend({
+        await enviarViaGoogleBridge({
             to: email,
             subject: '¡Hemos recibido tu registro en Archipeg Pro! ⏳',
             html: `
@@ -1844,7 +1838,7 @@ async function enviarEmailRegistroPendiente(email) {
             `
         });
     } catch (err) {
-        console.error("🔥 FALLO ENVÍO REGISTRO PENDIENTE (RESEND):", err.message);
+        console.error("🔥 FALLO ENVÍO REGISTRO PENDIENTE (BRIDGE):", err.message);
     }
 }
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
@@ -1866,7 +1860,7 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
         `
     };
     try {
-        await enviarViaResend({
+        await enviarViaGoogleBridge({
             to: process.env.EMAIL_USER || 'pepemoji66@gmail.com',
             subject: '🔔 NUEVO USUARIO REGISTRADO - Acción requerida',
             html: `
@@ -1883,7 +1877,7 @@ async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
             `
         });
     } catch (err) {
-        console.error("🔥 FALLO AVISO ADMIN (RESEND):", err.message);
+        console.error("🔥 FALLO AVISO ADMIN (BRIDGE):", err.message);
     }
 }
 
