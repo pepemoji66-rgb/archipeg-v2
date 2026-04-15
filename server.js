@@ -1659,32 +1659,39 @@ app.post('/api/importar-masivo', async (req, res) => {
 });
 
 
-// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V3: OPTIMIZADO PARA RENDER) ---
+// --- MOTOR DE ENVÍO DE EMAIL "NUCLEAR" (V4: HIPER-NUCLEAR IPv4) ---
 let transporter;
 
 async function obtenerTransporter(forzarReintento = false) {
     if (transporter && !forzarReintento) return transporter;
 
-    // Puerto 587 con STARTTLS es el estándar más compatible en la nube (Render/Heroku/AWS)
-    transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // TLS (STARTTLS)
-        auth: {
-            user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
-            pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
-        },
-        connectionTimeout: 15000, // 15s de gracia
-        greetingTimeout: 10000,
-        socketTimeout: 20000,
-        tls: {
-            rejectUnauthorized: false,
-            servername: 'smtp.gmail.com'
-        }
-    });
+    return new Promise((resolve) => {
+        const hostNombre = 'smtp.gmail.com';
+        dns.resolve4(hostNombre, (err, addresses) => {
+            // Si falla la resolución, usamos el nombre, pero lo normal es que devuelva una IPv4
+            const hostIP = (addresses && addresses.length > 0) ? addresses[0] : hostNombre;
+            console.log(`🔌 [SMTP-V4-LOG]: Host resuelto a IPv4 -> ${hostIP} (Error DNS: ${err ? err.message : 'Ninguno'})`);
 
-    console.log(`📧 MOTOR DE EMAIL (V3): Configurado puerto 587 para ${(process.env.EMAIL_USER || 'pepemoji66@gmail.com')}`);
-    return transporter;
+            transporter = nodemailer.createTransport({
+                host: hostIP,
+                port: 587,
+                secure: false, // STARTTLS
+                auth: {
+                    user: (process.env.EMAIL_USER || 'archipegv2@gmail.com').trim(),
+                    pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
+                },
+                family: 4, // Forzar IPv4 en el socket
+                debug: true, // Veremos todo en Render
+                logger: true, // Veremos todo en Render
+                connectionTimeout: 20000,
+                tls: {
+                    servername: hostNombre, // NECESARIO para que el certificado de Google sea válido al conectar por IP
+                    rejectUnauthorized: false
+                }
+            });
+            resolve(transporter);
+        });
+    });
 }
 
 // Inicialización silenciosa al arranque
