@@ -585,3 +585,63 @@
     padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+/* SOVEREIGNTY NOTES & ALERTS */
+.sovereignty-note {
+    background: rgba(0, 242, 255, 0.05);
+    border: 1px solid rgba(0, 242, 255, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.sovereignty-note h4 {
+    color: #00f2ff;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sovereignty-info-box {
+    background: rgba(255, 45, 125, 0.05);
+    border-left: 4px solid #ff2d7d;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 0 10px 10px 0;
+}
+
+.sovereignty-info-box strong {
+    color: #ff2d7d;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.sovereignty-info-box p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+.magic-badge.warning {
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, 0.3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(255, 204, 0, 0.05);
+}
+
+.magic-badge.sovereign {
+    color: #00f2ff;
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(0, 242, 255, 0.05);
+}

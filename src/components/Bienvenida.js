@@ -116,6 +116,14 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
 
                 {error && <div style={{ color: '#ff4444', fontSize: '0.75rem', textAlign: 'center', background: 'rgba(255,0,0,0.1)', padding: '8px', borderRadius: '5px' }}>{error}</div>}
 
+                <div className="sovereignty-info-box">
+                    <strong>🛡️ SOBERANÍA DIGITAL</strong>
+                    <p>
+                        Tus fotos originales <b>nunca</b> se suben a esta web. Permanecen en tu disco duro. 
+                        Esta cuenta de nube solo sirve para gestionar tu catálogo y álbumes compartidos.
+                    </p>
+                </div>
+
                 <button className="btn-primary-neon" type="submit" disabled={cargando} style={{ width: '100%', marginTop: '10px' }}>
                     {cargando ? 'VALIDANDO...' : modo === 'login' ? 'ENTRAR AHORA' : 'CONSEGUIR MI CUENTA'}
                 </button>

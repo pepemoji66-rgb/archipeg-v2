@@ -161,32 +161,32 @@ const Indice = () => {
                     </div>
                     <div className="magic-grid">
                         <div className="magic-item web">
-                            <div className="magic-badge">ESTÁS AQUÍ: ESCAPARATE WEB</div>
+                            <div className="magic-badge warning">ESTÁS AQUÍ: ESCAPARATE WEB (MÓVIL)</div>
                             <h3>Versión Demo / Nube</h3>
                             <p>
                                 Esta web en Render es nuestro <b>Showroom Interactivo</b>. 
                                 Sirve para que pruebes la potencia de la interfaz, el mapa y la organización.
                             </p>
                             <ul className="magic-list">
-                                <li>⚠️ Las fotos viajan por internet.</li>
-                                <li>🌐 Ideal para compartir álbumes puntuales.</li>
-                                <li>☁️ Almacenamiento gestionado por Render.</li>
+                                <li>⚠️ <b>¿Ves fotos sin el disco?</b> Solo si las has "Subido" (Copia en nube).</li>
+                                <li>🌐 <b>Fotos Privadas</b>: No son accesibles desde aquí sin subida previa.</li>
+                                <li>☁️ Almacenamiento limitado y gestionado externamente.</li>
                             </ul>
                         </div>
 
                         <div className="magic-divider">VS</div>
 
                         <div className="magic-item local">
-                            <div className="magic-badge active">LA VERDADERA MAGIA: VERSIÓN PC</div>
+                            <div className="magic-badge sovereign">LA VERDADERA MAGIA: VERSIÓN PC (DISCO)</div>
                             <h3>Soberanía Digital Total</h3>
                             <p>
                                 La esencia de Archipeg es la <b>Privacidad Absoluta</b>. 
-                                Al descargar la aplicación en tu casa, el sistema se vuelve ciego para el mundo exterior.
+                                Al descargar la aplicación en tu casa, tus fotos nunca salen de tu posesión.
                             </p>
                             <ul className="magic-list">
-                                <li>🔒 <b>CERO SUBIDAS</b>: Tus fotos nunca salen de tu disco.</li>
-                                <li>🚀 <b>MÁXIMA VELOCIDAD</b>: Sin depender de tu conexión de fibra.</li>
-                                <li>💎 <b>PROPIEDAD</b>: Tú eres el dueño físico de tus datos.</li>
+                                <li>🔒 <b>CERO SUBIDAS</b>: Sin disco conectado, nadie ve nada. Ni nosotros.</li>
+                                <li>🚀 <b>100% DISCO</b>: El programa cataloga tu disco duro físico.</li>
+                                <li>💎 <b>PROPIEDAD</b>: Tus recuerdos no alimentan IAs ni nubes públicas.</li>
                             </ul>
                             <a 
                                 href="mailto:archipegv2@gmail.com?subject=Solicitud de ARCHIPEG PC PRO&body=Hola Jose, me gustaría solicitar la versión de escritorio soberana de Archipeg Pro para mi PC. Mi usuario registrado es: "
