@@ -380,7 +380,15 @@ const AdminPanel = () => {
                                 <div className="file-box">
                                     <input type="file" multiple onChange={e => setArchivos(Array.from(e.target.files))} id="file-up" style={{display:'none'}} />
                                     <label htmlFor="file-up" className="btn-file-neon">SELECCIONAR FOTOS ({archivos.length})</label>
-                                    <button type="submit" className="btn-neon-purple" disabled={archivos.length===0} style={{marginTop:'15px'}}>INICIAR SUBIDA</button>
+                                    <div className="sovereignty-info-box" style={{ marginBottom: '15px', textAlign: 'left' }}>
+                                        <strong>🛡️ AVISO DE SOBERANÍA</strong>
+                                        <p>
+                                            Al usar este botón, las fotos <b>se copiarán en la nube</b>. 
+                                            Usa esta opción solo para "escaparate" o compartir. Para privacidad total en tu disco duro, 
+                                            usa el "Escáner Mágico" en tu PC.
+                                        </p>
+                                    </div>
+                                    <button type="submit" className="btn-neon-purple" disabled={archivos.length===0} style={{marginTop:'15px'}}>INICIAR SUBIDA (COPIA A LA NUBE)</button>
                                 </div>
                             </form>
                         </section>
