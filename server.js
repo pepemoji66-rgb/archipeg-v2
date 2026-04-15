@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { exec } = require('child_process');
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+const { createClient } = require('@libsql/client');
 
 // 🌐 SOLUCIÓN CRÍTICA PARA RENDER: Forzar IPv4 en todas las conexiones
 if (dns.setDefaultResultOrder) {
@@ -36,6 +37,27 @@ const ExifParser = require('exif-parser');
 const app = express();
 let db;
 let dbLock = false;
+
+// --- ADAPTADOR TURSO (LibSQL) PARA COMPATIBILIDAD CON SQLITE3 ---
+class LibSqlAdapter {
+    constructor(client) { this.client = client; }
+    async get(sql, args = []) {
+        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+        return res.rows[0] ? { ...res.rows[0] } : null;
+    }
+    async all(sql, args = []) {
+        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+        return res.rows.map(r => ({ ...r }));
+    }
+    async run(sql, args = []) {
+        const res = await this.client.execute({ sql, args: Array.isArray(args) ? args : [args] });
+        return { 
+            lastID: res.lastInsertRowid !== undefined ? Number(res.lastInsertRowid) : null, 
+            changes: res.rowsAffected 
+        };
+    }
+    async exec(sql) { return await this.client.executeMultiple(sql); }
+}
 
 // --- MIDDLEWARES ---
 app.use(cors());
@@ -256,14 +278,26 @@ const upload = multer({ storage: storage });
 // --- INICIALIZACIÓN DEL MOTOR SQLITE ---
 async function inicializarMotor() {
     try {
-        db = await open({
-            filename: path.join(basePath, 'archipeg_data.db'),
-            driver: sqlite3.Database
-        });
+        const tursoUrl = process.env.TURSO_URL;
+        const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
-        // CONFIGURACIÓN PROFESIONAL (Modo Tanque): WAL para mayor concurrencia y velocidad
-        await db.run('PRAGMA journal_mode = WAL').catch(() => {});
-        await db.run('PRAGMA busy_timeout = 5000').catch(() => {});
+        if (tursoUrl && tursoToken) {
+            console.log("☁️ CONECTANDO A TURSO CLOUD (Modo Persistente)...");
+            const client = createClient({ url: tursoUrl, authToken: tursoToken });
+            db = new LibSqlAdapter(client);
+        } else {
+            console.log("📁 CONECTANDO A SQLITE LOCAL (Modo Soberano)...");
+            db = await open({
+                filename: path.join(basePath, 'archipeg_data.db'),
+                driver: sqlite3.Database
+            });
+        }
+
+        // CONFIGURACIÓN PROFESIONAL (Modo Tanque): Solo para SQLite local
+        if (!tursoUrl) {
+            await db.run('PRAGMA journal_mode = WAL').catch(() => {});
+            await db.run('PRAGMA busy_timeout = 5000').catch(() => {});
+        }
 
         await db.exec(`
             CREATE TABLE IF NOT EXISTS fotos (
