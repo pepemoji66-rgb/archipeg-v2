@@ -146,7 +146,7 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                {usuario && usuario.aprobado === 1 && (
+                {usuario && usuario.aprobado && (
                     <a 
                         href="/downloads/Archipeg_Setup.exe" 
                         download 

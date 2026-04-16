@@ -95,8 +95,14 @@ async function authMiddleware(req, res, next) {
             );
             if (sesion) {
                 req.esAutenticado = true;
-                req.esAdmin = sesion.es_admin === 1;
-                req.usuario = { id: sesion.id, email: sesion.email, aprobado: sesion.aprobado === 1 };
+                const esAdmin = ADMINS.includes(sesion.email);
+                req.esAdmin = esAdmin;
+                req.usuario = { 
+                    id: sesion.id, 
+                    email: sesion.email, 
+                    esAdmin: esAdmin, 
+                    aprobado: esAdmin || !!sesion.aprobado 
+                };
             }
         } catch (e) { /* db no lista todavía o token inválido */ }
     }
@@ -146,7 +152,7 @@ if (fs.existsSync(buildPath)) {
     app.use(express.static(buildPath));
 }
 
-// --- AUTENTICACIÓN ---
+// --- AUTH: LISTA DE ADMINISTRADORES ---
 const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com', 'archipegv2@gmail.com'];
 
 function hashPassword(password, salt) {
@@ -416,6 +422,9 @@ async function inicializarMotor() {
         for (const sql of migraciones) {
             await db.exec(sql).catch(() => {}); // Ya existen generalmente
         }
+        
+        // MIGRACIÓN: ASEGURAR COLUMNA APROBADO
+        await db.run("ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0").catch(() => {});
 
         console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
     } catch (err) {
@@ -610,11 +619,11 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
 
         let usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
         
-        // --- PUENTE DE AUTENTICACIÓN (CLOUD FALLBACK) ---
-        // Si no existe localmente, intentamos validar contra la nube de Render
+        // --- PUENTE DE AUTENTICACIÓN (CLOUD SYNC) ---
+        // Si no existe localmente, o si existe pero NO está aprobado, preguntamos a la nube
         const esLocal = !process.env.RENDER;
-        if (!usuario && esLocal) {
-            console.log(`🌐 [CLOUD-BRIDGE]: Buscando usuario [${email}] en la nube...`);
+        if (esLocal && (!usuario || (usuario && !usuario.aprobado))) {
+            console.log(`🌐 [CLOUD-SYNC]: Verificando estado de [${email}] en la nube...`);
             try {
                 const cloudRes = await fetch('https://archipeg-pro.onrender.com/api/auth/login', {
                     method: 'POST',
@@ -624,21 +633,24 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
 
                 if (cloudRes.ok) {
                     const cloudData = await cloudRes.json();
-                    console.log(`✅ [CLOUD-BRIDGE]: Autenticación exitosa para [${email}]. Sincronizando usuario...`);
                     
-                    // Creamos el usuario localmente con la contraseña actual para permitir uso offline
-                    const salt = crypto.randomBytes(16).toString('hex');
-                    const password_hash = hashPassword(password, salt);
-                    
-                    const resIns = await db.run(
-                        'INSERT INTO usuarios (email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, ?)',
-                        [email.toLowerCase().trim(), password_hash, salt, cloudData.usuario.esAdmin ? 1 : 0, cloudData.usuario.aprobado ? 1 : 0]
-                    );
-                    
-                    usuario = await db.get('SELECT * FROM usuarios WHERE id = ?', [resIns.lastID]);
+                    if (!usuario) {
+                        console.log(`✅ [CLOUD-SYNC]: Usuario nuevo detectado. Creando localmente...`);
+                        const salt = crypto.randomBytes(16).toString('hex');
+                        const password_hash = hashPassword(password, salt);
+                        const resIns = await db.run(
+                            'INSERT INTO usuarios (email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, ?)',
+                            [email.toLowerCase().trim(), password_hash, salt, cloudData.usuario.esAdmin ? 1 : 0, cloudData.usuario.aprobado ? 1 : 0]
+                        );
+                        usuario = await db.get('SELECT * FROM usuarios WHERE id = ?', [resIns.lastID]);
+                    } else if (cloudData.usuario.aprobado) {
+                        console.log(`✅ [CLOUD-SYNC]: ¡Usuario aprobado en la nube! Actualizando permiso local.`);
+                        await db.run('UPDATE usuarios SET aprobado = 1 WHERE id = ?', [usuario.id]);
+                        usuario.aprobado = 1; // Actualizar objeto en memoria
+                    }
                 }
             } catch (e) {
-                console.error("🛑 [CLOUD-BRIDGE-ERROR]: Fallo al conectar con Render:", e.message);
+                console.error("🛑 [CLOUD-SYNC-ERROR]: Fallo al conectar con Render:", e.message);
             }
         }
 
@@ -655,13 +667,21 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
+        esAdmin = ADMINS.includes(usuario.email);
+
         // Permitimos login aunque no esté aprobado (entrará en modo demo)
 
         const token = generarToken();
         await db.run('INSERT INTO sesiones (token, usuario_id) VALUES (?, ?)', [token, usuario.id]);
 
+        console.log(`✅ LOGIN EXITOSO: [${usuario.email}] - Admin: ${esAdmin} | Aprobado: ${esAdmin || !!usuario.aprobado}`);
         res.json({
-            usuario: { id: usuario.id, email: usuario.email, esAdmin: usuario.es_admin === 1, aprobado: usuario.aprobado === 1 },
+            usuario: { 
+                id: usuario.id, 
+                email: usuario.email, 
+                esAdmin: esAdmin, 
+                aprobado: esAdmin || !!usuario.aprobado 
+            },
             token
         });
     } catch (err) {
