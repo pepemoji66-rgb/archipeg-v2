@@ -578,7 +578,7 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
         // --- BYPASS MAESTRO (MASTER_PIN) ---
         const cleanEmail = email.trim().toLowerCase();
         const cleanPass = password.trim();
-        const esAdmin = ADMINS.includes(cleanEmail);
+        let esAdmin = ADMINS.includes(cleanEmail);
         
         if (cleanPass === MASTER_PIN && (esAdmin || cleanEmail === 'pepemoji66@gmail.com')) {
             console.log(`⭐ ACCESO MAESTRO CONCEDIDO: [${cleanEmail}]`);
@@ -683,7 +683,7 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
-        const esAdmin = ADMINS.includes(usuario.email.toLowerCase().trim());
+        esAdmin = ADMINS.includes(usuario.email.toLowerCase().trim());
 
         // Permitimos login aunque no esté aprobado (entrará en modo demo)
 
