@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, Tray } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
@@ -62,6 +62,7 @@ const menuTemplate = [
 ];
 
 let serverProcess;
+let tray = null;
 
 function createWindow() {
     const isDev = !app.isPackaged;
@@ -150,7 +151,30 @@ function createWindow() {
     }
 
     // Abrimos consola para cazar errores en vivo
-    // win.webContents.openDevTools();
+    // --- CONFIGURACIÓN DE BANDEJA DE SISTEMA (TRAY) ---
+    const iconPath = path.join(__dirname, 'public/logo_archipeg_principal.png');
+    if (fs.existsSync(iconPath)) {
+        tray = new Tray(iconPath);
+        const contextMenu = Menu.buildFromTemplate([
+            { label: 'Mostrar Archipeg', click: () => win.show() },
+            { type: 'separator' },
+            { label: 'Salir de Archipeg COMPLETAMENTE', click: () => {
+                app.isQuitting = true;
+                app.quit();
+            }}
+        ]);
+        tray.setToolTip('Archipeg Pro');
+        tray.setContextMenu(contextMenu);
+        tray.on('double-click', () => win.show());
+    }
+
+    // Prevenir que la app se cierre al pulsar X (se queda en segundo plano)
+    win.on('close', (event) => {
+        if (!app.isQuitting) {
+            event.preventDefault();
+            win.hide();
+        }
+    });
 
     win.on('closed', () => {
         if (serverProcess) serverProcess.kill();

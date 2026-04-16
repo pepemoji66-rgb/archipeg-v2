@@ -139,14 +139,14 @@ const Sidebar = () => {
             </nav>
 
             <div className="sidebar-bottom">
-                {usuario && !usuario.aprobado && (
+                {usuario && !(usuario.aprobado || usuario.aprobado === 1) && (
                     <div className="sidebar-demo-warning" style={{ backgroundColor: 'rgba(255, 68, 0, 0.2)', border: '1px solid #ff4400', padding: '10px', borderRadius: '4px', marginBottom: '15px', textAlign: 'center', fontSize: '0.75rem', color: '#ffcc00' }}>
                         ⚠️ MODO DEMO: ESPERANDO ACTIVACIÓN
                         <br/>(Límite: 50 fotos)
                     </div>
                 )}
 
-                {usuario && usuario.aprobado && (
+                {(usuario.aprobado || usuario.aprobado === 1) && (
                     <a 
                         href="/downloads/Archipeg_Setup.exe" 
                         download 

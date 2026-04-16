@@ -64,7 +64,7 @@ const AdminPanel = () => {
     const [progreso, setProgreso] = useState(0);
 
     // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
-    const modoSoberano = IS_ELECTRON || IS_LOCAL;
+    const modoSoberano = IS_ELECTRON || IS_LOCAL || window.location.port === '5002';
 
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");

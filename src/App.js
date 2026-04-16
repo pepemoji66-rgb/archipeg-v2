@@ -19,7 +19,7 @@ import Mapa from './components/Mapa';
 
 const RutaAprobada = ({ children }) => {
     const { usuario } = useAuth();
-    if (!usuario?.aprobado) return <Navigate to="/galeria-completa" replace />;
+    if (!usuario || (usuario && !usuario.aprobado && usuario.aprobado !== 1)) return <Navigate to="/galeria-completa" replace />;
     return children;
 }
 

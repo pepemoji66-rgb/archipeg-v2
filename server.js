@@ -623,13 +623,18 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
         // Si no existe localmente, o si existe pero NO está aprobado, preguntamos a la nube
         const esLocal = !process.env.RENDER;
         if (esLocal && (!usuario || (usuario && !usuario.aprobado))) {
-            console.log(`🌐 [CLOUD-SYNC]: Verificando estado de [${email}] en la nube...`);
+            console.log(`🌐 [CLOUD-SYNC]: Verificando estado de [${cleanEmail}] en la nube...`);
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de margen
+
                 const cloudRes = await fetch('https://archipeg-pro.onrender.com/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email: cleanEmail, password: cleanPass }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 if (cloudRes.ok) {
                     const cloudData = await cloudRes.json();
@@ -637,20 +642,31 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
                     if (!usuario) {
                         console.log(`✅ [CLOUD-SYNC]: Usuario nuevo detectado. Creando localmente...`);
                         const salt = crypto.randomBytes(16).toString('hex');
-                        const password_hash = hashPassword(password, salt);
+                        const password_hash = hashPassword(cleanPass, salt);
                         const resIns = await db.run(
                             'INSERT INTO usuarios (email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, ?)',
-                            [email.toLowerCase().trim(), password_hash, salt, cloudData.usuario.esAdmin ? 1 : 0, cloudData.usuario.aprobado ? 1 : 0]
+                            [cleanEmail, password_hash, salt, cloudData.usuario.esAdmin ? 1 : 0, cloudData.usuario.aprobado ? 1 : 0]
                         );
                         usuario = await db.get('SELECT * FROM usuarios WHERE id = ?', [resIns.lastID]);
                     } else if (cloudData.usuario.aprobado) {
                         console.log(`✅ [CLOUD-SYNC]: ¡Usuario aprobado en la nube! Actualizando permiso local.`);
                         await db.run('UPDATE usuarios SET aprobado = 1 WHERE id = ?', [usuario.id]);
-                        usuario.aprobado = 1; // Actualizar objeto en memoria
+                        usuario.aprobado = 1;
                     }
+                } else if (cloudRes.status === 401) {
+                    console.log(`❌ [CLOUD-SYNC]: Credenciales inválidas en la nube para [${cleanEmail}]`);
+                } else {
+                    console.warn(`⚠️ [CLOUD-SYNC]: Respuesta inesperada del servidor (${cloudRes.status})`);
                 }
             } catch (e) {
                 console.error("🛑 [CLOUD-SYNC-ERROR]: Fallo al conectar con Render:", e.message);
+                // Si falla por timeout o red, y no lo tenemos local, avisamos que no hay conexión
+                if (!usuario) {
+                    return res.status(503).json({ 
+                        error: 'No se pudo verificar tu cuenta en la nube.', 
+                        detalle: 'Verifica tu conexión a internet o intenta de nuevo en unos momentos. Archipeg necesita validar tu licencia la primera vez.' 
+                    });
+                }
             }
         }
 
@@ -667,7 +683,7 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
-        esAdmin = ADMINS.includes(usuario.email);
+        const esAdmin = ADMINS.includes(usuario.email.toLowerCase().trim());
 
         // Permitimos login aunque no esté aprobado (entrará en modo demo)
 
@@ -680,7 +696,7 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
                 id: usuario.id, 
                 email: usuario.email, 
                 esAdmin: esAdmin, 
-                aprobado: esAdmin || !!usuario.aprobado 
+                aprobado: (esAdmin || usuario.aprobado === 1 || !!usuario.aprobado) 
             },
             token
         });

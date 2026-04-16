@@ -118,7 +118,7 @@ const Menu = () => {
                         </Link>
                     </li>
                     {/* Solo mostramos usuarios si es Admin (esto se puede refinar con el contexto de Auth) */}
-                    {usuario?.esAdmin && (
+                    {(usuario?.esAdmin || usuario?.esAdmin === 1) && (
                         <li>
                             <Link to="/usuarios" onClick={cerrarMenu}>
                                 <span className="icon">👥</span> USUARIOS
