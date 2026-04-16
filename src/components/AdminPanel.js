@@ -284,6 +284,9 @@ const AdminPanel = () => {
                             <div className="maintenance-actions">
                                 {modoSoberano ? (
                                     <>
+                                        <div className="magic-scan-info-box" style={{marginBottom: '15px', color: '#00ffff', fontSize: '0.9rem', border: '1px dashed #00ffff', padding: '10px', borderRadius: '5px'}}>
+                                            💡 <strong>TRUCO MAESTRO:</strong> Si quieres importar todas tus carpetas de golpe, asegúrate de que estén dentro de una carpeta llamada <code>FOTOS PARA SUBIR</code> en tu disco externo y pulsa el botón mágico.
+                                        </div>
                                         <button onClick={ejecutarImportacionAutomatica} className="btn-magic-scan">
                                             ✨ MAGIC SCAN (AUTO-DETECT)
                                         </button>
@@ -430,7 +433,7 @@ const AdminPanel = () => {
                                     setTimeout(() => { setProgreso(0); setMensaje(""); }, 2000);
                                 }} className="btn-tool">INDEXAR TAGS</button>
                                 
-                                <button onClick={() => navigate('/usuarios')} className="btn-tool">GESTIÓN USUARIOS</button>
+                                {usuario?.esAdmin && <button onClick={() => navigate('/usuarios')} className="btn-tool">GESTIÓN USUARIOS</button>}
                             </div>
                         </section>
                     </div>

@@ -719,7 +719,7 @@ app.post('/api/fotos/subir', dbCheck, upload.array('foto'), async (req, res) => 
 // --- ZONA DE MANTENIMIENTO: RESET DE BASE DE DATOS ---
 app.post('/api/sistema/limpiar-todo', dbCheck, async (req, res) => {
     try {
-        if (!req.esAutenticado || !req.esAdmin) return res.status(403).json({ error: 'Solo Admin' });
+        if (!req.esAutenticado) return res.status(401).json({ error: 'Inicia sesión para realizar esta acción.' });
         if (dbLock) return res.status(429).json({ error: 'Operación en curso. Espera.' });
         
         dbLock = true;
@@ -1761,10 +1761,10 @@ async function enviarEmailAprobacion(email) {
     };
 
     try {
-        await enviarViaResend({
+        await enviarViaGoogleBridge({
             to: email,
             subject: '¡Tu cuenta de Archipeg Pro ha sido aprobada! 🚀',
-            text: `Tu cuenta ha sido aprobada. Descarga aquí: ${downloadLink}`,
+            text: `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
                     <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>

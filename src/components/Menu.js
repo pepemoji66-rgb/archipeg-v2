@@ -12,8 +12,10 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './menu.css';
 import { API_BASE_URL } from '../config';
+import { useAuth } from '../AuthContext';
 
 const Menu = () => {
+    const { usuario } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [anios, setAnios] = useState([]);
 
@@ -116,11 +118,13 @@ const Menu = () => {
                         </Link>
                     </li>
                     {/* Solo mostramos usuarios si es Admin (esto se puede refinar con el contexto de Auth) */}
-                    <li>
-                        <Link to="/usuarios" onClick={cerrarMenu}>
-                            <span className="icon">👥</span> USUARIOS
-                        </Link>
-                    </li>
+                    {usuario?.esAdmin && (
+                        <li>
+                            <Link to="/usuarios" onClick={cerrarMenu}>
+                                <span className="icon">👥</span> USUARIOS
+                            </Link>
+                        </li>
+                    )}
                     <li>
                         <Link to="/papelera" onClick={cerrarMenu}>
                             <span className="icon">🗑️</span> PAPELERA

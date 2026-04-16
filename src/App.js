@@ -17,6 +17,12 @@ import Duplicados from './components/Duplicados';
 import Usuarios from './components/Usuarios';
 import Mapa from './components/Mapa';
 
+const RutaAprobada = ({ children }) => {
+    const { usuario } = useAuth();
+    if (!usuario?.aprobado) return <Navigate to="/galeria-completa" replace />;
+    return children;
+}
+
 const RutaAdmin = ({ children }) => {
     const { usuario } = useAuth();
     if (!usuario?.esAdmin) return <Navigate to="/galeria-completa" replace />;
@@ -45,7 +51,7 @@ function AppRoutes() {
                 <Route path="/anio/:anio" element={<VistaAnio />} />
                 <Route path="/galeria/:anio" element={<VistaAnio />} />
                 <Route path="/duplicados" element={<Duplicados />} />
-                <Route path="/admin" element={<RutaAdmin><AdminPanel /></RutaAdmin>} />
+                <Route path="/admin" element={<RutaAprobada><AdminPanel /></RutaAprobada>} />
                 <Route path="/usuarios" element={<RutaAdmin><Usuarios /></RutaAdmin>} />
                 <Route path="/papelera" element={<Papelera />} />
                 <Route path="/albumes" element={<Albumes />} />
