@@ -608,9 +608,42 @@ app.post('/api/auth/login', dbCheck, async (req, res) => {
 
         if (!db) return res.status(503).json({ error: 'Servidor iniciándose, reintenta en un momento' });
 
-        const usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
+        let usuario = await db.get('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
+        
+        // --- PUENTE DE AUTENTICACIÓN (CLOUD FALLBACK) ---
+        // Si no existe localmente, intentamos validar contra la nube de Render
+        const esLocal = !process.env.RENDER;
+        if (!usuario && esLocal) {
+            console.log(`🌐 [CLOUD-BRIDGE]: Buscando usuario [${email}] en la nube...`);
+            try {
+                const cloudRes = await fetch('https://archipeg-pro.onrender.com/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (cloudRes.ok) {
+                    const cloudData = await cloudRes.json();
+                    console.log(`✅ [CLOUD-BRIDGE]: Autenticación exitosa para [${email}]. Sincronizando usuario...`);
+                    
+                    // Creamos el usuario localmente con la contraseña actual para permitir uso offline
+                    const salt = crypto.randomBytes(16).toString('hex');
+                    const password_hash = hashPassword(password, salt);
+                    
+                    const resIns = await db.run(
+                        'INSERT INTO usuarios (email, password_hash, salt, es_admin, aprobado) VALUES (?, ?, ?, ?, ?)',
+                        [email.toLowerCase().trim(), password_hash, salt, cloudData.usuario.esAdmin ? 1 : 0, cloudData.usuario.aprobado ? 1 : 0]
+                    );
+                    
+                    usuario = await db.get('SELECT * FROM usuarios WHERE id = ?', [resIns.lastID]);
+                }
+            } catch (e) {
+                console.error("🛑 [CLOUD-BRIDGE-ERROR]: Fallo al conectar con Render:", e.message);
+            }
+        }
+
         if (!usuario) {
-            console.log(`❌ ERROR: El email [${email}] no existe en la base de datos local.`);
+            console.log(`❌ ERROR: El email [${email}] no existe ni localmente ni en la nube.`);
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
