@@ -6,6 +6,8 @@ import { API_BASE_URL } from '../config';
 
 const API = `${API_BASE_URL}/api`;
 
+const IS_ELECTRON = window.navigator.userAgent.indexOf('Electron') !== -1;
+
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -146,7 +148,7 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                {(usuario.aprobado || usuario.aprobado === 1) && (
+                {!IS_ELECTRON && (usuario.aprobado || usuario.aprobado === 1) && (
                     <a 
                         href="/downloads/Archipeg_Setup.exe" 
                         download 
