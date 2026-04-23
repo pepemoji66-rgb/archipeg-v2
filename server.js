@@ -153,7 +153,7 @@ if (fs.existsSync(buildPath)) {
 }
 
 // --- AUTH: LISTA DE ADMINISTRADORES ---
-const ADMINS = ['correodefranciscovalero@gmail.com', 'pepemoji66@gmail.com', 'archipegv2@gmail.com'];
+const ADMINS = ['pepemoji66@gmail.com', 'archipegv2@gmail.com'];
 
 function hashPassword(password, salt) {
     return crypto.createHash('sha256').update(salt + password).digest('hex');

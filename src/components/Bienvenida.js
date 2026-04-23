@@ -43,7 +43,7 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 }
             }
         } catch (err) {
-            setError('Error: Email o contraseña incorrectos');
+            setError(err.message);
         } finally {
             setCargando(false);
         }
