@@ -72,6 +72,11 @@ class LibSqlAdapter {
             };
         } catch (e) { console.error("🛑 [DB-RUN-ERROR]:", e.message); throw e; }
     }
+    async batch(stmtList) {
+        try {
+            return await this.client.batch(stmtList, "write");
+        } catch (e) { console.error("🛑 [DB-BATCH-ERROR]:", e.message); throw e; }
+    }
     async exec(sql) { 
         try {
             return await this.client.executeMultiple(sql); 
@@ -1592,14 +1597,20 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
         let errores = 0;
 
         dbLock = true;
-        await db.run("BEGIN TRANSACTION");
+        
+        const CHUNK_SIZE = 50;
+        let batchStatements = [];
+        let batchPhotos = [];
+
         try {
             for (let i = 0; i < fotosAImportar.length; i++) {
                 progresoOperacion.actual = i + 1;
                 const foto = fotosAImportar[i];
+                
                 try {
                     const fileName = path.basename(foto.path);
                     
+                    // Verificación de duplicado (esta sí tiene que ser individual por seguridad, pero es rápida)
                     const duplicada = await db.get(
                         "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
                         [fileName, req.usuario?.id]
@@ -1624,47 +1635,63 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                     const nuevoNombre = `${Date.now()}-${fileName}`;
                     const destinoFinal = path.join(dirDestino, nuevoNombre);
                     
-                    // Copia asíncrona
                     await fs.promises.copyFile(foto.path, destinoFinal);
-
                     const meta = await extraerMetadata(destinoFinal);
                     const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
 
-                    const result = await db.run(
-                        "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
-                        [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
-                    );
-
-                    if (foto.tags.length > 0) {
-                        const nombreEvento = foto.tags[foto.tags.length - 1];
-                        let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
-                        if (!evento) {
-                            const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${anioFinal}-01-01`]);
-                            evento = { id: resEv.lastID };
-                        }
-                        await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [evento.id, result.lastID]);
-                    }
-
-                    importadas++;
+                    // Acumulamos el INSERT para el lote
+                    batchStatements.push({
+                        sql: "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                        args: [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
+                    });
                     
-                    // Ceder el control al event loop cada 50 fotos
-                    if (importadas % 50 === 0) {
+                    batchPhotos.push({ tags: foto.tags, anioFinal });
+
+                    // Si llegamos al tamaño del lote o es el final, enviamos a Turso
+                    if (batchStatements.length >= CHUNK_SIZE || i === fotosAImportar.length - 1) {
+                        const results = await db.batch(batchStatements);
+                        
+                        // Procesar eventos para el lote enviado
+                        for (let k = 0; k < batchPhotos.length; k++) {
+                            const p = batchPhotos[k];
+                            if (p.tags.length > 0) {
+                                const nombreEvento = p.tags[p.tags.length - 1];
+                                // Nota: Para máxima velocidad, los eventos se gestionan por separado si es necesario
+                                // Pero para simplificar, intentamos asociar. 
+                                // Turso batch no devuelve IDs de la misma forma que run(), así que usaremos una técnica de búsqueda por URL
+                                const insertedFoto = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [batchStatements[k].args[4]]);
+                                if (insertedFoto) {
+                                    let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
+                                    if (!evento) {
+                                        const resEv = await db.run("INSERT INTO eventos (nombre, usuario_id, fecha_inicio) VALUES (?, ?, ?)", [nombreEvento, req.usuario?.id, `${p.anioFinal}-01-01`]);
+                                        evento = { id: resEv.lastID };
+                                    }
+                                    await db.run("INSERT OR IGNORE INTO evento_fotos (evento_id, foto_id) VALUES (?, ?)", [evento.id, insertedFoto.id]);
+                                }
+                            }
+                        }
+
+                        importadas += batchStatements.length;
+                        batchStatements = [];
+                        batchPhotos = [];
+                        
+                        // Pequeño respiro para el sistema
                         await new Promise(resolve => setImmediate(resolve));
                     }
+
                 } catch (e) {
                     console.error(`❌ Fallo al procesar archivo: ${foto.path}`, e.message);
                     errores++;
                 }
             }
-            await db.run("COMMIT");
             progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
             res.json({ 
                 success: true, 
-                message: `Importación finalizada.`,
+                message: `Importación masiva finalizada.`,
                 importadas, 
                 saltadas,
                 errores,
-                pendientes: fotosAImportar.length - importadas - saltadas - errores
+                totalProcesadas: fotosAImportar.length
             });
         } catch (e) {
             await db.run("ROLLBACK");
