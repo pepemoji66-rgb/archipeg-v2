@@ -16,12 +16,22 @@ if (dns.setDefaultResultOrder) {
 }
 
 try {
-    // 🛡️ Intentamos cargar .env desde la carpeta de datos o la del motor
-    const envPath = path.join(process.env.ARCHIPEG_DATA_DIR || __dirname, '.env');
-    require('dotenv').config({ path: envPath });
-    console.log("🛡️  Escudo del PIN cargado desde:", envPath);
+    // 1. Intentamos cargar .env del directorio actual del proceso
+    require('dotenv').config();
+    
+    // 2. Intentamos cargar .env de la carpeta del motor (server.js)
+    require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+    // 3. Si hay ARCHIPEG_DATA_DIR (Documentos), cargamos desde allí con prioridad
+    if (process.env.ARCHIPEG_DATA_DIR) {
+        const dataEnvPath = path.join(process.env.ARCHIPEG_DATA_DIR, '.env');
+        if (fs.existsSync(dataEnvPath)) {
+            require('dotenv').config({ path: dataEnvPath, override: true });
+            console.log("🛡️  Configuración cargada desde Datos:", dataEnvPath);
+        }
+    }
 } catch (e) {
-    console.warn("⚠️ Advertencia: No se pudo cargar .env, usando configuración por defecto.");
+    console.warn("⚠️ Advertencia al cargar .env:", e.message);
 }
 
 const MASTER_PIN = process.env.MASTER_PIN || '142536'; 
