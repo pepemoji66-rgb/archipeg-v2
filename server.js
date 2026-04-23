@@ -1805,7 +1805,7 @@ console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USE
 async function enviarEmailAprobacion(email) {
     console.log(`⏳ [SMTP-DEBUG]: Preparando envío para: ${email}`);
     
-    const downloadLink = "https://drive.google.com/file/d/1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4/view?usp=sharing";
+    const downloadLink = "https://drive.google.com/uc?export=download&id=1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4";
 
     const mailOptions = {
         from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,
