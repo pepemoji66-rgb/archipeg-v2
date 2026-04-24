@@ -38,6 +38,7 @@ function AppRoutes() {
         return (
             <Routes>
                 <Route path="/" element={<Indice />} />
+                <Route path="/presentacion" element={<Presentacion />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         );

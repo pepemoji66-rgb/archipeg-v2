@@ -45,11 +45,15 @@ const Indice = () => {
                 </p>
                 <div className="landing-ctas">
                     {haySession ? (
-                        <Link to="/galeria-completa" className="btn-primary-neon">ACCEDER A MI ARCHIVO</Link>
+                        <>
+                            <Link to="/galeria-completa" className="btn-primary-neon">ACCEDER A MI ARCHIVO</Link>
+                            <Link to="/presentacion" className="btn-secondary-neon" style={{ border: '1px solid #00ffff', color: '#00ffff' }}>✨ VER PRESENTACIÓN</Link>
+                        </>
                     ) : (
                         <>
                             <button className="btn-primary-neon" onClick={() => abrirModal('registro')}>EMPEZAR GRATIS</button>
                             <button className="btn-secondary-neon" onClick={() => abrirModal('login')}>INICIAR SESIÓN</button>
+                            <Link to="/presentacion" className="btn-secondary-neon" style={{ border: '1px solid #00ffff', color: '#00ffff', width: '100%', marginTop: '10px', textAlign: 'center' }}>✨ VER PRESENTACIÓN ARCHIPEG</Link>
                         </>
                     )}
                 </div>
@@ -172,6 +176,9 @@ const Indice = () => {
                                 <li>🌐 <b>Fotos Privadas</b>: No son accesibles desde aquí sin subida previa.</li>
                                 <li>☁️ Almacenamiento limitado y gestionado externamente.</li>
                             </ul>
+                            <Link to="/presentacion" className="btn-secondary-neon" style={{marginTop: '20px', width: '100%', fontSize: '0.9rem', display: 'inline-block', textDecoration: 'none', textAlign: 'center', border: '1px solid #00ffff'}}>
+                                ✨ VER TOUR VIRTUAL (PRESENTACIÓN)
+                            </Link>
                         </div>
 
                         <div className="magic-divider">VS</div>
