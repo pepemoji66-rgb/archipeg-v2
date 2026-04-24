@@ -8,10 +8,9 @@ const Presentacion = () => {
     const audioRef = useRef(null);
     const [audioStarted, setAudioStarted] = useState(false);
 
-    // Detección ultra-segura de entorno
     const isFileProtocol = window.location.protocol === 'file:';
-    const audioSrc = isFileProtocol ? "presentacion.mp3" : "/presentacion.mp3";
-    const heroBg = isFileProtocol ? "presentacion_hero.png" : "/presentacion_hero.png";
+    const audioSrc = isFileProtocol ? "presentacion.mp3" : "https://archipeg-v2.onrender.com/presentacion.mp3";
+    const heroBg = isFileProtocol ? "presentacion_hero.png" : "https://archipeg-v2.onrender.com/presentacion_hero.png";
 
     const slides = [
         {
@@ -95,6 +94,26 @@ const Presentacion = () => {
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
             <audio ref={audioRef} src={audioSrc} loop preload="auto" crossOrigin="anonymous" />
+            
+            {!audioStarted && (
+                <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10000,
+                    background: 'var(--acento-turquesa)',
+                    color: '#000',
+                    padding: '10px 20px',
+                    borderRadius: '50px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 0 20px var(--acento-turquesa)',
+                    animation: 'pulse 2s infinite',
+                    cursor: 'pointer'
+                }}>
+                    🎵 HAZ CLIC PARA ACTIVAR EL SONIDO
+                </div>
+            )}
 
             {slides.map((slide, index) => (
                 <div key={index} className={`slide ${index === currentSlide ? 'active' : ''}`}>
