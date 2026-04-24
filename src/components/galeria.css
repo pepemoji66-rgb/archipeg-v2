@@ -282,6 +282,18 @@
 .btn-pagi-flecha:hover:not(:disabled) {
     background: var(--cian-neon);
     color: #000;
+    box-shadow: 0 0 20px var(--cian-neon);
+}
+
+.btn-pagi-flecha:active:not(:disabled) {
+    transform: scale(0.95);
+    background: var(--fucsia-neon);
+    border-color: var(--fucsia-neon);
+    color: #fff;
+}
+
+.btn-pagi-flecha:focus {
+    outline: none;
     box-shadow: 0 0 15px var(--cian-neon);
 }
 
@@ -332,6 +344,28 @@
 .input-salto-neon:focus {
     outline: none;
     box-shadow: 0 0 10px var(--fucsia-neon);
+}
+
+.btn-ir-pagi {
+    background: var(--fucsia-neon);
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.btn-ir-pagi:hover {
+    box-shadow: 0 0 12px var(--fucsia-neon);
+    transform: translateY(-2px);
+}
+
+.btn-ir-pagi:active {
+    transform: scale(0.9);
 }
 
 /* --- ESTILOS DE SELECCIÓN Y ACCIONES MASIVAS NEÓN --- */

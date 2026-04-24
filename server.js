@@ -1411,6 +1411,25 @@ app.post('/api/fotos/:id/personas', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
+app.post('/api/personas/:id/fotos-masivo', async (req, res) => {
+    try {
+        const { fotos_ids } = req.body;
+        if (!Array.isArray(fotos_ids)) return res.status(400).json({ error: 'fotos_ids debe ser un array' });
+        
+        await db.run("BEGIN");
+        try {
+            for (const foto_id of fotos_ids) {
+                await db.run("INSERT OR IGNORE INTO foto_personas (foto_id, persona_id) VALUES (?, ?)", [foto_id, req.params.id]);
+            }
+            await db.run("COMMIT");
+        } catch (e) {
+            await db.run("ROLLBACK");
+            throw e;
+        }
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json(err); }
+});
+
 app.get('/api/fotos/:id/personas', async (req, res) => {
     try {
         const personas = await db.all(

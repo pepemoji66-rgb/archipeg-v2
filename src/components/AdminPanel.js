@@ -69,6 +69,9 @@ const AdminPanel = () => {
     const [busquedaAnio, setBusquedaAnio] = useState("");
     const [busquedaMes, setBusquedaMes] = useState("");
     const [busquedaTitulo, setBusquedaTitulo] = useState("");
+    const [draftBusquedaAnio, setDraftBusquedaAnio] = useState("");
+    const [draftBusquedaMes, setDraftBusquedaMes] = useState("");
+    const [draftBusquedaTitulo, setDraftBusquedaTitulo] = useState("");
     const [aniosDb, setAniosDb] = useState([]);
     const [paginaActual, setPaginaActual] = useState(parseInt(pUrl) || 1);
 
@@ -230,6 +233,23 @@ const AdminPanel = () => {
         } catch (e) {}
     };
 
+    const aplicarFiltros = () => {
+        setBusquedaAnio(draftBusquedaAnio);
+        setBusquedaMes(draftBusquedaMes);
+        setBusquedaTitulo(draftBusquedaTitulo);
+        setPaginaActual(1);
+    };
+
+    const limpiarFiltros = () => {
+        setDraftBusquedaAnio("");
+        setDraftBusquedaMes("");
+        setDraftBusquedaTitulo("");
+        setBusquedaAnio("");
+        setBusquedaMes("");
+        setBusquedaTitulo("");
+        setPaginaActual(1);
+    };
+
     const manejarSeleccion = (id) => {
         const nuevos = new Set(seleccionados);
         if (nuevos.has(id)) nuevos.delete(id); else nuevos.add(id);
@@ -241,9 +261,17 @@ const AdminPanel = () => {
         const bMes = busquedaMes.toString().trim();
         const bTit = busquedaTitulo.toLowerCase().trim();
         const rutaNorm = (foto.imagen_url || "").replace(/\\/g, "/").toLowerCase();
-        return (bAnio === "" || (foto.anio && foto.anio.toString() === bAnio) || rutaNorm.includes(bAnio)) &&
-               (bMes === "" || (foto.mes && foto.mes.toString() === bMes)) &&
-               (bTit === "" || (foto.titulo || "").toLowerCase().includes(bTit) || rutaNorm.includes(bTit));
+        
+        const coincideTexto = bTit === "" || 
+                              (foto.titulo || "").toLowerCase().includes(bTit) || 
+                              (foto.etiquetas || "").toLowerCase().includes(bTit) || 
+                              (foto.lugar || "").toLowerCase().includes(bTit) ||
+                              rutaNorm.includes(bTit);
+
+        const coincideAnio = bAnio === "" || (foto.anio && foto.anio.toString() === bAnio) || rutaNorm.includes(bAnio);
+        const coincideMes = bMes === "" || (foto.mes && foto.mes.toString() === bMes);
+
+        return coincideTexto && coincideAnio && coincideMes;
     });
 
     const totalPaginas = Math.max(1, Math.ceil(fotosFiltradas.length / fotosPorPagina));
@@ -310,13 +338,35 @@ const AdminPanel = () => {
 
                         {/* FILTROS Y TABLA */}
                         <section className="albolote-card content">
-                            <div className="filter-bar-sleek">
-                                <input type="text" placeholder="Buscar por título o etiquetas..." value={busquedaTitulo} onChange={(e) => { setBusquedaTitulo(e.target.value); setPaginaActual(1); }} className="sleek-input" />
-                                <input type="number" placeholder="Año" value={busquedaAnio} onChange={(e) => { setBusquedaAnio(e.target.value); setPaginaActual(1); }} className="sleek-input-small" />
-                                <select value={busquedaMes} onChange={(e) => { setBusquedaMes(e.target.value); setPaginaActual(1); }} className="sleek-select">
+                            <div className="filter-bar-sleek" style={{ flexWrap: 'wrap' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por título o etiquetas..." 
+                                    value={draftBusquedaTitulo} 
+                                    onChange={(e) => setDraftBusquedaTitulo(e.target.value)} 
+                                    onKeyDown={(e) => e.key === 'Enter' && aplicarFiltros()}
+                                    className="sleek-input" 
+                                />
+                                <input 
+                                    type="number" 
+                                    placeholder="Año" 
+                                    value={draftBusquedaAnio} 
+                                    onChange={(e) => setDraftBusquedaAnio(e.target.value)} 
+                                    onKeyDown={(e) => e.key === 'Enter' && aplicarFiltros()}
+                                    className="sleek-input-small" 
+                                />
+                                <select 
+                                    value={draftBusquedaMes} 
+                                    onChange={(e) => setDraftBusquedaMes(e.target.value)} 
+                                    className="sleek-select"
+                                >
                                     <option value="">Cualquier Mes</option>
                                     {nombreMeses.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                                 </select>
+                                <button className="btn-ir-pagi-admin" onClick={aplicarFiltros} style={{padding: '0 20px', height: '45px'}}>🔍 BUSCAR</button>
+                                {(busquedaAnio || busquedaMes || busquedaTitulo) && (
+                                    <button className="btn-mini-action" onClick={limpiarFiltros} style={{height: '45px', borderColor: '#ff2d7d', color: '#ff2d7d'}}>🧹</button>
+                                )}
                             </div>
 
                             <div className="table-wrapper-clean">
@@ -356,14 +406,17 @@ const AdminPanel = () => {
                                 <button disabled={paginaActual === 1} onClick={() => setPaginaActual(p => p - 1)} className="btn-pag">ANTERIOR</button>
                                 <div className="pagi-jump-box">
                                     <span>Página {paginaActual} de {totalPaginas}</span>
-                                    <input 
-                                        type="number" 
-                                        className="sleek-input-jump" 
-                                        value={inputPage} 
-                                        onChange={(e) => setInputPage(e.target.value)}
-                                        onKeyDown={ejecutarSalto}
-                                        placeholder="..."
-                                    />
+                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                        <input 
+                                            type="number" 
+                                            className="sleek-input-jump" 
+                                            value={inputPage} 
+                                            onChange={(e) => setInputPage(e.target.value)}
+                                            onKeyDown={ejecutarSalto}
+                                            placeholder="..."
+                                        />
+                                        <button className="btn-ir-pagi-admin" onClick={() => ejecutarSalto({ key: 'Enter' })}>IR</button>
+                                    </div>
                                 </div>
                                 <button disabled={paginaActual >= totalPaginas} onClick={() => setPaginaActual(p => p + 1)} className="btn-pag">SIGUIENTE</button>
                             </div>

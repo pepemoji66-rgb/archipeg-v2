@@ -67,6 +67,13 @@ const Galeria = () => {
     const [eventosDisponibles, setEventosDisponibles] = useState([]);
     const [nuevoEventoBatch, setNuevoEventoBatch] = useState('');
 
+    // Nuevos estados para asignar a persona
+    const [mostrarAsignarPersona, setMostrarAsignarPersona] = useState(false);
+    const [personasDisponibles, setPersonasDisponibles] = useState([]);
+    const [nuevaPersonaBatch, setNuevaPersonaBatch] = useState('');
+
+    const [soloFavoritos, setSoloFavoritos] = useState(false);
+
     const fotosPorPagina = 15;
 
     // Sincronizar la URL con la página actual
@@ -88,9 +95,11 @@ const Galeria = () => {
             const rutaNorm = (f.imagen_url || "").replace(/\\/g, "/").toLowerCase();
             const matchAnio = !bAnioStr || f.anio?.toString() === bAnioStr || rutaNorm.includes(bAnioStr);
             
-            return matchTexto && matchMes && matchAnio;
+            const matchFavorito = !soloFavoritos || f.favorito === 1;
+
+            return matchTexto && matchMes && matchAnio && matchFavorito;
         });
-    }, [fotos, busqueda, busquedaMes, busquedaAnio]);
+    }, [fotos, busqueda, busquedaMes, busquedaAnio, soloFavoritos]);
 
     const totalPaginas = Math.ceil(fotosFiltradas.length / fotosPorPagina);
     const fotosPaginadas = fotosFiltradas.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina);
@@ -199,6 +208,27 @@ const Galeria = () => {
         }
     };
 
+    useEffect(() => {
+        if (mostrarAsignarPersona) {
+            apiFetch(`${API}/personas`).then(r => r.json()).then(setPersonasDisponibles).catch(console.error);
+        }
+    }, [mostrarAsignarPersona]);
+
+    const asignarAPersona = async (personaId) => {
+        try {
+            await apiFetch(`${API}/personas/${personaId}/fotos-masivo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fotos_ids: seleccionadas })
+            });
+            setMostrarAsignarPersona(false);
+            setSeleccionadas([]);
+            setModoSeleccion(false);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const crearAlbumYAsignar = async () => {
         if (!nuevoAlbumBatch.trim()) return;
         try {
@@ -236,6 +266,27 @@ const Galeria = () => {
             });
             await asignarAEvento(nuevo.id);
             setNuevoEventoBatch('');
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const crearPersonaYAsignar = async () => {
+        if (!nuevaPersonaBatch.trim()) return;
+        try {
+            const res = await apiFetch(`${API}/personas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nuevaPersonaBatch.trim() })
+            });
+            const nuevo = await res.json();
+            // Actualizar lista local
+            setPersonasDisponibles(prev => {
+                if (prev.some(p => p.id === nuevo.id)) return prev;
+                return [nuevo, ...prev];
+            });
+            await asignarAPersona(nuevo.id);
+            setNuevaPersonaBatch('');
         } catch (e) {
             console.error(e);
         }
@@ -375,6 +426,7 @@ const Galeria = () => {
         setBusqueda('');
         setBusquedaAnio('');
         setBusquedaMes('');
+        setSoloFavoritos(false);
         setPaginaActual(1);
     };
 
@@ -385,6 +437,14 @@ const Galeria = () => {
                 <h1 className="galeria-titulo">ARCHIVO FOTOGRÁFICO</h1>
 
                 <div className="galeria-filtros" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                    <button 
+                        className={`btn-header-neon ${soloFavoritos ? 'btn-active-fucsia' : ''}`} 
+                        onClick={() => { setSoloFavoritos(!soloFavoritos); setPaginaActual(1); }}
+                        title="Ver solo favoritos"
+                        style={{ fontSize: '1.2rem', padding: '5px 12px', borderColor: soloFavoritos ? 'var(--fucsia-neon)' : 'var(--oro-neon)', color: soloFavoritos ? '#fff' : 'var(--oro-neon)' }}
+                    >
+                        {soloFavoritos ? '⭐' : '☆'}
+                    </button>
                     <input
                         type="text"
                         className="input-neon"
@@ -423,9 +483,9 @@ const Galeria = () => {
                         type="button"
                         className="btn-header-neon"
                         onClick={aplicarFiltros}
-                        title="Aplicar filtros a la galería"
+                        title="Ejecutar búsqueda"
                     >
-                        ✅ ACEPTAR
+                        🔍 BUSCAR
                     </button>
 
                     {(busqueda || busquedaAnio || busquedaMes) && (
@@ -459,6 +519,9 @@ const Galeria = () => {
                     </button>
                     <button className="btn-batch btn-action-icon-morado" style={{ border: '1px solid #00ffff', color: '#00ffff' }} onClick={() => setMostrarAsignarEvento(true)}>
                         📅 AÑADIR A EVENTO
+                    </button>
+                    <button className="btn-batch btn-action-icon-morado" style={{ border: '1px solid #ffcc00', color: '#ffcc00' }} onClick={() => setMostrarAsignarPersona(true)}>
+                        👤 AÑADIR A PERSONA
                     </button>
                     <button className="btn-batch btn-download" onClick={descargarSeleccionadas}>
                         📥 DESCARGAR
@@ -544,9 +607,10 @@ const Galeria = () => {
                                 className="input-salto-neon"
                                 value={saltoInput}
                                 onChange={e => setSaltoInput(e.target.value)}
-                                onKeyDown={ejecutarSalto}
+                                 onKeyDown={ejecutarSalto}
                                 placeholder="..."
                             />
+                            <button className="btn-ir-pagi" onClick={() => ejecutarSalto({ key: 'Enter' })}>IR</button>
                         </div>
                     </div>
                     <button className="btn-pagi-flecha" disabled={paginaActual === totalPaginas} onClick={() => setPaginaActual(p => p + 1)}>SIGUIENTE »</button>
@@ -633,6 +697,37 @@ const Galeria = () => {
 
                         <div style={{ textAlign: 'center', marginTop: '25px' }}>
                             <button className="btn-volver-neon" onClick={() => setMostrarAsignarEvento(false)} style={{ borderColor: '#555', color: '#aaa' }}>✕ CANCELAR</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL ASIGNAR A PERSONA */}
+            {mostrarAsignarPersona && (
+                <div className="modal-overlay" onClick={() => setMostrarAsignarPersona(false)}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #ffcc00', borderRadius: '12px', boxShadow: '0 0 20px rgba(255,204,0,0.4)', color: '#fff' }}>
+                        <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>👤 VINCULAR PERSONA</h2>
+                        <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a identificar {seleccionadas.length} foto(s)</p>
+                        
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '20px' }}>
+                            {personasDisponibles.map(p => (
+                                <button key={p.id} className="btn-header-neon" style={{ display: 'block', width: '100%', marginBottom: '10px', textAlign: 'left', padding: '12px', borderColor: '#ffcc00', color: '#ffcc00' }} onClick={() => asignarAPersona(p.id)}>
+                                    👤 {p.nombre.toUpperCase()}
+                                </button>
+                            ))}
+                            {personasDisponibles.length === 0 && <p style={{ color: '#aaa', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>No hay sujetos registrados</p>}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #333', paddingTop: '20px' }}>
+                            <h3 style={{ fontSize: '0.9rem', color: '#ffcc00', marginBottom: '15px' }}>O registrar nuevo sujeto:</h3>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                                <input className="input-neon" value={nuevaPersonaBatch} onChange={e => setNuevaPersonaBatch(e.target.value)} placeholder="Nombre completo..." style={{ flex: 1, borderColor: '#ffcc00' }} />
+                                <button className="btn-volver-neon" onClick={crearPersonaYAsignar} style={{ color: '#ffcc00', borderColor: '#ffcc00' }}>+</button>
+                            </div>
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginTop: '25px' }}>
+                            <button className="btn-volver-neon" onClick={() => setMostrarAsignarPersona(false)} style={{ borderColor: '#555', color: '#aaa' }}>✕ CANCELAR</button>
                         </div>
                     </div>
                 </div>

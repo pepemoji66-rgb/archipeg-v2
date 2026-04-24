@@ -850,6 +850,13 @@
 .btn-pag:disabled {
     background: #333;
     cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-pag:active:not(:disabled) {
+    transform: scale(0.95);
+    background: #ff2d7d;
+    box-shadow: 0 0 15px #ff2d7d;
 }
 
 /* HERRAMIENTAS */
@@ -1023,4 +1030,27 @@
 
 .sleek-input-jump:focus {
     box-shadow: 0 0 10px var(--acento-turquesa), inset 0 0 5px rgba(0, 242, 255, 0.2);
+}
+
+.btn-ir-pagi-admin {
+    background: var(--acento-turquesa);
+    color: #000;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.btn-ir-pagi-admin:hover {
+    box-shadow: 0 0 12px var(--acento-turquesa);
+    transform: translateY(-1px);
+}
+
+.btn-ir-pagi-admin:active {
+    transform: scale(0.9);
+    background: #fff;
 }

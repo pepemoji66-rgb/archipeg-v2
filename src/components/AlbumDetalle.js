@@ -31,6 +31,7 @@ const AlbumDetalle = () => {
     const [accesoConcedido, setAccesoConcedido] = useState(false);
     const [password, setPassword] = useState('');
     const [errorPwd, setErrorPwd] = useState('');
+    const [soloFavoritos, setSoloFavoritos] = useState(false);
 
     const cargar = useCallback(async () => {
         try {
@@ -101,6 +102,16 @@ const AlbumDetalle = () => {
                     <h1 className="galeria-titulo">{album?.privado ? '🔒 ' : '📁 '}{album?.nombre || '...'}</h1>
                 </div>
                 {album?.descripcion && <span style={{ color:  'var(--acento-turquesa)' , fontSize: '0.9rem', fontWeight: 'bold' }}>{album.descripcion.toUpperCase()}</span>}
+                <div className="galeria-filtros" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                    <button 
+                        className={`btn-header-neon ${soloFavoritos ? 'btn-active-fucsia' : ''}`} 
+                        onClick={() => setSoloFavoritos(!soloFavoritos)}
+                        title="Ver solo favoritos"
+                        style={{ fontSize: '1.2rem', padding: '5px 12px', borderColor: soloFavoritos ? 'var(--fucsia-neon)' : 'var(--oro-neon)', color: soloFavoritos ? '#fff' : 'var(--oro-neon)' }}
+                    >
+                        {soloFavoritos ? '⭐' : '☆'}
+                    </button>
+                </div>
             </header>
 
             {!accesoConcedido && album?.privado ? (
@@ -128,7 +139,9 @@ const AlbumDetalle = () => {
                 </div>
             ) : (
                 <div className="masonry-grid">
-                    {fotos.map(foto => (
+                    {fotos
+                        .filter(f => !soloFavoritos || f.favorito === 1)
+                        .map(foto => (
                         <div key={foto.id} className="foto-card" onClick={() => setFotoZoom(foto)}>
                             <img src={getFotoUrl(foto)} alt={foto.titulo || ''} loading="lazy" />
                             <button
