@@ -9,8 +9,8 @@ const Presentacion = () => {
     const [audioStarted, setAudioStarted] = useState(false);
 
     const isFileProtocol = window.location.protocol === 'file:';
-    const audioSrc = isFileProtocol ? "presentacion.mp3" : "https://archipeg-v2.onrender.com/presentacion.mp3";
-    const heroBg = isFileProtocol ? "presentacion_hero.png" : "https://archipeg-v2.onrender.com/presentacion_hero.png";
+    const audioSrc = isFileProtocol ? "presentacion.mp3" : "/presentacion.mp3";
+    const heroBg = isFileProtocol ? "presentacion_hero.png" : "/presentacion_hero.png";
 
     const slides = [
         {
@@ -93,7 +93,22 @@ const Presentacion = () => {
 
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
-            <audio ref={audioRef} src={audioSrc} loop preload="auto" crossOrigin="anonymous" />
+            <audio 
+                ref={audioRef} 
+                src={audioSrc} 
+                loop 
+                preload="auto" 
+                crossOrigin="anonymous" 
+                controls 
+                style={{ 
+                    position: 'fixed', 
+                    bottom: '80px', 
+                    left: '50%', 
+                    transform: 'translateX(-50%)', 
+                    zIndex: 10001,
+                    opacity: 0.8
+                }} 
+            />
             
             {!audioStarted && (
                 <div style={{
