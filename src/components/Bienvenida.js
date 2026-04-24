@@ -130,9 +130,9 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
 
                 <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '0.8rem', color: '#666' }}>
                     {modo === 'login' ? (
-                        <>¿Nuevo en Archipeg? <span onClick={() => cambiarModo('registro')} style={{ color: '#00f2ff', cursor: 'pointer' }}>Regístrate gratis</span></>
+                        <>¿Nuevo en Archipeg? <span onClick={() => cambiarModo('registro')} style={{ color:  'var(--acento-turquesa)' , cursor: 'pointer' }}>Regístrate gratis</span></>
                     ) : (
-                        <>¿Ya tienes cuenta? <span onClick={() => cambiarModo('login')} style={{ color: '#00f2ff', cursor: 'pointer' }}>Inicia sesión</span></>
+                        <>¿Ya tienes cuenta? <span onClick={() => cambiarModo('login')} style={{ color:  'var(--acento-turquesa)' , cursor: 'pointer' }}>Inicia sesión</span></>
                     )}
                 </div>
             </form>

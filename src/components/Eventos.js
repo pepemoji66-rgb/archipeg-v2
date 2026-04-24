@@ -110,7 +110,7 @@ const Eventos = () => {
                         </div>
                     </div>
                     {eventoActivo.fecha_inicio && (
-                        <button className="btn-volver-neon" style={{ border: '1px solid #00f2ff', color: '#00f2ff' }} onClick={autoEscanear}>
+                        <button className="btn-volver-neon" style={{ border: '1px solid var(--acento-turquesa)', color:  'var(--acento-turquesa)'  }} onClick={autoEscanear}>
                             🤖 AUTO-ESCANEAR FECHAS
                         </button>
                     )}

@@ -40,8 +40,8 @@
     left: 0;
     width: 40px;
     height: 3px;
-    background: #00f2ff;
-    box-shadow: 0 0 10px #00f2ff;
+    background: var(--acento-turquesa);
+    box-shadow: 0 0 10px var(--acento-turquesa);
 }
 
 .usuarios-card {
@@ -69,7 +69,7 @@
 .usuarios-table th {
     text-align: left;
     padding: 1.2rem 1.5rem;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     font-weight: 600;
     letter-spacing: 1.5px;
     text-transform: uppercase;
@@ -145,7 +145,7 @@
 
 .badge-role-user {
     background: rgba(0, 242, 255, 0.08);
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     border: 1px solid rgba(0, 242, 255, 0.4);
 }
 
@@ -173,8 +173,8 @@
 
 .btn-usr-action:hover:not(:disabled) {
     background: rgba(0, 242, 255, 0.15);
-    border-color: #00f2ff;
-    color: #00f2ff;
+    border-color: var(--acento-turquesa);
+    color: var(--acento-turquesa);
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
     transform: translateY(-2px);
 }
@@ -202,8 +202,8 @@
 /* Botón Volver Neon */
 .btn-volver-neon {
     background: transparent;
-    border: 1px solid #00f2ff;
-    color: #00f2ff;
+    border: 1px solid var(--acento-turquesa);
+    color: var(--acento-turquesa);
     padding: 10px 20px;
     border-radius: 30px;
     font-weight: 600;
@@ -214,7 +214,7 @@
 }
 
 .btn-volver-neon:hover {
-    background: #00f2ff;
+    background: var(--acento-turquesa);
     color: #000;
     box-shadow: 0 0 25px rgba(0, 242, 255, 0.6);
 }
@@ -241,7 +241,7 @@
 }
 
 .paginacion-btn:hover:not(:disabled) {
-    background: #00f2ff;
+    background: var(--acento-turquesa);
     color: #000;
     box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
 }
@@ -254,7 +254,7 @@
 
 /* ID Highlight */
 .usuarios-table strong {
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     font-family: monospace;
     font-size: 1.1rem;
     margin-right: 5px;
@@ -311,7 +311,7 @@
 }
 
 .search-container:focus-within {
-    border-color: #00f2ff;
+    border-color: var(--acento-turquesa);
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
     background: rgba(255, 255, 255, 0.08);
 }

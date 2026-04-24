@@ -8,8 +8,20 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
     const [auth, setAuth] = useState({ usuario: null, token: null, esDemo: false, cargando: true });
 
-    // CARGAR SESIÓN AL INICIAR
+    // CARGAR SESIÓN Y TEMA AL INICIAR
     useEffect(() => {
+        // Cargar Tema
+        const savedColor = localStorage.getItem('archipeg-theme');
+        if (savedColor) {
+            document.documentElement.style.setProperty('--acento-primario', savedColor);
+            if (savedColor.startsWith('#')) {
+                const r = parseInt(savedColor.slice(1, 3), 16);
+                const g = parseInt(savedColor.slice(3, 5), 16);
+                const b = parseInt(savedColor.slice(5, 7), 16);
+                document.documentElement.style.setProperty('--acento-primario-ho', `rgba(${r}, ${g}, ${b}, 0.2)`);
+            }
+        }
+
         const sesionGuardada = localStorage.getItem('archipeg_auth');
         if (sesionGuardada) {
             try {

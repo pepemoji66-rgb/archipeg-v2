@@ -10,7 +10,7 @@
     --bg-elevado: rgba(10, 11, 46, 0.85); /* Paneles semitransparentes */
     --texto-light: #f8fafc;
     --texto-apagado: #cbd5e1;
-    --acento-primario: #00f2ff; /* Variable dinámica */
+    --acento-primario: var(--acento-turquesa); /* Variable dinámica */
     --acento-primario-ho: rgba(0, 242, 255, 0.2);
     --acento-turquesa: var(--acento-primario);
     --acento-turquesa-ho: var(--acento-primario-ho);

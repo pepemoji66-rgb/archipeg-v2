@@ -100,12 +100,12 @@ const AlbumDetalle = () => {
                     </button>
                     <h1 className="galeria-titulo">{album?.privado ? '🔒 ' : '📁 '}{album?.nombre || '...'}</h1>
                 </div>
-                {album?.descripcion && <span style={{ color: '#00f2ff', fontSize: '0.9rem', fontWeight: 'bold' }}>{album.descripcion.toUpperCase()}</span>}
+                {album?.descripcion && <span style={{ color:  'var(--acento-turquesa)' , fontSize: '0.9rem', fontWeight: 'bold' }}>{album.descripcion.toUpperCase()}</span>}
             </header>
 
             {!accesoConcedido && album?.privado ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#00f2ff' }}>
-                    <div style={{ fontSize: '4rem', marginBottom: '20px', filter: 'drop-shadow(0 0 10px #00f2ff)' }}>🔒</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color:  'var(--acento-turquesa)'  }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '20px', filter: 'drop-shadow(0 0 10px var(--acento-turquesa))' }}>🔒</div>
                     <h2 style={{ fontSize: '1.5rem', marginBottom: '30px' }}>ESTE ÁLBUM ES PRIVADO</h2>
                     <form onSubmit={intentarDesbloquear} style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
                         <input

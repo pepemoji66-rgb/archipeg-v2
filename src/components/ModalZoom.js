@@ -467,7 +467,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                                 <button className="modal-edit-create-btn" onClick={crearEvento}>+</button>
                             </div>
 
-                            <button className="btn-accion-modal" style={{marginTop:'8px', background:'var(--acento, #00f2ff)', color:'#000', fontWeight:'bold'}} onClick={guardarEdicion}>
+                            <button className="btn-accion-modal" style={{marginTop:'8px', background:'var(--acento, var(--acento-turquesa))', color:'#000', fontWeight:'bold'}} onClick={guardarEdicion}>
                                 Guardar cambios
                             </button>
                         </div>
@@ -480,7 +480,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                             <div className="organizador-zoom-box">
                                 {/* ÁLBUMES */}
                                 <div style={{ marginBottom: '15px' }}>
-                                    <div className="modal-panel-label" style={{ color: 'var(--acento, #00f2ff)', marginBottom: '5px', fontSize:'0.7rem' }}>📁 ÁLBUM</div>
+                                    <div className="modal-panel-label" style={{ color: 'var(--acento, var(--acento-turquesa))', marginBottom: '5px', fontSize:'0.7rem' }}>📁 ÁLBUM</div>
                                     <select 
                                         className="modal-edit-input" 
                                         style={{ width: '100%', marginBottom: '5px' }}
@@ -571,7 +571,7 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                             <button onClick={() => { setEscala(1); setPos({ x: 0, y: 0 }); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔍 Restaurar Zoom</button>
                             <button onClick={() => { girar(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">🔄 Girar 90°</button>
                             {fotoLocal.latitud && (
-                                <button onClick={() => { navigate(`/mapa?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, #00f2ff)' }}>📍 Ver en Mapa</button>
+                                <button onClick={() => { navigate(`/mapa?fotoId=${fotoLocal.id}`); setMenuOpcionesAbierto(false); }} className="floating-menu-btn" style={{ color: 'var(--acento, var(--acento-turquesa))' }}>📍 Ver en Mapa</button>
                             )}
                             <button onClick={() => { toggleFav(); setMenuOpcionesAbierto(false); }} className="floating-menu-btn">
                                 {fotoLocal.favorito ? "⭐ Quitar Favorito" : "🌑 Marcar Favorito"}

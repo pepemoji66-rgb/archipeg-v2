@@ -10,8 +10,8 @@ const Presentacion = () => {
 
     // Detección de entorno para rutas de audio
     const isElectron = window.navigator.userAgent.indexOf('Electron') !== -1;
-    const audioSrc = isElectron ? "presentacion.mp3" : "/presentacion.mp3";
-    const heroBg = isElectron ? "presentacion_hero.png" : "/presentacion_hero.png";
+    const audioSrc = isElectron ? "presentacion.mp3" : (window.location.origin + "/presentacion.mp3");
+    const heroBg = isElectron ? "presentacion_hero.png" : (window.location.origin + "/presentacion_hero.png");
 
     const slides = [
         {

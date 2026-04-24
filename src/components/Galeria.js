@@ -568,7 +568,7 @@ const Galeria = () => {
             {/* MODAL ASIGNAR A ÁLBUM */}
             {mostrarAsignarAlbum && (
                 <div className="modal-overlay" onClick={() => setMostrarAsignarAlbum(false)}>
-                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid var(--acento-turquesa)', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
                         <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>📂 AÑADIR A ÁLBUM</h2>
                         <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a mover {seleccionadas.length} foto(s)</p>
                         
@@ -582,7 +582,7 @@ const Galeria = () => {
                         </div>
 
                         <div style={{ borderTop: '1px solid #333', paddingTop: '20px' }}>
-                            <h3 style={{ fontSize: '0.9rem', color: '#00f2ff', marginBottom: '15px' }}>O crear uno nuevo:</h3>
+                            <h3 style={{ fontSize: '0.9rem', color:  'var(--acento-turquesa)' , marginBottom: '15px' }}>O crear uno nuevo:</h3>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
                                 <input className="input-neon" value={nuevoAlbumBatch} onChange={e => setNuevoAlbumBatch(e.target.value)} placeholder="Nombre del nuevo álbum..." style={{ flex: 1 }} />
                                 <button 
@@ -590,14 +590,14 @@ const Galeria = () => {
                                     onClick={() => setNuevoAlbumBatchPrivado(!nuevoAlbumBatchPrivado)} 
                                     title={nuevoAlbumBatchPrivado ? "Será Privado" : "Hacer Privado"} 
                                     style={{ 
-                                        border: `1px solid ${nuevoAlbumBatchPrivado ? '#ff2d7d' : '#00f2ff'}`, 
-                                        color: nuevoAlbumBatchPrivado ? '#ff2d7d' : '#00f2ff',
+                                        border: `1px solid ${nuevoAlbumBatchPrivado ? '#ff2d7d' :  'var(--acento-turquesa)' }`, 
+                                        color: nuevoAlbumBatchPrivado ? '#ff2d7d' :  'var(--acento-turquesa)' ,
                                         boxShadow: nuevoAlbumBatchPrivado ? '0 0 10px #ff2d7d' : 'none'
                                     }}
                                 >
                                     {nuevoAlbumBatchPrivado ? '🔒' : '🔓'}
                                 </button>
-                                <button className="btn-volver-neon" onClick={crearAlbumYAsignar} style={{ color: '#00f2ff', borderColor: '#00f2ff' }}>+</button>
+                                <button className="btn-volver-neon" onClick={crearAlbumYAsignar} style={{ color:  'var(--acento-turquesa)' , borderColor:  'var(--acento-turquesa)'  }}>+</button>
                             </div>
                         </div>
 
@@ -610,7 +610,7 @@ const Galeria = () => {
             {/* MODAL ASIGNAR A EVENTO */}
             {mostrarAsignarEvento && (
                 <div className="modal-overlay" onClick={() => setMostrarAsignarEvento(false)}>
-                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid #00f2ff', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
+                    <div className="modal-contenido" onClick={e => e.stopPropagation()} style={{ display: 'block', padding: '30px', minWidth: '380px', maxWidth: '450px', backgroundColor: '#0a0a0f', border: '2px solid var(--acento-turquesa)', borderRadius: '12px', boxShadow: '0 0 20px rgba(0,242,255,0.4)', color: '#fff' }}>
                         <h2 className="galeria-titulo" style={{ fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>📅 AÑADIR A EVENTO</h2>
                         <p style={{ textAlign: 'center', marginBottom: '20px', color: '#aaa', fontSize: '0.9rem' }}>Vas a asignar {seleccionadas.length} foto(s)</p>
                         
@@ -624,10 +624,10 @@ const Galeria = () => {
                         </div>
 
                         <div style={{ borderTop: '1px solid #333', paddingTop: '20px' }}>
-                            <h3 style={{ fontSize: '0.9rem', color: '#00f2ff', marginBottom: '15px' }}>O crear uno nuevo:</h3>
+                            <h3 style={{ fontSize: '0.9rem', color:  'var(--acento-turquesa)' , marginBottom: '15px' }}>O crear uno nuevo:</h3>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
                                 <input className="input-neon" value={nuevoEventoBatch} onChange={e => setNuevoEventoBatch(e.target.value)} placeholder="Nombre del evento (fechas luego en su gestor)" style={{ flex: 1 }} />
-                                <button className="btn-volver-neon" onClick={crearEventoYAsignar} style={{ color: '#00f2ff', borderColor: '#00f2ff' }}>+</button>
+                                <button className="btn-volver-neon" onClick={crearEventoYAsignar} style={{ color:  'var(--acento-turquesa)' , borderColor:  'var(--acento-turquesa)'  }}>+</button>
                             </div>
                         </div>
 

@@ -4,7 +4,7 @@
 
 :root {
     --bg-galeria: #0a0b2e;
-    --cian-neon: #00f2ff;
+    --cian-neon: var(--acento-turquesa);
     --fucsia-neon: #ff2d7d;
     --borde-neon: 2px solid var(--cian-neon);
 }

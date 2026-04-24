@@ -20,19 +20,19 @@
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
     background: rgba(10, 10, 26, 0.9) !important;
     color: #fff !important;
-    border: 1px solid #00f2ff !important;
+    border: 1px solid var(--acento-turquesa) !important;
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.3) !important;
     backdrop-filter: blur(5px);
 }
 
 .leaflet-control-zoom-in, .leaflet-control-zoom-out {
     background: #1a1a2e !important;
-    color: #00f2ff !important;
-    border: 1px solid #00f2ff !important;
+    color: var(--acento-turquesa) !important;
+    border: 1px solid var(--acento-turquesa) !important;
 }
 
 .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
-    background: #00f2ff !important;
+    background: var(--acento-turquesa) !important;
     color: #000 !important;
 }
 
@@ -49,7 +49,7 @@
 
 .map-photo-title {
     font-weight: 700;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     text-transform: uppercase;
     font-size: 0.85rem;
     margin-bottom: 4px;
@@ -79,19 +79,19 @@
 
 /* MARCADOR ACTIVO (EL QUE SE SELECCIONA) */
 .custom-marker-neon.active-marker {
-    background: #00f2ff; /* Cian brillante */
+    background: var(--acento-turquesa); /* Cian brillante */
     border: 3px solid #ff00ff; /* Borde fucsia */
     width: 25px; /* Más grande */
     height: 25px;
-    box-shadow: 0 0 20px #00f2ff, 0 0 40px #ff00ff;
+    box-shadow: 0 0 20px var(--acento-turquesa), 0 0 40px #ff00ff;
     animation: pulse-active 1.5s infinite;
     z-index: 1000 !important;
 }
 
 @keyframes pulse-active {
-    0% { transform: scale(1); box-shadow: 0 0 15px #00f2ff; }
-    50% { transform: scale(1.3); box-shadow: 0 0 30px #00f2ff, 0 0 60px #ff00ff; }
-    100% { transform: scale(1); box-shadow: 0 0 15px #00f2ff; }
+    0% { transform: scale(1); box-shadow: 0 0 15px var(--acento-turquesa); }
+    50% { transform: scale(1.3); box-shadow: 0 0 30px var(--acento-turquesa), 0 0 60px #ff00ff; }
+    100% { transform: scale(1); box-shadow: 0 0 15px var(--acento-turquesa); }
 }
 
 /* NUEVAS CLASES PARA EL BOCADILLO (POPUP) PRO */
@@ -106,7 +106,7 @@
 
 .map-photo-title {
     font-weight: 800;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     text-shadow: 0 0 5px rgba(0, 242, 255, 0.5);
     font-size: 0.9rem;
     letter-spacing: 1px;
@@ -139,7 +139,7 @@
 }
 
 .map-popup-btn {
-    background: linear-gradient(135deg, #00f2ff, #cf00f1);
+    background: linear-gradient(135deg, var(--acento-turquesa), #cf00f1);
     border: none;
     color: #fff;
     padding: 8px;

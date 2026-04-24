@@ -9,7 +9,7 @@
     --borde-panel: rgba(0, 242, 255, 0.2); 
     
     /* Acentos Neón Refinados */
-    --acento-turquesa: #00f2ff;
+    --acento-turquesa: var(--acento-turquesa);
     --acento-turquesa-fade: rgba(0, 242, 255, 0.15);
     --rosa-marco: #ff2d7d;
     --rosa-marco-fade: rgba(255, 45, 125, 0.2);

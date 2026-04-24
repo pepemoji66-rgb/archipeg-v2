@@ -41,7 +41,7 @@
 
 .tarjeta-foto:hover {
     transform: translateY(-5px);
-    border-color: var(--acento-turquesa, #00f2ff);
+    border-color: var(--acento-turquesa, var(--acento-turquesa));
     box-shadow: 0 5px 15px rgba(0, 242, 255, 0.15);
 }
 
@@ -88,7 +88,7 @@
     margin-top: 10px;
     font-size: 0.75rem;
     background: rgba(0, 242, 255, 0.1); /* Badge estilo turquesa sutil */
-    color: var(--acento-turquesa, #00f2ff);
+    color: var(--acento-turquesa, var(--acento-turquesa));
     padding: 4px 10px;
     border-radius: 12px;
     font-weight: 700;

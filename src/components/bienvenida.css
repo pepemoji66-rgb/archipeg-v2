@@ -28,14 +28,14 @@
 .bienvenida-subtitulo {
     font-size: 0.85rem;
     letter-spacing: 3px;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     margin: 0;
     text-transform: uppercase;
 }
 
 .bienvenida-formulario {
     background: rgba(255, 255, 255, 0.04);
-    border: 2px solid #00f2ff;
+    border: 2px solid var(--acento-turquesa);
     box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
     border-radius: 16px;
     padding: 36px 40px;
@@ -69,7 +69,7 @@
 }
 
 .bienvenida-input:focus {
-    border-color: #00f2ff;
+    border-color: var(--acento-turquesa);
     box-shadow: 0 0 8px rgba(0, 242, 255, 0.3);
 }
 
@@ -79,8 +79,8 @@
 
 .bienvenida-btn-primary {
     background: transparent;
-    border: 2px solid #00f2ff;
-    color: #00f2ff;
+    border: 2px solid var(--acento-turquesa);
+    color: var(--acento-turquesa);
     padding: 12px;
     border-radius: 8px;
     font-size: 0.9rem;
@@ -93,9 +93,9 @@
 }
 
 .bienvenida-btn-primary:hover {
-    background: #00f2ff;
+    background: var(--acento-turquesa);
     color: #0a0b2e;
-    box-shadow: 0 0 20px #00f2ff;
+    box-shadow: 0 0 20px var(--acento-turquesa);
 }
 
 .bienvenida-btn-primary:disabled {
@@ -112,7 +112,7 @@
 .bienvenida-toggle button {
     background: none;
     border: none;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0;

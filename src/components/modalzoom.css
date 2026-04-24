@@ -104,8 +104,8 @@
 
 .modal-nav:hover {
     background: rgba(0, 242, 255, 0.2);
-    color: #00f2ff;
-    border-color: #00f2ff;
+    color: var(--acento-turquesa);
+    border-color: var(--acento-turquesa);
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
     transform: translateY(-50%) scale(1.1);
 }
@@ -142,7 +142,7 @@
 .modal-panel-titulo {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     margin-bottom: 8px;
     line-height: 1.3;
 }
@@ -233,7 +233,7 @@
 .btn-accion-modal:hover {
     background: rgba(0, 242, 255, 0.08);
     border-color: rgba(0, 242, 255, 0.4);
-    color: #00f2ff;
+    color: var(--acento-turquesa);
 }
 
 .btn-borrar-modal {
@@ -278,7 +278,7 @@
 
 .modal-edit-input:focus {
     outline: none;
-    border-color: #00f2ff;
+    border-color: var(--acento-turquesa);
     background: rgba(0, 242, 255, 0.02);
     box-shadow: 0 0 0 2px rgba(0, 242, 255, 0.1);
 }
@@ -293,7 +293,7 @@
 .modal-edit-tag-pill {
     background: rgba(0, 242, 255, 0.1);
     border: 1px solid rgba(0, 242, 255, 0.3);
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     padding: 4px 10px;
     border-radius: 16px;
     font-size: 0.8rem;
@@ -325,7 +325,7 @@
 .modal-edit-create-btn {
     background: rgba(0, 242, 255, 0.1);
     border: 1px solid rgba(0, 242, 255, 0.3);
-    color: #00f2ff;
+    color: var(--acento-turquesa);
     width: 42px;
     border-radius: 8px;
     cursor: pointer;
@@ -337,7 +337,7 @@
 }
 
 .modal-edit-create-btn:hover {
-    background: #00f2ff;
+    background: var(--acento-turquesa);
     color: #000;
 }
 
@@ -375,7 +375,7 @@
 }
 
 .modal-edit-check-label input[type="checkbox"] {
-    accent-color: #00f2ff;
+    accent-color: var(--acento-turquesa);
     width: 16px;
     height: 16px;
 }

@@ -62,7 +62,7 @@ const Indice = () => {
             {/* PRIVACY SECTION (The "BOMBAST" argument) */}
             <section className="landing-privacy-box">
                 <div className="privacy-visual" style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '10rem', filter: 'drop-shadow(0 0 30px #00f2ff)' }}>🛡️</div>
+                    <div style={{ fontSize: '10rem', filter: 'drop-shadow(0 0 30px var(--acento-turquesa))' }}>🛡️</div>
                     <div className="privacy-tag">100% SOBERANÍA DE DATOS</div>
                 </div>
                 <div className="privacy-content">
@@ -240,7 +240,7 @@ const Indice = () => {
             <footer className="footer-alt">
                 <p>ARCHIPEG PRO · EL FUTURO DE TUS RECUERDOS</p>
                 <div style={{marginTop: '10px', fontSize: '0.8rem', color: '#888'}}>
-                    Soporte oficial: <a href="mailto:archipegv2@gmail.com" style={{color: '#00f2ff', textDecoration: 'none'}}>archipegv2@gmail.com</a>
+                    Soporte oficial: <a href="mailto:archipegv2@gmail.com" style={{color:  'var(--acento-turquesa)' , textDecoration: 'none'}}>archipegv2@gmail.com</a>
                 </div>
                 <p style={{marginTop: '10px', fontSize: '0.7rem'}}>© 2026 Jose Moreno Jimenez. Todos los derechos reservados.</p>
                 {usuario?.esAdmin && <Link to="/usuarios" style={{color: '#444', textDecoration: 'none', marginLeft: '20px'}}>Dashboard Admin</Link>}
