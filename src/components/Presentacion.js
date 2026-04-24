@@ -12,7 +12,7 @@ const Presentacion = () => {
         {
             title: "ARCHIPEG PRO",
             text: "Donde la tecnología se encuentra con tus recuerdos más valiosos. Redescubre tu historia personal con inteligencia y elegancia.",
-            bg: "/presentacion_hero.png",
+            bg: "presentacion_hero.png",
             type: "hero"
         },
         {
@@ -48,13 +48,13 @@ const Presentacion = () => {
         {
             title: "GUÍA RÁPIDA DE USO",
             text: "Domina Archipeg en cuatro pasos sencillos y pon orden a tu historia.",
-            bg: "/presentacion_hero.png",
+            bg: "presentacion_hero.png",
             type: "summary"
         },
         {
             title: "¿LISTO PARA EMPEZAR?",
             text: "Tu archivo digital está esperando. Toma el control total de tu legado visual hoy mismo.",
-            bg: "/presentacion_hero.png",
+            bg: "presentacion_hero.png",
             type: "final"
         }
     ];
@@ -83,7 +83,7 @@ const Presentacion = () => {
 
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
-            <audio ref={audioRef} src="/presentacion.mp3" loop />
+            <audio ref={audioRef} src="presentacion.mp3" loop />
 
             {slides.map((slide, index) => (
                 <div key={index} className={`slide ${index === currentSlide ? 'active' : ''}`}>
