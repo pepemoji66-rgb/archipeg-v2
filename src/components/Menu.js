@@ -64,6 +64,11 @@ const Menu = () => {
                         </Link>
                     </li>
                     <li>
+                        <Link to="/presentacion" onClick={cerrarMenu} style={{color: '#00ffff', fontWeight: 'bold'}}>
+                            <span className="icon">✨</span> PRESENTACIÓN
+                        </Link>
+                    </li>
+                    <li>
                         <Link to="/duplicados" onClick={cerrarMenu}>
                             <span className="icon">🧬</span> DUPLICADOS
                         </Link>

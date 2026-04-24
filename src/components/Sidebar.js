@@ -90,6 +90,9 @@ const Sidebar = () => {
                 <Link to="/galeria-completa" className={`sidebar-item ${isActive('/galeria-completa') ? 'active' : ''}`}>
                     <span className="sidebar-item-icon">🏠</span> Inicio / Galería
                 </Link>
+                <Link to="/presentacion" className={`sidebar-item ${isActive('/presentacion') ? 'active' : ''}`} style={{color: '#00ffff', fontWeight: 'bold'}}>
+                    <span className="sidebar-item-icon">✨</span> Presentación
+                </Link>
                 <button 
                     className="sidebar-item" 
                     style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}

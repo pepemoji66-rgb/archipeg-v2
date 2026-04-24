@@ -16,6 +16,7 @@ import './App.css';
 import Duplicados from './components/Duplicados';
 import Usuarios from './components/Usuarios';
 import Mapa from './components/Mapa';
+import Presentacion from './components/Presentacion';
 
 const RutaAprobada = ({ children }) => {
     const { usuario } = useAuth();
@@ -60,6 +61,7 @@ function AppRoutes() {
                 <Route path="/personas" element={<Personas />} />
                 <Route path="/favoritos" element={<Favoritos />} />
                 <Route path="/mapa" element={<Mapa />} />
+                <Route path="/presentacion" element={<Presentacion />} />
             </Routes>
         </Layout>
     );
