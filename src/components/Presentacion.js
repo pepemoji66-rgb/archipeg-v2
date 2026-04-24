@@ -63,21 +63,25 @@ const Presentacion = () => {
         }
     ];
 
+    // Temporizador de Diapositivas
     useEffect(() => {
         const timer = setInterval(() => {
             if (currentSlide < slides.length - 1) {
                 setCurrentSlide(prev => prev + 1);
             }
-        }, 8000); // Cambiar cada 8 segundos
+        }, 8000);
+        return () => clearInterval(timer);
+    }, [currentSlide, slides.length]);
 
+    // Limpiador de Audio al Salir
+    useEffect(() => {
         return () => {
-            clearInterval(timer);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
         };
-    }, [currentSlide, slides.length]);
+    }, []);
 
     const startExperience = () => {
         if (audioRef.current) {
@@ -93,22 +97,7 @@ const Presentacion = () => {
 
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
-            <audio 
-                ref={audioRef} 
-                src={audioSrc} 
-                loop 
-                preload="auto" 
-                crossOrigin="anonymous" 
-                controls 
-                style={{ 
-                    position: 'fixed', 
-                    bottom: '80px', 
-                    left: '50%', 
-                    transform: 'translateX(-50%)', 
-                    zIndex: 10001,
-                    opacity: 0.8
-                }} 
-            />
+            <audio ref={audioRef} src={audioSrc} loop preload="auto" crossOrigin="anonymous" />
             
             {!audioStarted && (
                 <div style={{
