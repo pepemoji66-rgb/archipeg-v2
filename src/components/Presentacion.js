@@ -8,10 +8,10 @@ const Presentacion = () => {
     const audioRef = useRef(null);
     const [audioStarted, setAudioStarted] = useState(false);
 
-    // Detección de entorno para rutas de audio
-    const isElectron = window.navigator.userAgent.indexOf('Electron') !== -1;
-    const audioSrc = isElectron ? "presentacion.mp3" : (window.location.origin + "/presentacion.mp3");
-    const heroBg = isElectron ? "presentacion_hero.png" : (window.location.origin + "/presentacion_hero.png");
+    // Detección ultra-segura de entorno
+    const isFileProtocol = window.location.protocol === 'file:';
+    const audioSrc = isFileProtocol ? "presentacion.mp3" : "/presentacion.mp3";
+    const heroBg = isFileProtocol ? "presentacion_hero.png" : "/presentacion_hero.png";
 
     const slides = [
         {
@@ -94,7 +94,7 @@ const Presentacion = () => {
 
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
-            <audio ref={audioRef} src={audioSrc} loop />
+            <audio ref={audioRef} src={audioSrc} loop preload="auto" crossOrigin="anonymous" />
 
             {slides.map((slide, index) => (
                 <div key={index} className={`slide ${index === currentSlide ? 'active' : ''}`}>
