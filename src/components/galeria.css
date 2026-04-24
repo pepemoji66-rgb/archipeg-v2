@@ -331,14 +331,15 @@
 }
 
 .input-salto-neon {
-    background: #000;
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--fucsia-neon);
     color: #fff;
-    width: 50px;
-    padding: 5px;
-    border-radius: 4px;
+    width: 65px;
+    padding: 6px;
+    border-radius: 6px;
     text-align: center;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800;
 }
 
 .input-salto-neon:focus {

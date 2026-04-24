@@ -134,10 +134,11 @@
 
 .btn-primary-neon {
     background: var(--acento-turquesa);
-    color: #000;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     padding: 16px 40px;
     border-radius: 12px;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: none;
     font-size: 1.1rem;
     transition: all 0.3s ease;

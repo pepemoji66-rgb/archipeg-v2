@@ -4,7 +4,7 @@ const SelectorTema = () => {
     const [color, setColor] = useState(localStorage.getItem('archipeg-theme') ||  'var(--acento-turquesa)' );
 
     const temas = [
-        { nombre: 'Cian', hex:  'var(--acento-turquesa)' , rgba: 'rgba(0, 242, 255, 0.2)' },
+        { nombre: 'Cian', hex: '#00f2ff', rgba: 'rgba(0, 242, 255, 0.2)' },
         { nombre: 'Verde', hex: '#00ff88', rgba: 'rgba(0, 255, 136, 0.2)' },
         { nombre: 'Rojo', hex: '#ff4d4d', rgba: 'rgba(255, 77, 77, 0.2)' },
         { nombre: 'Amarillo', hex: '#ffcc00', rgba: 'rgba(255, 204, 0, 0.2)' },

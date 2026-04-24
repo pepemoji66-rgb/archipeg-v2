@@ -408,10 +408,11 @@ const AdminPanel = () => {
                                     <span>Página {paginaActual} de {totalPaginas}</span>
                                     <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                         <input 
-                                            type="number" 
+                                            type="text" 
+                                            inputMode="numeric"
                                             className="sleek-input-jump" 
                                             value={inputPage} 
-                                            onChange={(e) => setInputPage(e.target.value)}
+                                            onChange={(e) => setInputPage(e.target.value.replace(/\D/g, ''))}
                                             onKeyDown={ejecutarSalto}
                                             placeholder="..."
                                         />

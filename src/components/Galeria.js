@@ -603,10 +603,11 @@ const Galeria = () => {
                         <span className="pagi-info">PÁGINA {paginaActual} DE {totalPaginas}</span>
                         <div className="input-salto-wrapper">
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 className="input-salto-neon"
                                 value={saltoInput}
-                                onChange={e => setSaltoInput(e.target.value)}
+                                onChange={e => setSaltoInput(e.target.value.replace(/\D/g, ''))}
                                  onKeyDown={ejecutarSalto}
                                 placeholder="..."
                             />
