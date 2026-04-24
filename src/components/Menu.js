@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import './menu.css';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../AuthContext';
+import SelectorTema from './SelectorTema';
 
 const Menu = () => {
     const { usuario } = useAuth();
@@ -138,7 +139,8 @@ const Menu = () => {
                 </ul>
 
                 <div className="menu-footer">
-                    <p>Jose Moreno J.</p>
+                    <SelectorTema />
+                    <p style={{marginTop: '15px'}}>Jose Moreno J.</p>
                     <span>v2.0.26 - DEMO</span>
                 </div>
             </aside>

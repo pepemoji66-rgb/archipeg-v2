@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { apiFetch } from '../api';
 import { API_BASE_URL } from '../config';
+import SelectorTema from './SelectorTema';
 
 const API = `${API_BASE_URL}/api`;
 
@@ -183,6 +184,7 @@ const Sidebar = () => {
                 ) : (
                     <div className="sidebar-demo-info">{conteos.fotos} fotos</div>
                 )}
+                <SelectorTema />
                 {usuario && (
                     <button className="sidebar-upload-btn" onClick={() => navigate('/admin')}>
                         + GESTIÓN VISUAL

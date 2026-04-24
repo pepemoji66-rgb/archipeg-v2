@@ -8,11 +8,16 @@ const Presentacion = () => {
     const audioRef = useRef(null);
     const [audioStarted, setAudioStarted] = useState(false);
 
+    // Detección de entorno para rutas de audio
+    const isElectron = window.navigator.userAgent.indexOf('Electron') !== -1;
+    const audioSrc = isElectron ? "presentacion.mp3" : "/presentacion.mp3";
+    const heroBg = isElectron ? "presentacion_hero.png" : "/presentacion_hero.png";
+
     const slides = [
         {
             title: "ARCHIPEG PRO",
             text: "Donde la tecnología se encuentra con tus recuerdos más valiosos. Redescubre tu historia personal con inteligencia y elegancia.",
-            bg: "presentacion_hero.png",
+            bg: heroBg,
             type: "hero"
         },
         {
@@ -48,13 +53,13 @@ const Presentacion = () => {
         {
             title: "GUÍA RÁPIDA DE USO",
             text: "Domina Archipeg en cuatro pasos sencillos y pon orden a tu historia.",
-            bg: "presentacion_hero.png",
+            bg: heroBg,
             type: "summary"
         },
         {
             title: "¿LISTO PARA EMPEZAR?",
             text: "Tu archivo digital está esperando. Toma el control total de tu legado visual hoy mismo.",
-            bg: "presentacion_hero.png",
+            bg: heroBg,
             type: "final"
         }
     ];
@@ -89,7 +94,7 @@ const Presentacion = () => {
 
     return (
         <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
-            <audio ref={audioRef} src="presentacion.mp3" loop />
+            <audio ref={audioRef} src={audioSrc} loop />
 
             {slides.map((slide, index) => (
                 <div key={index} className={`slide ${index === currentSlide ? 'active' : ''}`}>
