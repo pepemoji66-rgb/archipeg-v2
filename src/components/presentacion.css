@@ -181,4 +181,26 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 3rem;
     border-radius: 30px;
+    width: 90%;
+    max-width: 1000px;
+}
+
+.summary-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.instruction-item h3 {
+    color: #00ffff;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    .slide-title {
+        font-size: 2.5rem;
+    }
 }
