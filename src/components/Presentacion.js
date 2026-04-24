@@ -66,7 +66,13 @@ const Presentacion = () => {
             }
         }, 8000); // Cambiar cada 8 segundos
 
-        return () => clearInterval(timer);
+        return () => {
+            clearInterval(timer);
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+        };
     }, [currentSlide, slides.length]);
 
     const startExperience = () => {
