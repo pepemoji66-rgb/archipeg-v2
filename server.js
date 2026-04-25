@@ -1821,24 +1821,28 @@ const BRIDGE_KEY = 'ARCHIPEG_BRIDGE_2026';
  * Función central para enviar emails vía Google Apps Script Bridge
  * Esto usa HTTPS (Puerto 443), imposible de bloquear por Render.
  */
-async function enviarViaGoogleBridge({ to, subject, html }) {
+async function enviarViaGoogleBridge({ to, subject, html, text }) {
     console.log(`📡 [GOOGLE-BRIDGE]: Enviando email a ${to} vía Puente Google...`);
     
     try {
         const response = await fetch(GOOGLE_BRIDGE_URL, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
                 key: BRIDGE_KEY,
                 to: to,
                 subject: subject,
-                html: html
+                html: html,
+                text: text || ""
             })
         });
 
-        const text = await response.text();
+        const responseText = await response.text();
         
-        if (text !== "OK_ENVIADO") {
-            throw new Error(`Error en el puente: ${text}`);
+        if (responseText !== "OK_ENVIADO") {
+            throw new Error(`Error en el puente: ${responseText}`);
         }
 
         console.log(`✅ [BRIDGE-SUCCESS]: Email enviado con éxito vía Google.`);
@@ -1859,90 +1863,50 @@ obtenerTransporter().catch(() => console.error("⚠️ Fallo en inicialización 
 console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USER || 'No definido'}`);
 
 async function enviarEmailAprobacion(email) {
-    console.log(`⏳ [SMTP-DEBUG]: Preparando envío para: ${email}`);
+    console.log(`⏳ [SMTP-DEBUG]: Preparando envío de aprobación Pro para: ${email}`);
     
     const downloadLink = "https://drive.google.com/uc?export=download&id=1qHEOni2cX0MaBVMCxvSteNVbrpWLiIa4";
 
-    const mailOptions = {
-        from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: '¡Tu cuenta de Archipeg Pro ha sido aprobada! 🚀',
-        text: `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`,
-        html: `
-            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
-                <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>
-                <p>Tu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión de escritorio para Windows:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                        DESCARGAR ARCHIPEG PRO
-                    </a>
-                </div>
-                <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
-                <hr>
-                <p style="font-size: 0.8em; color: #666;">Has recibido este correo porque tu registro en Archipeg Pro ha sido validado.</p>
+    const textContent = `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`;
+
+    const htmlContent = `
+        <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+            <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>
+            <p>Tu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión de escritorio para Windows:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    DESCARGAR ARCHIPEG PRO
+                </a>
             </div>
-        `
-    };
+            <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+            <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
+            <hr>
+            <p style="font-size: 0.8em; color: #666;">Has recibido este correo porque tu registro en Archipeg Pro ha sido validado.</p>
+        </div>
+    `;
 
     try {
         await enviarViaGoogleBridge({
             to: email,
             subject: '¡Tu cuenta de Archipeg Pro ha sido aprobada! 🚀',
-            text: `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`,
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
-                    <h2 style="color: #007bff;">¡Bienvenido a Archipeg Pro! 🛡️</h2>
-                    <p>Tu cuenta ha sido aprobada con éxito. Ya puedes descargar la versión de escritorio para Windows:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                            DESCARGAR ARCHIPEG PRO
-                        </a>
-                    </div>
-                    <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                    <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
-                    <hr>
-                    <p style="font-size: 0.8em; color: #666;">Has recibido este correo porque tu registro en Archipeg Pro ha sido validado.</p>
-                </div>
-            `
+            text: textContent,
+            html: htmlContent
         });
         return true;
     } catch (error) {
-        console.error("❌ FALLO TOTAL ENVÍO RESEND:", error.message);
+        console.error("❌ FALLO TOTAL ENVÍO APROBACIÓN:", error.message);
         throw error;
     }
 }
 
 async function enviarEmailRegistroPendiente(email) {
-    const mailOptions = {
-        from: `"Archipeg Pro 🛡️" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: '¡Hemos recibido tu registro en Archipeg Pro! ⏳',
-        html: `
-            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
-                <h2 style="color: #007bff;">¡Hola! 👋</h2>
-                <p>Gracias por registrarte en <b>Archipeg Pro</b>.</p>
-                <p>Tu solicitud ha sido recibida correctamente y está <b>pendiente de validación</b> por un administrador.</p>
-                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
-                    <b>Nota:</b> Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
-                </div>
-                <h3 style="color: #28a745;">🚀 Activa la Versión Pro (Pago Único)</h3>
-                <p>Para desbloquear todas las funciones y obtener la versión de escritorio soberana, puedes realizar un <b>pago único de 5€</b>:</p>
-                <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6;">
-                    <p style="margin: 5px 0;"><b>📲 Bizum:</b> 667657244</p>
-                    <p style="margin: 5px 0;"><b>📝 Concepto:</b> Archipeg Pro [tu email]</p>
-                    <p style="margin: 5px 0;"><b>💰 Precio:</b> 5€ (Acceso de por vida)</p>
-                </div>
-                <p>Te enviaremos otro correo en cuanto tu cuenta sea aprobada para que puedas descargar la versión completa.</p>
-                <hr>
-                <p style="font-size: 0.8em; color: #666;">No es necesario que respondas a este correo automátizado.</p>
-            </div>
-        `
-    };
+    const textContent = `¡Hola! 👋\n\nGracias por registrarte en Archipeg Pro.\n\nTu solicitud ha sido recibida correctamente y está pendiente de validación por un administrador.\n\nNota: Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en Modo Demo con algunas funciones limitadas.\n\n🚀 Activa la Versión Pro (Pago Único):\n📲 Bizum: 667657244\n📝 Concepto: Archipeg Pro [tu email]\n💰 Precio: 5€ (Acceso de por vida)`;
+
     try {
         await enviarViaGoogleBridge({
             to: email,
             subject: '¡Hemos recibido tu registro en Archipeg Pro! ⏳',
+            text: textContent,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
                     <h2 style="color: #007bff;">¡Hola! 👋</h2>
@@ -1969,27 +1933,13 @@ async function enviarEmailRegistroPendiente(email) {
     }
 }
 async function enviarEmailAvisoAdmin(nuevoUsuarioEmail) {
-    const mailOptions = {
-        from: `"Sistema Archipeg Pro 🤖" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER, // Te llega a ti
-        subject: '🔔 NUEVO USUARIO REGISTRADO - Acción requerida',
-        html: `
-            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px; background-color: #f8f9fa;">
-                <h2 style="color: #d9534f;">Aviso de Sistema Archipeg</h2>
-                <p>Se ha registrado un nuevo usuario que requiere tu atención:</p>
-                <p style="font-size: 1.2em; font-weight: bold; color: #333;">📧 Email: ${nuevoUsuarioEmail}</p>
-                <div style="margin: 30px 0;">
-                    <p>Puedes aprobarlo o gestionarlo entrando en tu Panel de Administrador de Archipeg Pro.</p>
-                </div>
-                <hr>
-                <p style="font-size: 0.8em; color: #666;">Cualquier duda, el equipo del Motor Archipeg está a tu servicio.</p>
-            </div>
-        `
-    };
+    const textContent = `🔔 NUEVO USUARIO REGISTRADO\n\nSe ha registrado un nuevo usuario que requiere tu atención:\n📧 Email: ${nuevoUsuarioEmail}\n\nPuedes aprobarlo o gestionarlo entrando en tu Panel de Administrador de Archipeg Pro.`;
+
     try {
         await enviarViaGoogleBridge({
             to: process.env.EMAIL_USER || 'pepemoji66@gmail.com',
             subject: '🔔 NUEVO USUARIO REGISTRADO - Acción requerida',
+            text: textContent,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px; background-color: #f8f9fa;">
                     <h2 style="color: #d9534f;">Aviso de Sistema Archipeg</h2>

@@ -77,8 +77,6 @@
       "main.js",
       "preload.js",
       "server.js",
-      ".env",
-      "archipeg_data.db",
       "package.json",
       "public/logo_archipeg_principal.png"
     ],
