@@ -16,21 +16,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
-        /* Estilos base para evitar saltos visuales */
+        /* Estilos base para evitar saltos visuales y flash blanco */
         body {
             margin: 0;
             font-family: 'Poppins', sans-serif;
-            background-color: #f4f7f6;
+            background-color: #0a0b2e; /* Fondo oscuro desde el inicio */
+            color: #ffffff;
             min-height: 100vh;
         }
 
-        /* Configuración del fondo:
-           1. Capa blanca semitransparente (0.94) para que el logo sea sutil.
-           2. Ruta absoluta (/logo...) para que cargue desde la carpeta public sin fallos.
-        */
+        /* Capa de fondo sutil con el logo */
         .fondo-global-archipeg {
             background-image:
-                linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)),
+                linear-gradient(rgba(10, 11, 46, 0.95), rgba(10, 11, 46, 0.95)),
                 url('logo_archipeg_principal.png');
             background-attachment: fixed;
             background-size: 40% auto;

@@ -322,6 +322,20 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                     onMouseMove={e => { if (arrastrando) setPos({ x: e.clientX - inicio.x, y: e.clientY - inicio.y }); }}
                     onMouseUp={() => setArrastrando(false)}
                     onMouseLeave={() => setArrastrando(false)}
+                    onTouchStart={e => { 
+                        if (escala > 1) { 
+                            setArrastrando(true); 
+                            const touch = e.touches[0];
+                            setInicio({ x: touch.clientX - pos.x, y: touch.clientY - pos.y }); 
+                        } 
+                    }}
+                    onTouchMove={e => { 
+                        if (arrastrando) {
+                            const touch = e.touches[0];
+                            setPos({ x: touch.clientX - inicio.x, y: touch.clientY - inicio.y }); 
+                        }
+                    }}
+                    onTouchEnd={() => setArrastrando(false)}
                     style={{ cursor: escala > 1 ? (arrastrando ? 'grabbing' : 'grab') : 'default' }}
                 >
                     <button className="modal-nav modal-nav-prev" onClick={e => { e.stopPropagation(); setEscala(1); setRotacion(0); setPos({ x: 0, y: 0 }); onNavigate('anterior'); }}>‹</button>

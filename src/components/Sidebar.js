@@ -15,6 +15,7 @@ const Sidebar = () => {
     const { usuario, esDemo, logout, refrescarPerfil } = useAuth();
     const [conteos, setConteos] = useState({ fotos: 0, favoritos: 0, albumes: 0, eventos: 0, personas: 0 });
     const [busqueda, setBusqueda] = useState('');
+    const [menuAbierto, setMenuAbierto] = useState(false); // Nuevo estado para el menú móvil
 
     useEffect(() => {
         if (!usuario && !esDemo) return;
@@ -69,12 +70,23 @@ const Sidebar = () => {
     };
 
     return (
-        <aside className="sidebar">
-            <div className="sidebar-brand">
-                <img src="logo_archipeg_principal.png" alt="Logo" style={{ width: '40px', height: '40px', marginBottom: '10px', objectFit: 'contain' }} />
-                <div className="sidebar-brand-name">ARCHIPEG<span className="sidebar-brand-dot"> ·</span></div>
-                {esDemo && <div className="sidebar-brand-version">DEMO</div>}
+        <>
+            {/* Botón de hamburguesa visible solo en móvil */}
+            <div className={`hamburguesa-movil ${menuAbierto ? 'active' : ''}`} onClick={() => setMenuAbierto(!menuAbierto)}>
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
+
+            {/* Overlay para cerrar el menú al hacer clic fuera */}
+            {menuAbierto && <div className="sidebar-overlay" onClick={() => setMenuAbierto(false)}></div>}
+
+            <aside className={`sidebar ${menuAbierto ? 'abierto' : ''}`}>
+                <div className="sidebar-brand">
+                    <img src="logo_archipeg_principal.png" alt="Logo" style={{ width: '40px', height: '40px', marginBottom: '10px', objectFit: 'contain' }} />
+                    <div className="sidebar-brand-name">ARCHIPEG<span className="sidebar-brand-dot"> ·</span></div>
+                    {esDemo && <div className="sidebar-brand-version">DEMO</div>}
+                </div>
 
             <div className="sidebar-search">
                 <input
@@ -88,58 +100,58 @@ const Sidebar = () => {
 
             <nav className="sidebar-nav" ref={navRef}>
                 <div className="sidebar-section-label">General</div>
-                <Link to="/galeria-completa" className={`sidebar-item ${isActive('/galeria-completa') ? 'active' : ''}`}>
+                <Link to="/galeria-completa" className={`sidebar-item ${isActive('/galeria-completa') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">🏠</span> Inicio / Galería
                 </Link>
-                <Link to="/presentacion" className={`sidebar-item ${isActive('/presentacion') ? 'active' : ''}`} style={{color: '#00ffff', fontWeight: 'bold'}}>
+                <Link to="/presentacion" className={`sidebar-item ${isActive('/presentacion') ? 'active' : ''}`} style={{color: '#00ffff', fontWeight: 'bold'}} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">✨</span> Presentación
                 </Link>
                 <button 
                     className="sidebar-item" 
                     style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-                    onClick={() => window.location.reload()}
+                    onClick={() => { window.location.reload(); setMenuAbierto(false); }}
                 >
                     <span className="sidebar-item-icon">🔄</span> Refrescar Sistema
                 </button>
 
                 <div className="sidebar-section-label">Biblioteca</div>
-                <Link to="/duplicados" className={`sidebar-item ${isActive('/duplicados') ? 'active' : ''}`}>
+                <Link to="/duplicados" className={`sidebar-item ${isActive('/duplicados') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">🧬</span> Duplicados
                 </Link>
-                <Link to="/favoritos" className={`sidebar-item ${isActive('/favoritos') ? 'active' : ''}`}>
+                <Link to="/favoritos" className={`sidebar-item ${isActive('/favoritos') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">⭐</span> Favoritos
                     <span className="sidebar-item-badge">{conteos.favoritos}</span>
                 </Link>
 
                 <div className="sidebar-section-label">Organizar</div>
-                <Link to="/albumes" className={`sidebar-item ${isActive('/albumes') ? 'active' : ''}`}>
+                <Link to="/albumes" className={`sidebar-item ${isActive('/albumes') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">📁</span> Álbumes
                     <span className="sidebar-item-badge">{conteos.albumes}</span>
                 </Link>
-                <Link to="/eventos" className={`sidebar-item ${isActive('/eventos') ? 'active' : ''}`}>
+                <Link to="/eventos" className={`sidebar-item ${isActive('/eventos') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">📅</span> Eventos
                     <span className="sidebar-item-badge">{conteos.eventos}</span>
                 </Link>
-                <Link to="/personas" className={`sidebar-item ${isActive('/personas') ? 'active' : ''}`}>
+                <Link to="/personas" className={`sidebar-item ${isActive('/personas') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">👤</span> Personas
                     <span className="sidebar-item-badge">{conteos.personas}</span>
                 </Link>
 
                 <div className="sidebar-section-label">Explorar</div>
-                <Link to="/mapa" className={`sidebar-item ${isActive('/mapa') ? 'active' : ''}`}>
+                <Link to="/mapa" className={`sidebar-item ${isActive('/mapa') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">📍</span> Mapa Satelital
                 </Link>
 
                 <div className="sidebar-section-label">Sistema</div>
-                <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`}>
+                <Link to="/admin" className={`sidebar-item ${isActive('/admin') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">⚙️</span> Gestión
                 </Link>
                 {usuario?.email === 'pepemoji66@gmail.com' && (
-                    <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`}>
+                    <Link to="/usuarios" className={`sidebar-item ${isActive('/usuarios') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                         <span className="sidebar-item-icon">👥</span> Usuarios
                     </Link>
                 )}
-                <Link to="/papelera" className={`sidebar-item ${isActive('/papelera') ? 'active' : ''}`}>
+                <Link to="/papelera" className={`sidebar-item ${isActive('/papelera') ? 'active' : ''}`} onClick={() => setMenuAbierto(false)}>
                     <span className="sidebar-item-icon">🗑️</span> Papelera
                 </Link>
             </nav>
@@ -197,6 +209,7 @@ const Sidebar = () => {
                 )}
             </div>
         </aside>
+        </>
     );
 };
 

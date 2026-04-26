@@ -219,75 +219,95 @@
    MEDIA QUERIES (MÓVILES)
 ========================================================= */
 
+/* =========================================================
+   MEDIA QUERIES (MÓVILES) - NUEVO MENÚ DE HAMBURGUESA
+   ========================================================= */
+
+/* Estilos del Botón de Hamburguesa */
+.hamburguesa-movil {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    width: 45px;
+    height: 45px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--acento);
+    border-radius: 8px;
+    z-index: 2000;
+    cursor: pointer;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+}
+
+.hamburguesa-movil span {
+    width: 25px;
+    height: 2px;
+    background: var(--acento);
+    transition: all 0.3s ease;
+}
+
+.hamburguesa-movil.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburguesa-movil.active span:nth-child(2) { opacity: 0; }
+.hamburguesa-movil.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Overlay de fondo */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1500;
+}
+
 @media (max-width: 768px) {
-    /* El layout pasa de Row a Column */
     .app-layout {
         flex-direction: column;
     }
-    
-    /* El Sidebar se convierte en un Top Nav horizontal o bloque arriba */
+
+    .hamburguesa-movil {
+        display: flex;
+    }
+
     .sidebar {
-        width: 100%;
-        min-width: 100%;
-        height: auto;
-        position: relative;
-        border-right: none;
-        border-bottom: 1px solid var(--borde);
-        z-index: 500;
+        position: fixed;
+        top: 0;
+        left: -280px; /* Escondido por defecto */
+        width: 280px;
+        min-width: 280px;
+        height: 100vh;
+        z-index: 1600;
+        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-right: 1px solid var(--acento);
+        box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+    }
+
+    .sidebar.abierto {
+        left: 0;
     }
 
     .sidebar-brand {
-        padding: 15px;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
+        padding-top: 70px; /* Espacio para el botón de hamburguesa */
     }
 
-    .sidebar-brand-version {
-        margin-top: 0;
-    }
-    
-    /* Buscador más pequeño */
-    .sidebar-search {
-        padding: 10px 15px;
-    }
-
-    /* Convertimos la navegación en una lista horizontal con scroll (Píldoras) */
     .sidebar-nav {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        padding: 5px 15px 15px;
-        white-space: nowrap;
-        gap: 10px;
+        padding-bottom: 30px;
     }
 
-    /* Quitar la barra de scroll para un aspecto más limpio en móviles */
-    .sidebar-nav::-webkit-scrollbar {
-        height: 0px;
-        background: transparent;
-    }
-
-    .sidebar-section-label {
-        display: none; /* Ocultamos etiquetas de sección en móvil por espacio */
-    }
-
-    .sidebar-item {
-        width: auto;
-        margin-bottom: 0;
-        padding: 8px 15px;
-        border-radius: 20px; /* Estilo píldora */
-        justify-content: center;
-        flex: 0 0 auto;
-    }
-    
-    .sidebar-item-badge {
-        margin-left: 5px;
-    }
-
-    /* Panel inferior (demo y botón) lo escondemos o simplificamos */
     .sidebar-bottom {
-        display: none; /* O lo podemos dejar si es muy necesario, pero ocupa pantalla */
+        display: block; /* Volver a mostrar en móvil si es necesario */
+        padding-bottom: 20px;
+    }
+
+    .app-top-bar {
+        padding: 10px 15px 10px 70px; /* Espacio para el botón de hamburguesa */
+        min-height: 75px;
     }
 }
 
