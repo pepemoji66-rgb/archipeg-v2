@@ -1905,7 +1905,7 @@ async function enviarEmailAprobacion(email) {
     console.log(`⏳ [SMTP-DEBUG]: Preparando envío de aprobación Pro para: ${email}`);
     
     // Prioridad: 1. .env (Configurable), 2. Google Drive (Nuevo ID 2.0.0)
-    const downloadLink = process.env.DOWNLOAD_LINK || "https://drive.google.com/uc?export=download&id=1e6nnf0LlxdH34aXRHyrQLXMT4pfqYzkV";
+    const downloadLink = process.env.DOWNLOAD_LINK || "https://drive.google.com/drive/folders/1svka0IwJG5FUi_Au3q3oNfl-kfvfI_po?hl=es";
 
     const textContent = `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`;
 
