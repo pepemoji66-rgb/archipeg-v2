@@ -181,6 +181,7 @@ function generarToken() {
 // --- CONFIGURACIÓN DE VERSIÓN ---
 const LIMITE_DEMO = 100000;
 let progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
+let cancelarOperacion = false;
 
 // --- IMPORTACIÓN MASIVA ---
 const EXTENSIONES_VALIDAS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.3gp']);
@@ -545,6 +546,11 @@ app.get('/api/sistema/status-import', dbCheck, (req, res) => {
     res.json(progresoOperacion);
 });
 
+app.post('/api/sistema/cancelar-import', (req, res) => {
+    cancelarOperacion = true;
+    res.json({ ok: true, mensaje: "Petición de cancelación recibida" });
+});
+
 // NUEVO: Endpoint de Diagnóstico Profundo para el Email (Acceso directo por URL)
 app.get('/api/sistema/debug-email', async (req, res) => {
     console.log("⚙️ INICIANDO DIAGNÓSTICO DE EMAIL (VÍA BRIDGE)...");
@@ -883,11 +889,13 @@ app.post('/api/sistema/rescan-gps', dbCheck, async (req, res) => {
         let actualizadas = 0;
         
         progresoOperacion = { actual: 0, total: fotos.length, mensaje: "Geolocalizando fotos...", activa: true };
+        cancelarOperacion = false;
         dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
             let i = 0;
             for (const f of fotos) {
+                if (cancelarOperacion) break;
                 progresoOperacion.actual = i + 1;
                 let rutaAbsoluta = f.imagen_url;
                 if (!path.isAbsolute(rutaAbsoluta)) {
@@ -1805,6 +1813,7 @@ app.post('/api/importar-masivo', async (req, res) => {
                 const chunk = imagenes.slice(i, i + CONCURRENCY);
                 
                 await Promise.all(chunk.map(async (rutaImagen, index) => {
+                    if (cancelarOperacion) return;
                     progresoOperacion.actual = i + index + 1;
                     
                     const existente = await db.get(
@@ -1841,8 +1850,9 @@ app.post('/api/importar-masivo', async (req, res) => {
                 }
             }
             await db.run("COMMIT");
-            progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
-            res.json({ importadas, actualizadas, ignoradas, total: imagenes.length });
+            const finalMsg = cancelarOperacion ? "Operación cancelada por el usuario" : "Listo";
+            progresoOperacion = { actual: 0, total: 0, mensaje: finalMsg, activa: false };
+            res.json({ importadas, actualizadas, ignoradas, total: imagenes.length, cancelada: cancelarOperacion });
         } catch (e) {
             await db.run("ROLLBACK");
             progresoOperacion.activa = false;

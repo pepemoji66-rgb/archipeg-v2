@@ -61,6 +61,7 @@ const Galeria = () => {
     const [rutaImport, setRutaImport] = useState('');
     const [importando, setImportando] = useState(false);
     const [resultadoImport, setResultadoImport] = useState(null);
+    const [statusImport, setStatusImport] = useState({ actual: 0, total: 0, mensaje: '', activa: false });
 
     // Nuevos estados para asignar a álbum
     const [mostrarAsignarAlbum, setMostrarAsignarAlbum] = useState(false);
@@ -152,7 +153,7 @@ const Galeria = () => {
         setImportando(true);
         setResultadoImport(null);
         try {
-            const res = await apiFetch(`${API}/importar-masivo`, {
+            const res = await apiFetch(`${API}/sistema/importar-automatico`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ruta: rutaImport })
@@ -168,8 +169,38 @@ const Galeria = () => {
             setResultadoImport({ error: 'Error de conexión' });
         } finally {
             setImportando(false);
+            setStatusImport({ actual: 0, total: 0, mensaje: '', activa: false });
         }
     };
+
+    const cancelarImportacion = async () => {
+        if (!window.confirm("¿Seguro que quieres detener la importación?")) return;
+        try {
+            await apiFetch(`${API}/sistema/cancelar-import`, { method: 'POST' });
+            setImportando(false);
+            setStatusImport(prev => ({ ...prev, activa: false }));
+        } catch (e) { console.error(e); }
+    };
+
+    // Polling de estado de importación
+    useEffect(() => {
+        let interval;
+        if (importando) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await apiFetch(`${API}/sistema/status-import`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setStatusImport(data);
+                        if (!data.activa && importando) {
+                            setImportando(false);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [importando]);
 
     useEffect(() => {
         if (mostrarAsignarAlbum) {
@@ -563,6 +594,22 @@ const Galeria = () => {
                     )}
                     {resultadoImport?.error && (
                         <span className="import-error">❌ {resultadoImport.error}</span>
+                    )}
+                    
+                    {importando && (
+                        <div className="import-progress-container">
+                            <div className="import-progress-info">
+                                <span className="import-percentage">🚀 {Math.round((statusImport.actual / statusImport.total) * 100) || 0}%</span>
+                                <span className="import-count">({statusImport.actual} / {statusImport.total})</span>
+                                <button className="btn-stop-import" onClick={cancelarImportacion}>🛑 DETENER</button>
+                            </div>
+                            <div className="import-progress-bar-bg">
+                                <div 
+                                    className="import-progress-bar-fill" 
+                                    style={{ width: `${(statusImport.actual / statusImport.total) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
                     )}
                 </div>
             )}
