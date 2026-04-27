@@ -22,6 +22,12 @@ const getFotoUrl = (foto) => {
     return URL_FOTOS + url.replace(/ /g, '%20').replace(/\\/g, '/');
 };
 
+const esVideo = (url) => {
+    if (!url) return false;
+    const ext = url.split('.').pop().toLowerCase();
+    return ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'].includes(ext);
+};
+
 const normalizar = (str) =>
     str?.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() || '';
 
@@ -571,6 +577,7 @@ const Galeria = () => {
                             onClick={() => manejarClicFoto(foto)}
                         >
                             <img src={getFotoUrl(foto)} alt="" loading="lazy" />
+                            {esVideo(foto.imagen_url) && <div className="video-badge">▶</div>}
 
                             {/* Checkmark Neón */}
                             {modoSeleccion && (

@@ -183,7 +183,9 @@ const LIMITE_DEMO = 100000;
 let progresoOperacion = { actual: 0, total: 0, mensaje: "Listo", activa: false };
 
 // --- IMPORTACIÓN MASIVA ---
+const EXTENSIONES_VALIDAS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.3gp']);
 const EXTENSIONES_IMAGEN = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp']);
+const EXTENSIONES_VIDEO = new Set(['.mp4', '.mov', '.avi', '.mkv', '.webm', '.3gp']);
 
 /**
  * ESCÁNER QUIRÚRGICO DE BYTES (FALLBACK)
@@ -221,54 +223,85 @@ function deepScanKeywords(buffer) {
 }
 
 async function extraerMetadata(ruta) {
-    const info = { lat: null, lon: null, anio: null, mes: null };
-    let handle;
-    try {
-        const buffer = Buffer.alloc(131072);
-        handle = await fs.promises.open(ruta, 'r');
-        const { bytesRead } = await handle.read(buffer, 0, 131072, 0);
-        
-        if (bytesRead > 0) {
-            const parser = ExifParser.create(buffer);
-            const result = parser.parse();
+    const ext = path.extname(ruta).toLowerCase();
+    const info = { lat: null, lon: null, anio: null, mes: null, etiquetas: null, descripcion: null };
+    
+    // --- NUEVO: SOPORTE PARA GOOGLE TAKEOUT (.json) ---
+    const rutaJson = `${ruta}.json`;
+    if (fs.existsSync(rutaJson)) {
+        try {
+            const jsonContent = JSON.parse(fs.readFileSync(rutaJson, 'utf8'));
+            if (jsonContent.description) info.descripcion = jsonContent.description;
             
-            if (result.tags) {
-                if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
-                    info.lat = result.tags.GPSLatitude;
-                    info.lon = result.tags.GPSLongitude;
-                }
-                if (result.tags.DateTimeOriginal) {
-                    const date = new Date(result.tags.DateTimeOriginal * 1000);
-                    if (!isNaN(date.getFullYear())) {
-                        info.anio = date.getFullYear();
-                        info.mes = date.getMonth() + 1;
-                    }
-                }
-                const tagsEncontrados = [];
-                if (result.tags.XPKeywords) tagsEncontrados.push(...result.tags.XPKeywords.split(';').map(t => t.trim()));
-                if (result.tags.Keywords) {
-                    if (Array.isArray(result.tags.Keywords)) tagsEncontrados.push(...result.tags.Keywords);
-                    else tagsEncontrados.push(...result.tags.Keywords.split(',').map(t => t.trim()));
-                }
-                if (result.tags.UserComment) {
-                     const comment = result.tags.UserComment.toString();
-                     if (comment.includes('#')) { 
-                         const matches = comment.match(/#[^\s,]+/g);
-                         if (matches) tagsEncontrados.push(...matches.map(m => m.replace('#','')));
-                     }
-                }
-                if (tagsEncontrados.length > 0) {
-                    info.etiquetas = [...new Set(tagsEncontrados)].filter(t => t.length > 1).join(', ');
-                } else {
-                    const deepTags = deepScanKeywords(buffer);
-                    if (deepTags) info.etiquetas = deepTags.join(', ');
+            // Geolocalización desde Google
+            if (jsonContent.geoData && jsonContent.geoData.latitude !== 0) {
+                info.lat = jsonContent.geoData.latitude;
+                info.lon = jsonContent.geoData.longitude;
+            }
+            
+            // Fecha desde Google
+            const timeTaken = jsonContent.photoTakenTime || jsonContent.creationTime;
+            if (timeTaken && timeTaken.timestamp) {
+                const date = new Date(parseInt(timeTaken.timestamp) * 1000);
+                if (!isNaN(date.getFullYear())) {
+                    info.anio = date.getFullYear();
+                    info.mes = date.getMonth() + 1;
                 }
             }
+        } catch (e) {
+            console.warn(`⚠️ Error leyendo JSON de Google: ${rutaJson}`);
         }
-    } catch (e) {
-    } finally {
-        if (handle) {
-            try { await handle.close(); } catch(e){}
+    }
+
+    if (EXTENSIONES_IMAGEN.has(ext)) {
+        let handle;
+        try {
+            const buffer = Buffer.alloc(131072);
+            handle = await fs.promises.open(ruta, 'r');
+            const { bytesRead } = await handle.read(buffer, 0, 131072, 0);
+            
+            if (bytesRead > 0) {
+                const parser = ExifParser.create(buffer);
+                const result = parser.parse();
+                
+                if (result.tags) {
+                    if (result.tags.GPSLatitude && result.tags.GPSLongitude && !info.lat) {
+                        info.lat = result.tags.GPSLatitude;
+                        info.lon = result.tags.GPSLongitude;
+                    }
+                    if (result.tags.DateTimeOriginal && !info.anio) {
+                        const date = new Date(result.tags.DateTimeOriginal * 1000);
+                        if (!isNaN(date.getFullYear())) {
+                            info.anio = date.getFullYear();
+                            info.mes = date.getMonth() + 1;
+                        }
+                    }
+                    const tagsEncontrados = [];
+                    if (result.tags.XPKeywords) tagsEncontrados.push(...result.tags.XPKeywords.split(';').map(t => t.trim()));
+                    if (result.tags.Keywords) {
+                        if (Array.isArray(result.tags.Keywords)) tagsEncontrados.push(...result.tags.Keywords);
+                        else tagsEncontrados.push(...result.tags.Keywords.split(',').map(t => t.trim()));
+                    }
+                    if (result.tags.UserComment) {
+                         const comment = result.tags.UserComment.toString();
+                         if (comment.includes('#')) { 
+                             const matches = comment.match(/#[^\s,]+/g);
+                             if (matches) tagsEncontrados.push(...matches.map(m => m.replace('#','')));
+                         }
+                    }
+                    if (tagsEncontrados.length > 0) {
+                        info.etiquetas = [...new Set(tagsEncontrados)].filter(t => t.length > 1).join(', ');
+                    } else {
+                        const deepTags = deepScanKeywords(buffer);
+                        if (deepTags) info.etiquetas = deepTags.join(', ');
+                    }
+                }
+            }
+        } catch (e) {
+        } finally {
+            if (handle) {
+                try { await handle.close(); } catch(e){}
+            }
         }
     }
     
@@ -292,7 +325,13 @@ const MIME_TIPOS = {
     '.gif': 'image/gif',
     '.webp': 'image/webp',
     '.heic': 'image/heic',
-    '.bmp': 'image/bmp'
+    '.bmp': 'image/bmp',
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.webm': 'video/webm',
+    '.3gp': 'video/3gpp'
 };
 
 async function escanearRecursivo(dir) {
@@ -305,7 +344,7 @@ async function escanearRecursivo(dir) {
                 if (entrada.isDirectory()) {
                     const subResults = await escanearRecursivo(rutaCompleta);
                     resultados.push(...subResults);
-                } else if (entrada.isFile() && EXTENSIONES_IMAGEN.has(path.extname(entrada.name).toLowerCase())) {
+                } else if (entrada.isFile() && EXTENSIONES_VALIDAS.has(path.extname(entrada.name).toLowerCase())) {
                     resultados.push(rutaCompleta);
                 }
             } catch (_) { /* sin permiso, se ignora */ }
@@ -1600,7 +1639,7 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                         if (item.isDirectory()) {
                             const subResults = await scanRecursive(fullPath, [...currentTags, item.name]);
                             results = results.concat(subResults);
-                        } else if (item.isFile() && EXTENSIONES_IMAGEN.has(path.extname(item.name).toLowerCase())) {
+                        } else if (item.isFile() && EXTENSIONES_VALIDAS.has(path.extname(item.name).toLowerCase())) {
                             results.push({ path: fullPath, tags: currentTags });
                         }
                     } catch (e) {}
@@ -1994,7 +2033,7 @@ app.get('/api/foto-local', (req, res) => {
     if (!ruta) return res.status(400).json({ error: 'Parámetro ruta requerido' });
 
     const ext = path.extname(ruta).toLowerCase();
-    if (!EXTENSIONES_IMAGEN.has(ext)) return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    if (!EXTENSIONES_VALIDAS.has(ext)) return res.status(400).json({ error: 'Tipo de archivo no permitido' });
 
     if (!fs.existsSync(ruta)) return res.status(404).json({ error: 'Archivo no encontrado' });
 

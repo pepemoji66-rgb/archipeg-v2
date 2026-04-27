@@ -382,8 +382,14 @@ const AdminPanel = () => {
                                     <tbody>
                                         {fotosPaginadas.map(f => (
                                             <tr key={f.id}>
-                                                <td className="td-mini" onClick={() => setFotoEnZoom(f)}>
+                                                <td className="td-mini" onClick={() => setFotoEnZoom(f)} style={{ position: 'relative' }}>
                                                     <img src={getFotoUrl(f)} alt="mini" className="mini-thumb" onError={(e) => e.target.src = PLACEHOLDER_IMG} />
+                                                    {f.imagen_url && ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'].includes(f.imagen_url.split('.').pop().toLowerCase()) && (
+                                                        <div className="video-badge-mini" style={{
+                                                            position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(0,0,0,0.7)', 
+                                                            color: '#00ffff', fontSize: '10px', padding: '2px 4px', borderRadius: '3px', border: '1px solid #00ffff'
+                                                        }}>VÍDEO</div>
+                                                    )}
                                                 </td>
                                                 <td className="td-info-clean">
                                                     <span className="info-title">

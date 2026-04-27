@@ -29,6 +29,14 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
     const [nuevoEvento, setNuevoEvento] = useState('');
     const [nuevoTag, setNuevoTag] = useState('');
     const [menuOpcionesAbierto, setMenuOpcionesAbierto] = useState(false);
+    const [esVideo, setEsVideo] = useState(false);
+
+    useEffect(() => {
+        if (fotoLocal?.imagen_url) {
+            const ext = fotoLocal.imagen_url.split('.').pop().toLowerCase();
+            setEsVideo(['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'].includes(ext));
+        }
+    }, [fotoLocal]);
 
     useEffect(() => {
         setFotoLocal(foto);
@@ -100,10 +108,11 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
 
     const descargar = () => {
         const url = getFotoUrl(fotoLocal);
+        const ext = fotoLocal.imagen_url ? `.${fotoLocal.imagen_url.split('.').pop()}` : (esVideo ? '.mp4' : '.jpg');
         fetch(url).then(r => r.blob()).then(blob => {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = fotoLocal.titulo ? `${fotoLocal.titulo}.jpg` : 'foto.jpg';
+            a.download = fotoLocal.titulo ? `${fotoLocal.titulo}${ext}` : (fotoLocal.imagen_url || `archivo${ext}`);
             a.click();
             URL.revokeObjectURL(a.href);
         }).catch(() => window.open(url, '_blank'));
@@ -340,18 +349,34 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                 >
                     <button className="modal-nav modal-nav-prev" onClick={e => { e.stopPropagation(); setEscala(1); setRotacion(0); setPos({ x: 0, y: 0 }); onNavigate('anterior'); }}>‹</button>
 
-                    <img
-                        src={getFotoUrl(fotoLocal)}
-                        alt=""
-                        draggable="false"
-                        onDragStart={e => e.preventDefault()}
-                        style={{
-                            transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
-                            transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                            userSelect: 'none',
-                            WebkitUserDrag: 'none'
-                        }}
-                    />
+                    {esVideo ? (
+                        <video
+                            src={getFotoUrl(fotoLocal)}
+                            controls
+                            autoPlay
+                            style={{
+                                transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
+                                transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                outline: 'none'
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        />
+                    ) : (
+                        <img
+                            src={getFotoUrl(fotoLocal)}
+                            alt=""
+                            draggable="false"
+                            onDragStart={e => e.preventDefault()}
+                            style={{
+                                transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
+                                transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                userSelect: 'none',
+                                WebkitUserDrag: 'none'
+                            }}
+                        />
+                    )}
 
                     <button className="modal-nav modal-nav-next" onClick={e => { e.stopPropagation(); setEscala(1); setRotacion(0); setPos({ x: 0, y: 0 }); onNavigate('siguiente'); }}>›</button>
                 </div>
