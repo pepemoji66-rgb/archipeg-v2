@@ -1690,17 +1690,16 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                         }
                     }
 
-                    const nuevoNombre = `${Date.now()}-${fileName}`;
-                    const destinoFinal = path.join(dirDestino, nuevoNombre);
+                    // --- MODO SOBERANÍA: INDEXAR SIN COPIAR ---
+                    const imagenUrl = foto.path; // Usamos la ruta absoluta del disco extraíble
                     
-                    await fs.promises.copyFile(foto.path, destinoFinal);
-                    const meta = await extraerMetadata(destinoFinal);
+                    const meta = await extraerMetadata(foto.path);
                     const anioFinal = anioExtraido || meta.anio || new Date().getFullYear();
 
-                    // Acumulamos el INSERT para el lote
+                    // Acumulamos el INSERT para el lote con la ruta absoluta
                     batchStatements.push({
-                        sql: "INSERT INTO fotos (titulo, anio, mes, etiquetas, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
-                        args: [fileName, anioFinal, meta.mes || 1, etiquetasFinales, nuevoNombre, meta.lat, meta.lon, req.usuario?.id]
+                        sql: "INSERT INTO fotos (titulo, anio, mes, etiquetas, descripcion, imagen_url, latitud, longitud, usuario_id, en_papelera) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                        args: [fileName, anioFinal, meta.mes || 1, etiquetasFinales, meta.descripcion || null, imagenUrl, meta.lat, meta.lon, req.usuario?.id]
                     });
                     
                     batchPhotos.push({ tags: foto.tags, anioFinal });
@@ -1717,7 +1716,7 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                                 // Nota: Para máxima velocidad, los eventos se gestionan por separado si es necesario
                                 // Pero para simplificar, intentamos asociar. 
                                 // Turso batch no devuelve IDs de la misma forma que run(), así que usaremos una técnica de búsqueda por URL
-                                const insertedFoto = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [batchStatements[k].args[4]]);
+                                const insertedFoto = await db.get("SELECT id FROM fotos WHERE imagen_url = ?", [batchStatements[k].args[5]]);
                                 if (insertedFoto) {
                                     let evento = await db.get("SELECT id FROM eventos WHERE LOWER(nombre) = LOWER(?) AND usuario_id = ?", [nombreEvento, req.usuario?.id]);
                                     if (!evento) {
