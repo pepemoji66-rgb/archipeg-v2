@@ -382,9 +382,21 @@ const AdminPanel = () => {
                                     <tbody>
                                         {fotosPaginadas.map(f => (
                                             <tr key={f.id}>
-                                                <td className="td-mini" onClick={() => setFotoEnZoom(f)} style={{ position: 'relative' }}>
-                                                    <img src={getFotoUrl(f)} alt="mini" className="mini-thumb" onError={(e) => e.target.src = PLACEHOLDER_IMG} />
-                                                    {f.imagen_url && ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'].includes(f.imagen_url.split('.').pop().toLowerCase()) && (
+                                                <td className="td-mini" onClick={() => setFotoEnZoom(f)} style={{ position: 'relative', cursor: 'pointer' }}>
+                                                    {f.imagen_url && (f.imagen_url.toLowerCase().endsWith('.mp4') || f.imagen_url.toLowerCase().endsWith('.mov') || f.imagen_url.toLowerCase().endsWith('.avi') || f.imagen_url.toLowerCase().endsWith('.mkv') || f.imagen_url.toLowerCase().endsWith('.webm') || f.imagen_url.toLowerCase().endsWith('.3gp')) ? (
+                                                        <video 
+                                                            src={getFotoUrl(f)} 
+                                                            className="mini-thumb" 
+                                                            muted 
+                                                            preload="metadata" 
+                                                            onLoadedMetadata={e => e.target.currentTime = 0.5}
+                                                            style={{ objectFit: 'cover', background: '#000' }}
+                                                        />
+                                                    ) : (
+                                                        <img src={getFotoUrl(f)} alt="mini" className="mini-thumb" onError={(e) => e.target.src = PLACEHOLDER_IMG} />
+                                                    )}
+                                                    
+                                                    {f.imagen_url && (f.imagen_url.toLowerCase().endsWith('.mp4') || f.imagen_url.toLowerCase().endsWith('.mov') || f.imagen_url.toLowerCase().endsWith('.avi') || f.imagen_url.toLowerCase().endsWith('.mkv') || f.imagen_url.toLowerCase().endsWith('.webm') || f.imagen_url.toLowerCase().endsWith('.3gp')) && (
                                                         <div className="video-badge-mini" style={{
                                                             position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(0,0,0,0.7)', 
                                                             color: '#00ffff', fontSize: '10px', padding: '2px 4px', borderRadius: '3px', border: '1px solid #00ffff'

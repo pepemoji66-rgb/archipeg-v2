@@ -582,8 +582,9 @@ const Galeria = () => {
                                     className="foto-galeria-img video-thumb"
                                     muted
                                     preload="metadata"
+                                    onLoadedMetadata={e => e.target.currentTime = 0.5} // Pequeño truco para forzar el frame
                                     onMouseOver={e => e.currentTarget.play()}
-                                    onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                                    onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.5; }}
                                 />
                             ) : (
                                 <img 
