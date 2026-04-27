@@ -61,6 +61,8 @@ const AdminPanel = () => {
     const [albumes, setAlbumes] = useState([]);
     const [albumSeleccionado, setAlbumSeleccionado] = useState("");
     const [mensaje, setMensaje] = useState("");
+    const [importando, setImportando] = useState(false);
+    const [statusImport, setStatusImport] = useState({ actual: 0, total: 0, mensaje: '', activa: false });
     const [progreso, setProgreso] = useState(0);
 
     // --- CONFIGURACIÓN DE TEXTOS DINÁMICOS (SOBERANÍA DE DATOS) ---
@@ -186,41 +188,53 @@ const AdminPanel = () => {
 
     const ejecutarImportacionAutomatica = async () => {
         if (!window.confirm("🚀 ¿INICIAR ESCÁNER MÁGICO?\n\nDetectará la carpeta 'FOTOS PARA SUBIR' en tus discos externos.")) return;
-        
-        let intervalId;
+        setImportando(true);
         try {
-            setMensaje("🚀 Buscando en discos externos..."); setProgreso(1);
-            
-            // Iniciamos polling de progreso
-            intervalId = setInterval(async () => {
-                try {
-                    const statusRes = await fetch(`${API_URL}/sistema/status-import`);
-                    if (statusRes.ok) {
-                        const statusData = await statusRes.json();
-                        if (statusData.activa && statusData.total > 0) {
-                            const p = Math.round((statusData.actual / statusData.total) * 100);
-                            setProgreso(p > 0 ? p : 1);
-                            setMensaje(`🚀 ${statusData.mensaje} (${statusData.actual}/${statusData.total})`);
-                        }
-                    }
-                } catch (e) {}
-            }, 1500);
-
             const res = await apiFetch(`${API_URL}/sistema/importar-automatico`, { method: 'POST' });
-            clearInterval(intervalId);
-
             if (res.ok) {
                 const data = await res.json();
-                setProgreso(100); setMensaje(`✨ ÉXITO: ${data.importadas} nuevas fotos.`);
-                setTimeout(() => { setProgreso(0); cargarFotos(); }, 2000);
+                setMensaje(`✨ ÉXITO: ${data.importadas} nuevas fotos.`);
+                cargarFotos();
             } else {
-                const err = await res.json(); alert(`❌ ${err.error}`); setProgreso(0); setMensaje("");
+                const err = await res.json(); alert(`❌ ${err.error}`);
             }
         } catch (error) { 
-            if (intervalId) clearInterval(intervalId);
-            setProgreso(0); setMensaje("");
+            setMensaje("❌ Error de conexión");
+        } finally {
+            setImportando(false);
+            setStatusImport({ actual: 0, total: 0, mensaje: '', activa: false });
         }
     };
+
+    const cancelarImportacion = async () => {
+        if (!window.confirm("¿Seguro que quieres detener la importación?")) return;
+        try {
+            await apiFetch(`${API_URL}/sistema/cancelar-import`, { method: 'POST' });
+            setImportando(false);
+            setStatusImport(prev => ({ ...prev, activa: false }));
+            setMensaje("Importación cancelada.");
+        } catch (e) { console.error(e); }
+    };
+
+    // Polling de estado de importación
+    useEffect(() => {
+        let interval;
+        if (importando) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await apiFetch(`${API_URL}/sistema/status-import`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setStatusImport(data);
+                        if (!data.activa && importando) {
+                            setImportando(false);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [importando]);
 
     const gestionarPapelera = async (id, accion) => {
         try {
@@ -328,12 +342,30 @@ const AdminPanel = () => {
                                     </div>
                                 )}
                             </div>
-                            {progreso > 0 && (
-                                <div className="progreso-mini">
-                                    <div className="progreso-fill" style={{ width: `${progreso}%` }}>{progreso}%</div>
+                            
+                            {importando && (
+                                <div className="import-progress-container" style={{ marginTop: '20px', background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', border: '1px solid #00ffff' }}>
+                                    <div className="import-progress-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span className="import-percentage" style={{ color: '#00ffff', fontWeight: 'bold' }}>🚀 {Math.round((statusImport.actual / statusImport.total) * 100) || 0}%</span>
+                                        <span className="import-count" style={{ color: '#fff' }}>({statusImport.actual} / {statusImport.total})</span>
+                                        <button className="btn-stop-import" onClick={cancelarImportacion} style={{ background: '#ff4d4d', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>🛑 DETENER</button>
+                                    </div>
+                                    <div className="import-progress-bar-bg" style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                                        <div 
+                                            className="import-progress-bar-fill" 
+                                            style={{ 
+                                                width: `${(statusImport.actual / statusImport.total) * 100}%`,
+                                                height: '100%',
+                                                background: 'linear-gradient(90deg, #00ffff, #ff00ff)',
+                                                boxShadow: '0 0 15px #ff00ff',
+                                                transition: 'width 0.4s ease'
+                                            }}
+                                        ></div>
+                                    </div>
                                 </div>
                             )}
-                            {mensaje && <p className="mensaje-status">{mensaje}</p>}
+
+                            {mensaje && <p className="mensaje-status" style={{ marginTop: '10px', color: '#00ffff' }}>{mensaje}</p>}
                         </section>
 
                         {/* FILTROS Y TABLA */}
