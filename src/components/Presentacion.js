@@ -15,37 +15,37 @@ const Presentacion = () => {
     const slides = [
         {
             title: "ARCHIPEG PRO",
-            text: "Donde la tecnología se encuentra con tus recuerdos más valiosos. Redescubre tu historia personal con inteligencia y elegancia.",
+            text: "Donde la tecnología se encuentra con tus fotos y vídeos más valiosos. Redescubre tu historia personal con inteligencia y elegancia.",
             bg: heroBg,
             type: "hero"
         },
         {
             title: "EL MAPA DE TU VIDA",
-            text: "Cada foto tiene un lugar. Visualiza tus viajes y momentos especiales geolocalizados en un mapa interactivo de alta resolución.",
+            text: "Cada recuerdo tiene un lugar. Visualiza tus viajes y momentos especiales geolocalizados en un mapa interactivo de alta resolución.",
             bg: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=2000",
             type: "content"
         },
         {
             title: "MAGIC SCAN",
-            text: "La herramienta definitiva. Conecta un USB con tus fotos y Archipeg hará todo el trabajo sucio por ti: importar, organizar y fechar.",
+            text: "La herramienta definitiva. Conecta un USB con tus fotos y vídeos y Archipeg hará todo el trabajo sucio por ti: importar, organizar y fechar.",
             bg: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=2000",
             type: "magic"
         },
         {
             title: "CERO DUPLICADOS",
-            text: "Archipeg analiza tu colección y detecta fotos repetidas automáticamente. Mantén tu archivo limpio, ligero y sin desorden.",
+            text: "Archipeg analiza tu colección y detecta archivos repetidos automáticamente. Mantén tu archivo limpio, ligero y sin desorden.",
             bg: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=2000",
             type: "content"
         },
         {
             title: "IDENTIFICA A TU FAMILIA",
-            text: "Crea perfiles para tus seres queridos. Etiqueta a las personas en las fotos y encuentra todos sus recuerdos con un solo click.",
+            text: "Crea perfiles para tus seres queridos. Etiqueta a las personas en tus recuerdos y encuentra todos sus momentos con un solo click.",
             bg: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=2000",
             type: "content"
         },
         {
             title: "SELECCIÓN FAVORITOS",
-            text: "Tus joyas de la corona. Marca tus fotos preferidas con la estrella (⭐) y crea tu propia galería VIP instantáneamente.",
+            text: "Tus joyas de la corona. Marca tus recuerdos preferidos con la estrella (⭐) y crea tu propia galería VIP instantáneamente.",
             bg: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=2000",
             type: "content"
         },

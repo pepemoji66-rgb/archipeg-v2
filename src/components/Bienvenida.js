@@ -119,7 +119,7 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 <div className="sovereignty-info-box">
                     <strong>🛡️ SOBERANÍA DIGITAL</strong>
                     <p>
-                        Tus fotos originales <b>nunca</b> se suben a esta web. Permanecen en tu disco duro. 
+                        Tus fotos y vídeos originales <b>nunca</b> se suben a esta web. Permanecen en tu disco duro. 
                         Esta cuenta de nube solo sirve para gestionar tu catálogo y álbumes compartidos.
                     </p>
                 </div>
