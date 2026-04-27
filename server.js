@@ -1800,37 +1800,43 @@ app.post('/api/importar-masivo', async (req, res) => {
         dbLock = true;
         await db.run("BEGIN TRANSACTION");
         try {
-            for (let i = 0; i < imagenes.length; i++) {
-                progresoOperacion.actual = i + 1;
-                const rutaImagen = imagenes[i];
-                const existente = await db.get(
-                    req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
-                    req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
-                );
+            const CONCURRENCY = 10; // Procesar 10 fotos a la vez
+            for (let i = 0; i < imagenes.length; i += CONCURRENCY) {
+                const chunk = imagenes.slice(i, i + CONCURRENCY);
+                
+                await Promise.all(chunk.map(async (rutaImagen, index) => {
+                    progresoOperacion.actual = i + index + 1;
+                    
+                    const existente = await db.get(
+                        req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
+                        req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
+                    );
 
-                if (existente) {
-                    actualizadas++;
-                    continue;
-                }
+                    if (existente) {
+                        actualizadas++;
+                        return;
+                    }
 
-                if (esBajoDemo && fotosActuales >= LIMITE_DEMO) {
-                    ignoradas++;
-                    continue;
-                }
+                    if (esBajoDemo && fotosActuales >= LIMITE_DEMO) {
+                        ignoradas++;
+                        return;
+                    }
 
-                const meta = await extraerMetadata(rutaImagen);
-                const anioFinal = meta.anio;
-                const mesFinal = meta.mes;
+                    const meta = await extraerMetadata(rutaImagen);
+                    const anioFinal = meta.anio;
+                    const mesFinal = meta.mes;
 
-                await db.run(
-                    "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
-                    [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
-                );
+                    await db.run(
+                        "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
+                        [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
+                    );
 
-                importadas++;
-                if (esBajoDemo) fotosActuales++;
+                    importadas++;
+                    if (esBajoDemo) fotosActuales++;
+                }));
 
-                if (importadas % 50 === 0) {
+                // Liberar el event loop cada 100 archivos para no bloquear el PC
+                if (i % 100 === 0) {
                     await new Promise(resolve => setImmediate(resolve));
                 }
             }
