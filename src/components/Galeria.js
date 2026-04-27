@@ -576,8 +576,27 @@ const Galeria = () => {
                             className={`foto-card ${isSelected ? 'foto-card-seleccionada' : ''}`}
                             onClick={() => manejarClicFoto(foto)}
                         >
-                            <img src={getFotoUrl(foto)} alt="" loading="lazy" />
-                            {esVideo(foto.imagen_url) && <div className="video-badge">▶</div>}
+                            {esVideo(foto.imagen_url) ? (
+                                <video 
+                                    src={getFotoUrl(foto)} 
+                                    className="foto-galeria-img video-thumb"
+                                    muted
+                                    preload="metadata"
+                                    onMouseOver={e => e.currentTarget.play()}
+                                    onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                                />
+                            ) : (
+                                <img 
+                                    src={getFotoUrl(foto)} 
+                                    className="foto-galeria-img" 
+                                    alt={foto.titulo} 
+                                    loading="lazy" 
+                                />
+                            )}
+                            
+                            {esVideo(foto.imagen_url) && (
+                                <div className="video-badge">▶ VÍDEO</div>
+                            )}
 
                             {/* Checkmark Neón */}
                             {modoSeleccion && (
