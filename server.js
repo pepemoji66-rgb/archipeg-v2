@@ -4,11 +4,26 @@ console.log("📍 Directorio de Datos:", process.env.ARCHIPEG_DATA_DIR || "No de
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
 const { exec } = require('child_process');
 const nodemailer = require('nodemailer');
 const dns = require('dns');
 const { createClient } = require('@libsql/client');
+
+// 🛡️ CONFIGURACIÓN DE RUTA SEGURA (DOCUMENTOS)
+const ARCHIPEG_SAFE_PATH = path.join(os.homedir(), 'Documents', 'ARCHIPEG_PRO_DATA');
+try {
+    if (!fs.existsSync(ARCHIPEG_SAFE_PATH)) {
+        fs.mkdirSync(ARCHIPEG_SAFE_PATH, { recursive: true });
+        console.log("📂 CARPETA SEGURA CREADA EN DOCUMENTOS:", ARCHIPEG_SAFE_PATH);
+    }
+} catch (e) {
+    console.warn("⚠️ Advertencia: No se pudo crear la carpeta en Documentos:", e.message);
+}
+
+const DATA_DIR = process.env.ARCHIPEG_DATA_DIR || ARCHIPEG_SAFE_PATH;
+console.log("📍 Directorio de Datos Activo:", DATA_DIR);
 
 // 🌐 SOLUCIÓN CRÍTICA PARA RENDER: Forzar IPv4 en todas las conexiones
 if (dns.setDefaultResultOrder) {
@@ -137,7 +152,7 @@ function dbCheck(req, res, next) {
 }
 
 // 🟢 SERVIR ARCHIVOS ESTÁTICOS: El puente entre la URL /uploads y la carpeta física
-const basePath = process.env.ARCHIPEG_DATA_DIR || __dirname;
+const basePath = DATA_DIR;
 const dirDestino = path.join(basePath, 'fotos_archipeg');
 
 // Si no existe la carpeta, la crea automáticamente (asegurando recursividad)
@@ -367,8 +382,19 @@ const upload = multer({ storage: storage });
 // --- INICIALIZACIÓN DEL MOTOR SQLITE ---
 async function inicializarMotor() {
     try {
-        const tursoUrl = (process.env.TURSO_URL || '').trim();
+        // RUTA MAESTRA: DATA_DIR (Permisos garantizados en Documentos por defecto)
+        const sovereignPath = DATA_DIR;
+        
+        // Crear la carpeta si no existe (doble check)
+        if (!fs.existsSync(sovereignPath)) {
+            fs.mkdirSync(sovereignPath, { recursive: true });
+        }
+
+        const isElectron = process.versions && process.versions.electron;
+        const tursoUrl = !isElectron ? (process.env.TURSO_URL || '').trim() : '';
         const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
+
+        console.log("🛡️ RUTA MAESTRA ACTIVADA:", sovereignPath);
 
         if (tursoUrl && tursoToken) {
             console.log("☁️ CONECTANDO A TURSO CLOUD (Modo Persistente)...");
@@ -377,7 +403,7 @@ async function inicializarMotor() {
         } else {
             console.log("📁 CONECTANDO A SQLITE LOCAL (Modo Soberano)...");
             db = await open({
-                filename: path.join(basePath, 'archipeg_data.db'),
+                filename: path.join(sovereignPath, 'archipeg_data.db'),
                 driver: sqlite3.Database
             });
         }
@@ -385,7 +411,8 @@ async function inicializarMotor() {
         // CONFIGURACIÓN PROFESIONAL (Modo Tanque): Solo para SQLite local
         if (!tursoUrl) {
             await db.run('PRAGMA journal_mode = WAL').catch(() => {});
-            await db.run('PRAGMA busy_timeout = 5000').catch(() => {});
+            await db.run('PRAGMA synchronous = NORMAL').catch(() => {});
+            await db.run('PRAGMA busy_timeout = 10000').catch(() => {}); // Aumentado a 10 segundos
         }
 
         // 🛡️ CREACIÓN DE TABLAS UNA POR UNA (Resiliencia Extrema)
@@ -529,6 +556,28 @@ async function limpiarFotosRotas(fotos, req) {
     });
     return fotos;
 }
+
+// --- SERVICIO DE FOTOS LOCALES (USB / Discos Extraíbles) ---
+app.get('/api/foto-local', (req, res) => {
+    const ruta = req.query.ruta;
+    if (!ruta) return res.status(400).send("Ruta no proporcionada");
+    
+    // Decodificamos por si la URL viene codificada
+    const rutaDecodificada = decodeURIComponent(ruta);
+    
+    // Verificamos que sea una ruta absoluta
+    const path = require('path');
+    if (!path.isAbsolute(rutaDecodificada)) {
+        return res.status(400).send("Ruta inválida");
+    }
+    
+    const fs = require('fs');
+    if (!fs.existsSync(rutaDecodificada)) {
+        return res.status(404).send("Archivo no encontrado o disco desconectado");
+    }
+    
+    res.sendFile(rutaDecodificada);
+});
 
 // --- TEST ENDPOINT ---
 app.get('/api/test', (req, res) => {
@@ -1609,29 +1658,36 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
             });
         }
 
-        // --- ESCÁNER INTELIGENTE: BUSCA EN TODOS LOS DISCOS EXTERNOS (D-Z) ---
-        const unidadesExternas = "DEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        // --- ESCÁNER INTELIGENTE: BUSCA EN TODOS LOS DISCOS (C-Z) Y CARPETAS CLAVE ---
+        const unidades = "CDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         const posiblesRutas = [];
         
-        for (const letra of unidadesExternas) {
+        // Rutas especiales en el disco principal
+        posiblesRutas.push(path.join(os.homedir(), 'Desktop', 'FOTOS PARA SUBIR'));
+        posiblesRutas.push(path.join(os.homedir(), 'Documents', 'FOTOS PARA SUBIR'));
+
+        for (const letra of unidades) {
             posiblesRutas.push(`${letra}:\\FOTOS PARA SUBIR`);
             posiblesRutas.push(`${letra}:\\archipeg\\FOTOS PARA SUBIR`);
         }
 
         let dirSubida = null;
+        console.log("🔍 INICIANDO RADAR DE IMPORTACIÓN...");
         for (const ruta of posiblesRutas) {
             try {
+                console.log(`🔎 Probando ruta: ${ruta}`);
                 if (fs.existsSync(ruta)) {
                     dirSubida = ruta;
+                    console.log(`✅ ¡CARPETA ENCONTRADA!: ${dirSubida}`);
                     break;
                 }
-            } catch (e) { /* Unidad no disponible, saltar */ }
+            } catch (e) { console.warn(`❌ Salto de ruta por error: ${ruta}`); }
         }
 
         if (!dirSubida) {
             return res.status(404).json({ 
                 error: 'Por favor, conecta un disco o pendrive con la carpeta "FOTOS PARA SUBIR".',
-                detalle: `Buscado en unidades externas (D hasta Z). Nota: El disco C ha sido omitido por seguridad.`
+                detalle: `Buscado en Escritorio, Documentos y unidades de disco (C hasta Z).`
             });
         }
 
@@ -1657,6 +1713,7 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
         };
 
         const fotosAImportar = await scanRecursive(dirSubida);
+        console.log(`📸 FOTOS ENCONTRADAS PARA IMPORTAR: ${fotosAImportar.length}`);
         progresoOperacion = { actual: 0, total: fotosAImportar.length, mensaje: "Importando desde Magic Scan...", activa: true };
         let importadas = 0;
         let saltadas = 0;
@@ -1676,10 +1733,10 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
                 try {
                     const fileName = path.basename(foto.path);
                     
-                    // Verificación de duplicado (esta sí tiene que ser individual por seguridad, pero es rápida)
+                    // Verificación de duplicado por RUTA ABSOLUTA (Mucho más preciso y permite nombres iguales en carpetas distintas)
                     const duplicada = await db.get(
-                        "SELECT id FROM fotos WHERE titulo = ? AND (anio IS NOT NULL OR usuario_id = ?)", 
-                        [fileName, req.usuario?.id]
+                        "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?", 
+                        [foto.path, req.usuario?.id]
                     );
                     
                     if (duplicada) {
@@ -1796,73 +1853,69 @@ app.post('/api/importar-masivo', async (req, res) => {
         let actualizadas = 0;
         let ignoradas = 0;
 
-        let fotosActuales = 0;
-        const esBajoDemo = !req.esAutenticado || (req.usuario && !req.usuario.aprobado);
-        
-        if (esBajoDemo) {
-            const userIdFilter = req.usuario ? req.usuario.id : null;
-            const { count } = await db.get("SELECT COUNT(*) as count FROM fotos WHERE en_papelera = 0 AND usuario_id IS ?", [userIdFilter]);
-            fotosActuales = count;
-        }
-
         dbLock = true;
-        await db.run("BEGIN TRANSACTION");
         try {
-            const CONCURRENCY = 10; // Procesar 10 fotos a la vez
-            for (let i = 0; i < imagenes.length; i += CONCURRENCY) {
-                const chunk = imagenes.slice(i, i + CONCURRENCY);
-                
-                await Promise.all(chunk.map(async (rutaImagen, index) => {
-                    if (cancelarOperacion) return;
-                    progresoOperacion.actual = i + index + 1;
-                    
-                    const existente = await db.get(
-                        req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
-                        req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
-                    );
+            const BATCH_SIZE = 500;
+            const CONCURRENCY = 10;
 
-                    if (existente) {
-                        actualizadas++;
-                        return;
+            for (let i = 0; i < imagenes.length; i += BATCH_SIZE) {
+                if (cancelarOperacion) break;
+
+                const batch = imagenes.slice(i, i + BATCH_SIZE);
+                await db.run("BEGIN TRANSACTION");
+
+                try {
+                    for (let j = 0; j < batch.length; j += CONCURRENCY) {
+                        const chunk = batch.slice(j, j + CONCURRENCY);
+                        await Promise.all(chunk.map(async (rutaImagen, idx) => {
+                            if (cancelarOperacion) return;
+                            
+                            try {
+                                const existente = await db.get(
+                                    req.esAutenticado ? "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id = ?" : "SELECT id FROM fotos WHERE imagen_url = ? AND usuario_id IS NULL",
+                                    req.esAutenticado ? [rutaImagen, req.usuario.id] : [rutaImagen]
+                                );
+
+                                if (existente) {
+                                    actualizadas++;
+                                    return;
+                                }
+
+                                const meta = await extraerMetadata(rutaImagen);
+                                await db.run(
+                                    "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
+                                    [rutaImagen, req.esAutenticado ? req.usuario.id : null, meta.anio, meta.mes, meta.lat, meta.lon]
+                                );
+                                importadas++;
+                            } catch (e) {
+                                console.error("Error en archivo individual:", rutaImagen, e.message);
+                            }
+                        }));
+                        progresoOperacion.actual = i + j + chunk.length;
                     }
-
-                    if (esBajoDemo && fotosActuales >= LIMITE_DEMO) {
-                        ignoradas++;
-                        return;
-                    }
-
-                    const meta = await extraerMetadata(rutaImagen);
-                    const anioFinal = meta.anio;
-                    const mesFinal = meta.mes;
-
-                    await db.run(
-                        "INSERT INTO fotos (imagen_url, en_papelera, usuario_id, anio, mes, latitud, longitud) VALUES (?, 0, ?, ?, ?, ?, ?)",
-                        [rutaImagen, req.esAutenticado ? req.usuario.id : null, anioFinal, mesFinal, meta.lat, meta.lon]
-                    );
-
-                    importadas++;
-                    if (esBajoDemo) fotosActuales++;
-                }));
-
-                // Liberar el event loop cada 100 archivos para no bloquear el PC
-                if (i % 100 === 0) {
-                    await new Promise(resolve => setImmediate(resolve));
+                    await db.run("COMMIT");
+                } catch (batchErr) {
+                    console.error("Error en batch, reintentando individualmente...", batchErr);
+                    await db.run("ROLLBACK");
+                    // Aquí podrías reintentar uno a uno si quisieras máxima precisión
                 }
+
+                // Liberar el event loop
+                await new Promise(resolve => setImmediate(resolve));
             }
-            await db.run("COMMIT");
-            const finalMsg = cancelarOperacion ? "Operación cancelada por el usuario" : "Listo";
+
+            const finalMsg = cancelarOperacion ? "Operación cancelada" : "Listo";
             progresoOperacion = { actual: 0, total: 0, mensaje: finalMsg, activa: false };
             res.json({ importadas, actualizadas, ignoradas, total: imagenes.length, cancelada: cancelarOperacion });
-        } catch (e) {
-            await db.run("ROLLBACK");
-            progresoOperacion.activa = false;
-            throw e;
+        } catch (err) {
+            console.error('Error importar-masivo:', err);
+            res.status(500).json({ error: 'Error interno al importar' });
         } finally {
-            dbLock = false;
+            dbLock = false; // LIBERACIÓN CRÍTICA
         }
     } catch (err) {
-        console.error('Error importar-masivo:', err);
-        res.status(500).json({ error: 'Error interno al importar' });
+        console.error('Error fuera del bucle:', err);
+        res.status(500).json({ error: 'Error de sistema' });
     }
 });
 
