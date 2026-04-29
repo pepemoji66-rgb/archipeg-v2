@@ -55,6 +55,10 @@ const Galeria = () => {
 
     const [paginaActual, setPaginaActual] = useState(parseInt(pUrl) || 1);
     const [saltoInput, setSaltoInput] = useState('');
+
+    useEffect(() => {
+        setSaltoInput(paginaActual.toString());
+    }, [paginaActual]);
     const [seleccionadas, setSeleccionadas] = useState([]);
     const [modoSeleccion, setModoSeleccion] = useState(false);
     const [fotoZoom, setFotoZoom] = useState(null);

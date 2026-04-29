@@ -1,6 +1,6 @@
 {
   "name": "archipeg",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "homepage": ".",
   "description": "Sistema Archipeg - Gestión de Activos y Geo-localización",
   "main": "main.js",

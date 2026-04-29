@@ -89,6 +89,11 @@ const AdminPanel = () => {
     const [inputPage, setInputPage] = useState(pUrl);
     const fotosPorPagina = 12;
 
+    // Sincronizar el input de salto cuando la página cambia por otros medios
+    useEffect(() => {
+        setInputPage(paginaActual.toString());
+    }, [paginaActual]);
+
     const [fotoEnZoom, setFotoEnZoom] = useState(null);
     const [nuevoAlbumRapido, setNuevoAlbumRapido] = useState("");
     const [albumesParaZoom, setAlbumesParaZoom] = useState([]);
@@ -306,13 +311,13 @@ const AdminPanel = () => {
 
             {/* 2. TABS SUPERIORES */}
             <nav className="albolote-tabs">
-                <button className={`tab-btn ${activeTab === 'activo' ? 'active' : ''}`} onClick={() => setActiveTab('activo')}>
+                <button className={`tab-btn ${activeTab === 'activo' ? 'active' : ''}`} onClick={() => { setActiveTab('activo'); setPaginaActual(1); }}>
                     📁 ARCHIVO ACTIVO ({fotos.length})
                 </button>
-                <button className={`tab-btn ${activeTab === 'herramientas' ? 'active' : ''}`} onClick={() => setActiveTab('herramientas')}>
+                <button className={`tab-btn ${activeTab === 'herramientas' ? 'active' : ''}`} onClick={() => { setActiveTab('herramientas'); setPaginaActual(1); }}>
                     🛠️ HERRAMIENTAS
                 </button>
-                <button className={`tab-btn ${activeTab === 'papelera' ? 'active' : ''}`} onClick={() => setActiveTab('papelera')}>
+                <button className={`tab-btn ${activeTab === 'papelera' ? 'active' : ''}`} onClick={() => { setActiveTab('papelera'); setPaginaActual(1); }}>
                     🗑️ PAPELERA ({fotosPapelera.length})
                 </button>
             </nav>
@@ -550,7 +555,7 @@ const AdminPanel = () => {
                             <table className="albolote-table">
                                 <thead><tr><th>MINI</th><th>NOMBRE</th><th>ACCIONES</th></tr></thead>
                                 <tbody>
-                                    {fotosPapelera.map(f => (
+                                    {fotosPapelera.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina).map(f => (
                                         <tr key={f.id}>
                                             <td className="td-mini"><img src={getFotoUrl(f)} className="mini-thumb" alt="" /></td>
                                             <td>{f.titulo || f.imagen_url}</td>
@@ -563,6 +568,15 @@ const AdminPanel = () => {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {/* Paginación para Papelera */}
+                        {fotosPapelera.length > fotosPorPagina && (
+                            <div className="pagination-sleek">
+                                <button disabled={paginaActual === 1} onClick={() => setPaginaActual(p => p - 1)} className="btn-pag">ANTERIOR</button>
+                                <span>Página {paginaActual} de {Math.ceil(fotosPapelera.length / fotosPorPagina)}</span>
+                                <button disabled={paginaActual >= Math.ceil(fotosPapelera.length / fotosPorPagina)} onClick={() => setPaginaActual(p => p + 1)} className="btn-pag">SIGUIENTE</button>
+                            </div>
+                        )}
                     </section>
                 )}
             </main>

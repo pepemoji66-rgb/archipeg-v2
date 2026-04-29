@@ -1771,7 +1771,14 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
 
                     // Si llegamos al tamaño del lote o es el final, enviamos a Turso
                     if (batchStatements.length >= CHUNK_SIZE || i === fotosAImportar.length - 1) {
-                        const results = await db.batch(batchStatements);
+                        if (db.batch) {
+                            await db.batch(batchStatements);
+                        } else {
+                            // Soporte para SQLite local (Electron) que no tiene db.batch
+                            for (const b of batchStatements) {
+                                await db.run(b.sql, b.args);
+                            }
+                        }
                         
                         // Procesar eventos para el lote enviado
                         for (let k = 0; k < batchPhotos.length; k++) {

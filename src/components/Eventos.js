@@ -30,6 +30,15 @@ const Eventos = () => {
     const [creando, setCreando] = useState(false);
     const [form, setForm] = useState({ nombre: '', fecha_inicio: '', fecha_fin: '', descripcion: '' });
 
+    // Paginación
+    const [paginaActual, setPaginaActual] = useState(1);
+    const fotosPorPagina = 15;
+    const [saltoInput, setSaltoInput] = useState('1');
+
+    useEffect(() => {
+        setSaltoInput(paginaActual.toString());
+    }, [paginaActual]);
+
     const cargar = useCallback(async () => {
         try {
             const res = await apiFetch(`${API}/eventos`);
@@ -42,6 +51,7 @@ const Eventos = () => {
 
     const abrirEvento = async (ev) => {
         setEventoActivo(ev);
+        setPaginaActual(1);
         const res = await apiFetch(`${API}/eventos/${ev.id}/fotos`);
         setFotosEvento(await res.json());
     };
@@ -121,16 +131,63 @@ const Eventos = () => {
                         <p className="section-title">SIN ACTIVOS EN ESTE EVENTO</p>
                     </div>
                 ) : (
-                    <div className="masonry-grid" style={{ marginTop: '20px' }}>
-                        {fotosEvento.map(foto => (
-                            <div key={foto.id} className="foto-card" onClick={() => setFotoZoom(foto)}>
-                                <img src={getFotoUrl(foto)} alt={foto.titulo || ''} loading="lazy" />
-                                <div className="foto-card-overlay">
-                                    <div className="foto-card-titulo">{foto.titulo || 'SIN TÍTULO'}</div>
+                    <>
+                        <div className="masonry-grid" style={{ marginTop: '20px' }}>
+                            {fotosEvento.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina).map(foto => (
+                                <div key={foto.id} className="foto-card" onClick={() => setFotoZoom(foto)}>
+                                    <img src={getFotoUrl(foto)} alt={foto.titulo || ''} loading="lazy" />
+                                    <div className="foto-card-overlay">
+                                        <div className="foto-card-titulo">{foto.titulo || 'SIN TÍTULO'}</div>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+
+                        {/* Controles de paginación neón */}
+                        <footer className="footer-paginacion" style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '20px' }}>
+                            <div className="paginacion-controles">
+                                <button 
+                                    className="btn-pagi-flecha" 
+                                    disabled={paginaActual === 1} 
+                                    onClick={() => setPaginaActual(p => p - 1)}
+                                >« ANTERIOR</button>
+                                
+                                <div className="pagi-salto-zona">
+                                    <span className="pagi-info">PÁGINA {paginaActual} DE {Math.ceil(fotosEvento.length / fotosPorPagina)}</span>
+                                    <div className="input-salto-wrapper">
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            className="input-salto-neon"
+                                            value={saltoInput}
+                                            onChange={e => setSaltoInput(e.target.value.replace(/\D/g, ''))}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    const num = parseInt(saltoInput);
+                                                    if (num > 0 && num <= Math.ceil(fotosEvento.length / fotosPorPagina)) {
+                                                        setPaginaActual(num);
+                                                    }
+                                                }
+                                            }}
+                                            placeholder="..."
+                                        />
+                                        <button className="btn-ir-pagi" onClick={() => {
+                                            const num = parseInt(saltoInput);
+                                            if (num > 0 && num <= Math.ceil(fotosEvento.length / fotosPorPagina)) {
+                                                setPaginaActual(num);
+                                            }
+                                        }}>IR</button>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    className="btn-pagi-flecha" 
+                                    disabled={paginaActual >= Math.ceil(fotosEvento.length / fotosPorPagina)} 
+                                    onClick={() => setPaginaActual(p => p + 1)}
+                                >SIGUIENTE »</button>
                             </div>
-                        ))}
-                    </div>
+                        </footer>
+                    </>
                 )}
 
                 {fotoZoom && (
