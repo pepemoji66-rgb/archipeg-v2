@@ -404,12 +404,41 @@ const AdminPanel = () => {
                                 {(busquedaAnio || busquedaMes || busquedaTitulo) && (
                                     <button className="btn-mini-action" onClick={limpiarFiltros} style={{height: '45px', borderColor: '#ff2d7d', color: '#ff2d7d'}}>🧹</button>
                                 )}
+                                {seleccionados.size > 0 && (
+                                    <button 
+                                        className="btn-neon-orange" 
+                                        style={{ height: '45px', marginLeft: 'auto', background: '#ff4d4d', borderColor: '#ff4d4d' }}
+                                        onClick={async () => {
+                                            if (!window.confirm(`¿Mover ${seleccionados.size} fotos a la papelera?`)) return;
+                                            for (const id of seleccionados) {
+                                                await apiFetch(`${API_URL}/imagenes/${id}`, { method: 'DELETE' });
+                                            }
+                                            setSeleccionados(new Set());
+                                            cargarFotos();
+                                        }}
+                                    >
+                                        🗑️ BORRAR SELECCIONADOS ({seleccionados.size})
+                                    </button>
+                                )}
                             </div>
 
                             <div className="table-wrapper-clean">
                                 <table className="albolote-table">
                                     <thead>
                                         <tr>
+                                            <th style={{ width: '40px' }}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSeleccionados(new Set(fotosPaginadas.map(f => f.id)));
+                                                        } else {
+                                                            setSeleccionados(new Set());
+                                                        }
+                                                    }}
+                                                    checked={fotosPaginadas.length > 0 && fotosPaginadas.every(f => seleccionados.has(f.id))}
+                                                />
+                                            </th>
                                             <th>MINI</th>
                                             <th>TÍTULO / ETIQUETAS</th>
                                             <th>FECHA</th>
@@ -418,7 +447,14 @@ const AdminPanel = () => {
                                     </thead>
                                     <tbody>
                                         {fotosPaginadas.map(f => (
-                                            <tr key={f.id}>
+                                            <tr key={f.id} className={seleccionados.has(f.id) ? 'row-selected' : ''}>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={seleccionados.has(f.id)} 
+                                                        onChange={() => manejarSeleccion(f.id)} 
+                                                    />
+                                                </td>
                                                 <td className="td-mini" onClick={() => setFotoEnZoom(f)} style={{ position: 'relative', cursor: 'pointer' }}>
                                                     {f.imagen_url && (f.imagen_url.toLowerCase().endsWith('.mp4') || f.imagen_url.toLowerCase().endsWith('.mov') || f.imagen_url.toLowerCase().endsWith('.avi') || f.imagen_url.toLowerCase().endsWith('.mkv') || f.imagen_url.toLowerCase().endsWith('.webm') || f.imagen_url.toLowerCase().endsWith('.3gp')) ? (
                                                         <video 

@@ -391,7 +391,8 @@ async function inicializarMotor() {
         }
 
         const isElectron = process.versions && process.versions.electron;
-        const tursoUrl = !isElectron ? (process.env.TURSO_URL || '').trim() : '';
+        const forceSqlite = process.env.FORCE_SQLITE === 'true';
+        const tursoUrl = (!isElectron && !forceSqlite) ? (process.env.TURSO_URL || '').trim() : '';
         const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
 
         console.log("🛡️ RUTA MAESTRA ACTIVADA:", sovereignPath);

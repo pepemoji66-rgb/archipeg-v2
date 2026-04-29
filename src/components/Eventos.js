@@ -39,6 +39,10 @@ const Eventos = () => {
         setSaltoInput(paginaActual.toString());
     }, [paginaActual]);
 
+    // Selección múltiple
+    const [modoSeleccion, setModoSeleccion] = useState(false);
+    const [seleccionadas, setSeleccionadas] = useState([]);
+
     const cargar = useCallback(async () => {
         try {
             const res = await apiFetch(`${API}/eventos`);
@@ -101,6 +105,29 @@ const Eventos = () => {
         setFotoZoom(fotosEvento[next]);
     };
 
+    const manejarClicFoto = (foto) => {
+        if (modoSeleccion) {
+            setSeleccionadas(prev => 
+                prev.includes(foto.id) 
+                ? prev.filter(id => id !== foto.id) 
+                : [...prev, foto.id]
+            );
+        } else {
+            setFotoZoom(foto);
+        }
+    };
+
+    const borrarSeleccionadas = async () => {
+        if (!window.confirm(`¿Mover ${seleccionadas.length} fotos a la papelera?`)) return;
+        try {
+            await Promise.all(seleccionadas.map(id => apiFetch(`${API}/imagenes/${id}`, { method: 'DELETE' })));
+            setSeleccionadas([]);
+            setModoSeleccion(false);
+            const res = await apiFetch(`${API}/eventos/${eventoActivo.id}/fotos`);
+            setFotosEvento(await res.json());
+        } catch (e) { console.error(e); }
+    };
+
     // VISTA DE DETALLE DEL EVENTO (FOTOS)
     if (eventoActivo) return (
         <div className="admin-container">
@@ -120,9 +147,14 @@ const Eventos = () => {
                         </div>
                     </div>
                     {eventoActivo.fecha_inicio && (
-                        <button className="btn-volver-neon" style={{ border: '1px solid var(--acento-turquesa)', color:  'var(--acento-turquesa)'  }} onClick={autoEscanear}>
-                            🤖 AUTO-ESCANEAR FECHAS
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className={`btn-volver-neon ${modoSeleccion ? 'btn-active-fucsia' : ''}`} onClick={() => { setModoSeleccion(!modoSeleccion); setSeleccionadas([]); }}>
+                                {modoSeleccion ? '✕ CANCELAR' : '🔍 SELECCIONAR'}
+                            </button>
+                            <button className="btn-volver-neon" style={{ border: '1px solid var(--acento-turquesa)', color:  'var(--acento-turquesa)'  }} onClick={autoEscanear}>
+                                🤖 AUTO-ESCANEAR FECHAS
+                            </button>
+                        </div>
                     )}
                 </header>
 
@@ -132,15 +164,31 @@ const Eventos = () => {
                     </div>
                 ) : (
                     <>
+                        {/* BARRA DE ACCIONES POR LOTE */}
+                        <div className={`batch-action-bar ${modoSeleccion && seleccionadas.length > 0 ? 'active' : ''}`} style={{ position: 'sticky', top: '10px', zIndex: 100, marginBottom: '15px' }}>
+                            <span className="batch-info">{seleccionadas.length} SELECCIONADOS</span>
+                            <div className="batch-buttons">
+                                <button className="btn-batch btn-delete" onClick={borrarSeleccionadas}>🗑️ BORRAR</button>
+                            </div>
+                        </div>
+
                         <div className="masonry-grid" style={{ marginTop: '20px' }}>
-                            {fotosEvento.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina).map(foto => (
-                                <div key={foto.id} className="foto-card" onClick={() => setFotoZoom(foto)}>
-                                    <img src={getFotoUrl(foto)} alt={foto.titulo || ''} loading="lazy" />
-                                    <div className="foto-card-overlay">
-                                        <div className="foto-card-titulo">{foto.titulo || 'SIN TÍTULO'}</div>
+                            {fotosEvento.slice((paginaActual - 1) * fotosPorPagina, paginaActual * fotosPorPagina).map(foto => {
+                                const isSelected = seleccionadas.includes(foto.id);
+                                return (
+                                    <div key={foto.id} className={`foto-card ${isSelected ? 'foto-card-seleccionada' : ''}`} onClick={() => manejarClicFoto(foto)}>
+                                        <img src={getFotoUrl(foto)} alt={foto.titulo || ''} loading="lazy" />
+                                        {modoSeleccion && (
+                                            <div className={`select-badge ${isSelected ? 'selected' : ''}`} style={{ position: 'absolute', top: '10px', left: '10px', width: '25px', height: '25px', borderRadius: '50%', border: '2px solid #00ffff', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#00ffff' : 'rgba(0,0,0,0.5)', color: '#000', fontWeight: 'bold', fontSize: '14px' }}>
+                                                {isSelected ? '✓' : ''}
+                                            </div>
+                                        )}
+                                        <div className="foto-card-overlay">
+                                            <div className="foto-card-titulo">{foto.titulo || 'SIN TÍTULO'}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Controles de paginación neón */}
