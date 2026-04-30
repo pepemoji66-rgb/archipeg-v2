@@ -126,9 +126,13 @@ class MysqlAdapter {
     }
     async run(sql, args = []) {
         try {
-            // Traducción de transacciones SQLite -> MySQL
+            // Traducción de transacciones y comandos SQLite -> MySQL
             let finalSql = sql;
-            if (sql.trim().toUpperCase() === "BEGIN TRANSACTION") finalSql = "START TRANSACTION";
+            const upperSql = sql.trim().toUpperCase();
+            
+            if (upperSql === "BEGIN TRANSACTION") finalSql = "START TRANSACTION";
+            if (upperSql.includes("INSERT OR REPLACE")) finalSql = sql.replace(/INSERT OR REPLACE/i, "REPLACE");
+            if (upperSql.includes("INSERT OR IGNORE")) finalSql = sql.replace(/INSERT OR IGNORE/i, "INSERT IGNORE");
             
             const [result] = await this.pool.query(finalSql, Array.isArray(args) ? args : [args]);
             return { lastID: result.insertId, changes: result.affectedRows };
