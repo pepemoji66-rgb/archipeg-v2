@@ -126,7 +126,11 @@ class MysqlAdapter {
     }
     async run(sql, args = []) {
         try {
-            const [result] = await this.pool.query(sql, Array.isArray(args) ? args : [args]);
+            // Traducción de transacciones SQLite -> MySQL
+            let finalSql = sql;
+            if (sql.trim().toUpperCase() === "BEGIN TRANSACTION") finalSql = "START TRANSACTION";
+            
+            const [result] = await this.pool.query(finalSql, Array.isArray(args) ? args : [args]);
             return { lastID: result.insertId, changes: result.affectedRows };
         } catch (e) { console.error("🛑 [MYSQL-RUN-ERROR]:", e.message); throw e; }
     }
@@ -559,6 +563,8 @@ async function inicializarMotor() {
             `ALTER TABLE albumes ADD COLUMN usuario_id INTEGER`,
             `ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`,
             `ALTER TABLE personas ADD COLUMN usuario_id INTEGER`,
+            `ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0`,
+            `ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0`,
             `ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0`,
             `ALTER TABLE usuarios ADD COLUMN pago_estado TEXT DEFAULT 'Gratis'`
         ];
@@ -567,8 +573,9 @@ async function inicializarMotor() {
             await db.exec(sql).catch(() => {}); // Ya existen generalmente
         }
         
-        // MIGRACIÓN: ASEGURAR COLUMNA APROBADO
+        // MIGRACIÓN: ASEGURAR COLUMNA APROBADO (Extra check)
         await db.run("ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0").catch(() => {});
+        await db.run("ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0").catch(() => {});
 
         console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
     } catch (err) {
