@@ -64,20 +64,6 @@ const app = express();
 let db;
 let dbLock = false;
 
-// --- ADAPTADOR TURSO (LibSQL) PARA COMPATIBILIDAD CON SQLITE3 ---
-    async exec(sql) { 
-        try {
-            return await this.client.executeMultiple(sql); 
-        } catch (e) { 
-            if (e.message.includes('duplicate column name')) {
-                console.log(`ℹ️ [DB-INFO]: Estructura ya actualizada (${e.message.split(':').pop().trim()})`);
-            } else {
-                console.error("🛑 [DB-EXEC-ERROR]:", e.message); 
-            }
-            throw e; 
-        }
-    }
-}
 
 // --- ADAPTADOR TURSO (LibSQL) PARA COMPATIBILIDAD CON SQLITE3 ---
 class LibSqlAdapter {
