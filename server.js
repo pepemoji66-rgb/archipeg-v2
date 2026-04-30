@@ -174,20 +174,26 @@ async function authMiddleware(req, res, next) {
     if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         try {
-            const sesion = await db.get(
-                'SELECT u.id, u.email, u.es_admin, u.aprobado FROM sesiones s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token = ?',
-                [token]
-            );
-            if (sesion) {
-                req.esAutenticado = true;
-                const esAdmin = ADMINS.includes(sesion.email);
-                req.esAdmin = esAdmin;
-                req.usuario = { 
-                    id: sesion.id, 
-                    email: sesion.email, 
-                    esAdmin: esAdmin, 
-                    aprobado: esAdmin || !!sesion.aprobado 
-                };
+            // Consulta resiliente: buscamos la sesión primero
+            const sesionData = await db.get('SELECT usuario_id FROM sesiones WHERE token = ?', [token]);
+            if (sesionData) {
+                // Luego buscamos el usuario (si falla una columna, el error será aquí y lo capturamos)
+                try {
+                    const u = await db.get('SELECT * FROM usuarios WHERE id = ?', [sesionData.usuario_id]);
+                    if (u) {
+                        req.esAutenticado = true;
+                        const esAdmin = u.es_admin === 1 || ADMINS.includes(u.email);
+                        req.esAdmin = esAdmin;
+                        req.usuario = { 
+                            id: u.id, 
+                            email: u.email, 
+                            esAdmin: esAdmin, 
+                            aprobado: esAdmin || !!u.aprobado 
+                        };
+                    }
+                } catch (err) {
+                    console.error("⚠️ [AUTH-USER-ERROR]: Error al leer columnas de usuario. Posible esquema antiguo.");
+                }
             }
         } catch (e) { /* db no lista todavía o token inválido */ }
     }
@@ -496,6 +502,24 @@ async function inicializarMotor() {
         const autoInc = isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT";
         const nowSql = isMysql ? "CURRENT_TIMESTAMP" : "(datetime('now'))";
 
+        // --- LIMPIEZA DE TABLAS INCOMPATIBLES (AIVEN) ---
+        if (isMysql) {
+            try {
+                // Comprobamos si la tabla usuarios existe y si le falta la columna crítica
+                const hasPassColumn = await db.get("SHOW COLUMNS FROM usuarios LIKE 'password_hash'").catch(() => null);
+                const tableExists = await db.get("SHOW TABLES LIKE 'usuarios'").catch(() => null);
+                
+                if (tableExists && !hasPassColumn) {
+                    const backupName = `usuarios_antiguo_intruso_${Date.now()}`;
+                    console.log(`⚠️  TABLA 'usuarios' INCOMPATIBLE DETECTADA (De otro proyecto).`);
+                    console.log(`🔄  Renombrando a '${backupName}' para empezar de cero...`);
+                    await db.run(`RENAME TABLE usuarios TO ${backupName}`);
+                    // También renombramos sesiones por si acaso
+                    await db.run(`RENAME TABLE sesiones TO sesiones_antiguo_${Date.now()}`).catch(() => {});
+                }
+            } catch (e) { /* Todo ok */ }
+        }
+
         const tablas = [
             `CREATE TABLE IF NOT EXISTS fotos (
                 id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
@@ -567,8 +591,11 @@ async function inicializarMotor() {
             });
         }
 
-        // 🧬 MIGRACIONES INDIVIDUALES (Forzamos ejecución una a una)
+        // 🧬 MIGRACIONES INDIVIDUALES (Forzamos ejecución una a una con logs)
+        // Añadimos password_hash y salt por si la tabla existía de antes pero era distinta
         const migraciones = [
+            "ALTER TABLE usuarios ADD COLUMN password_hash TEXT",
+            "ALTER TABLE usuarios ADD COLUMN salt TEXT",
             "ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0",
             "ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0",
             "ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0",
@@ -579,12 +606,22 @@ async function inicializarMotor() {
             "ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0"
         ];
 
+        console.log("🛠️  INICIANDO REPARACIÓN DE ESQUEMA...");
         for (const sql of migraciones) {
             try {
                 await db.run(sql);
+                console.log(`✅ COLUMNA ASEGURADA: ${sql.split(' ').pop()}`);
             } catch (e) {
-                // Silencio si la columna ya existe
+                // Si ya existe, ignoramos el error silenciosamente
             }
+        }
+
+        // DIAGNÓSTICO FINAL DE TABLA
+        if (isMysql) {
+            try {
+                const columns = await db.all("SHOW COLUMNS FROM usuarios");
+                console.log("📊 ESTRUCTURA ACTUAL DE 'usuarios':", columns.map(c => c.Field).join(', '));
+            } catch (e) { console.error("Error en diagnóstico:", e.message); }
         }
 
         console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
