@@ -126,17 +126,27 @@ class MysqlAdapter {
     }
     async run(sql, args = []) {
         try {
-            // Traducción de transacciones y comandos SQLite -> MySQL
             let finalSql = sql;
             const upperSql = sql.trim().toUpperCase();
             
             if (upperSql === "BEGIN TRANSACTION") finalSql = "START TRANSACTION";
-            if (upperSql.includes("INSERT OR REPLACE")) finalSql = sql.replace(/INSERT OR REPLACE/i, "REPLACE");
-            if (upperSql.includes("INSERT OR IGNORE")) finalSql = sql.replace(/INSERT OR IGNORE/i, "INSERT IGNORE");
+            
+            // Traducción agresiva de INSERT OR REPLACE para MySQL
+            if (upperSql.includes("INSERT OR REPLACE")) {
+                finalSql = sql.replace(/INSERT OR REPLACE/i, "REPLACE");
+            }
+            if (upperSql.includes("INSERT OR IGNORE")) {
+                finalSql = sql.replace(/INSERT OR IGNORE/i, "INSERT IGNORE");
+            }
             
             const [result] = await this.pool.query(finalSql, Array.isArray(args) ? args : [args]);
             return { lastID: result.insertId, changes: result.affectedRows };
-        } catch (e) { console.error("🛑 [MYSQL-RUN-ERROR]:", e.message); throw e; }
+        } catch (e) { 
+            // Si es un error de columna duplicada lo ignoramos en migraciones
+            if (e.message.includes('Duplicate column')) return { lastID: null, changes: 0 };
+            console.error("🛑 [MYSQL-RUN-ERROR]:", e.message); 
+            throw e; 
+        }
     }
     async exec(sql) {
         try {
@@ -557,29 +567,25 @@ async function inicializarMotor() {
             });
         }
 
-        // 🧬 MIGRACIONES INDIVIDUALES
+        // 🧬 MIGRACIONES INDIVIDUALES (Forzamos ejecución una a una)
         const migraciones = [
-            `ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0`,
-            `ALTER TABLE fotos ADD COLUMN lugar TEXT`,
-            `ALTER TABLE fotos ADD COLUMN usuario_id INTEGER`,
-            `ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0`,
-            `ALTER TABLE albumes ADD COLUMN privado INTEGER DEFAULT 0`,
-            `ALTER TABLE albumes ADD COLUMN usuario_id INTEGER`,
-            `ALTER TABLE eventos ADD COLUMN usuario_id INTEGER`,
-            `ALTER TABLE personas ADD COLUMN usuario_id INTEGER`,
-            `ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0`,
-            `ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0`,
-            `ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0`,
-            `ALTER TABLE usuarios ADD COLUMN pago_estado TEXT DEFAULT 'Gratis'`
+            "ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0",
+            "ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0",
+            "ALTER TABLE usuarios ADD COLUMN pro_enviado INTEGER DEFAULT 0",
+            "ALTER TABLE usuarios ADD COLUMN pago_estado TEXT",
+            "ALTER TABLE fotos ADD COLUMN favorito INTEGER DEFAULT 0",
+            "ALTER TABLE fotos ADD COLUMN lugar TEXT",
+            "ALTER TABLE fotos ADD COLUMN usuario_id INTEGER",
+            "ALTER TABLE fotos ADD COLUMN es_duplicado INTEGER DEFAULT 0"
         ];
 
         for (const sql of migraciones) {
-            await db.exec(sql).catch(() => {}); // Ya existen generalmente
+            try {
+                await db.run(sql);
+            } catch (e) {
+                // Silencio si la columna ya existe
+            }
         }
-        
-        // MIGRACIÓN: ASEGURAR COLUMNA APROBADO (Extra check)
-        await db.run("ALTER TABLE usuarios ADD COLUMN aprobado INTEGER DEFAULT 0").catch(() => {});
-        await db.run("ALTER TABLE usuarios ADD COLUMN es_admin INTEGER DEFAULT 0").catch(() => {});
 
         console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
     } catch (err) {
