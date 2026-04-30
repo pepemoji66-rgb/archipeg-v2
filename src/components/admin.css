@@ -27,8 +27,8 @@
 }
 
 .admin-title {
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff;
+    color: var(--acento-primario);
+    text-shadow: 0 0 10px var(--acento-primario);
     margin: 0;
     text-transform: uppercase;
 }
@@ -44,7 +44,7 @@
 }
 
 .section-title {
-    color: #00ffff;
+    color: var(--acento-primario);
     font-size: 1.1rem;
     margin-bottom: 20px;
     display: flex;
@@ -65,8 +65,8 @@
 .admin-textarea {
     width: 100%;
     background: #0a0a1a !important;
-    border: 1px solid #00ffff !important;
-    color: #00ffff !important;
+    border: 1px solid var(--acento-primario) !important;
+    color: var(--acento-primario) !important;
     padding: 10px;
     border-radius: 5px;
     outline: none;
@@ -125,14 +125,14 @@
     width: 60px !important;
     height: 60px !important;
     object-fit: cover;
-    border: 1px solid #00ffff;
+    border: 1px solid var(--acento-primario);
     border-radius: 4px;
     cursor: pointer;
     transition: 0.3s;
 }
 
 .admin-mini-morada:hover {
-    box-shadow: 0 0 10px #00ffff;
+    box-shadow: 0 0 10px var(--acento-primario);
     transform: scale(1.1);
 }
 
@@ -152,7 +152,7 @@
 
 .archipeg-zoom-content {
     background: #050515;
-    border: 2px solid #00ffff;
+    border: 2px solid var(--acento-primario);
     display: flex;
     width: 80vw;
     height: 75vh;
@@ -222,8 +222,8 @@
 
 .btn-archipeg-action {
     background: transparent;
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 12px;
     text-transform: uppercase;
     font-weight: bold;
@@ -233,7 +233,7 @@
 
 .btn-archipeg-action:hover {
     background: rgba(0, 255, 255, 0.1);
-    box-shadow: inset 0 0 10px #00ffff;
+    box-shadow: inset 0 0 10px var(--acento-primario);
 }
 
 .btn-dangerous {
@@ -248,8 +248,8 @@
 
 .btn-archipeg-main-morado {
     background: transparent;
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 10px 20px;
     cursor: pointer;
     font-weight: bold;
@@ -258,14 +258,14 @@
 }
 
 .btn-archipeg-main-morado:hover {
-    background: #00ffff;
+    background: var(--acento-primario);
     color: #000;
 }
 
 .tag-badge {
     background: rgba(0, 255, 255, 0.1);
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -305,8 +305,8 @@
 
 .album-input-custom {
     background: #0a0a1a;
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 10px;
     border-radius: 5px;
     flex: 1;
@@ -314,8 +314,8 @@
 
 .btn-crear-album {
     background: transparent;
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 10px 25px;
     cursor: pointer;
     font-weight: bold;
@@ -325,9 +325,9 @@
 }
 
 .btn-crear-album:hover {
-    background: #00ffff;
+    background: var(--acento-primario);
     color: #000;
-    box-shadow: 0 0 20px #00ffff;
+    box-shadow: 0 0 20px var(--acento-primario);
 }
 
 /* --- FLECHAS NAVEGADOR ZOOM ADMIN --- */
@@ -336,8 +336,8 @@
     top: 50%;
     transform: translateY(-50%);
     background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #00ffff;
-    color: #00ffff;
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     font-size: 24px;
     width: 50px;
     height: 50px;
@@ -351,9 +351,9 @@
 }
 
 .btn-zoom-nav-admin:hover {
-    background: #00ffff;
+    background: var(--acento-primario);
     color: #000;
-    box-shadow: 0 0 15px #00ffff;
+    box-shadow: 0 0 15px var(--acento-primario);
 }
 
 .btn-zoom-nav-admin.left {
@@ -412,7 +412,7 @@
 
 .progreso-bar-morado {
     height: 100%;
-    background: linear-gradient(90deg, var(--acento-turquesa), #ff2d7d);
+    background: linear-gradient(90deg, var(--acento-primario), #ff2d7d);
     box-shadow: 0 2px 15px rgba(0, 242, 255, 0.6);
     transition: width 0.5s ease-out;
     display: flex;
@@ -426,7 +426,7 @@
 
 .mensaje-feedback-morado {
     text-align: center;
-    color: #00ffff;
+    color: var(--acento-primario);
     font-weight: 800;
     margin-top: 20px;
     text-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
@@ -456,7 +456,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #00ffff;
+    accent-color: var(--acento-primario);
 }
 
 .bulk-actions-bar {
@@ -467,7 +467,7 @@
     transform: none;
     background: rgba(10, 10, 30, 0.98);
     border: none;
-    border-top: 2px solid var(--acento-turquesa);
+    border-top: 2px solid var(--acento-primario);
     border-radius: 0;
     padding: 10px;
     display: flex;
@@ -490,7 +490,7 @@
         min-width: 600px;
         border-radius: 15px;
         flex-direction: row;
-        border: 2px solid var(--acento-turquesa);
+        border: 2px solid var(--acento-primario);
     }
 }
 
@@ -509,7 +509,7 @@
 
 .bulk-info span {
     font-weight: 900;
-    color: #00ffff;
+    color: var(--acento-primario);
     font-size: 0.9rem;
     letter-spacing: 1px;
 }
@@ -554,7 +554,7 @@
 }
 
 .btn-bulk-action {
-    background: #00ffff;
+    background: var(--acento-primario);
     color: #000;
     border: none;
     padding: 8px 15px;
@@ -634,8 +634,8 @@
 }
 
 .neon-text-alt {
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff;
+    color: var(--acento-primario);
+    text-shadow: 0 0 10px var(--acento-primario);
 }
 
 .btn-circle-back {
@@ -682,8 +682,8 @@
 }
 
 .tab-btn.active {
-    color: #00ffff;
-    border-bottom-color: #00ffff;
+    color: var(--acento-primario);
+    border-bottom-color: var(--acento-primario);
     background: rgba(0, 255, 255, 0.05);
 }
 
@@ -869,8 +869,8 @@
 .btn-file-neon {
     display: block;
     background: #0a0a1a;
-    border: 2px dashed #00ffff;
-    color: #00ffff;
+    border: 2px dashed var(--acento-primario);
+    color: var(--acento-primario);
     padding: 30px;
     border-radius: 12px;
     text-align: center;
@@ -932,7 +932,7 @@
 }
 
 .info-render-box strong {
-    color: var(--acento-turquesa);
+    color: var(--acento-primario);
     text-shadow: 0 0 5px rgba(0, 242, 255, 0.5);
 }
 
@@ -961,7 +961,7 @@
 .mini-thumb:hover {
     transform: scale(1.1);
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-    border-color: #00ffff;
+    border-color: var(--acento-primario);
 }
 
 .td-info-clean {
@@ -978,7 +978,7 @@
 
 .info-tags {
     font-size: 0.8rem;
-    color: #00ffff;
+    color: var(--acento-primario);
     opacity: 0.8;
 }
 
@@ -1017,8 +1017,8 @@
 .sleek-input-jump {
     width: 60px;
     background: #050515;
-    border: 1px solid var(--acento-turquesa);
-    color: var(--acento-turquesa);
+    border: 1px solid var(--acento-primario);
+    color: var(--acento-primario);
     padding: 4px 8px;
     border-radius: 4px;
     text-align: center;
@@ -1029,11 +1029,11 @@
 }
 
 .sleek-input-jump:focus {
-    box-shadow: 0 0 10px var(--acento-turquesa), inset 0 0 5px rgba(0, 242, 255, 0.2);
+    box-shadow: 0 0 10px var(--acento-primario), inset 0 0 5px rgba(0, 242, 255, 0.2);
 }
 
 .btn-ir-pagi-admin {
-    background: var(--acento-turquesa);
+    background: var(--acento-primario);
     color: #000;
     border: none;
     padding: 4px 10px;
@@ -1046,7 +1046,7 @@
 }
 
 .btn-ir-pagi-admin:hover {
-    box-shadow: 0 0 12px var(--acento-turquesa);
+    box-shadow: 0 0 12px var(--acento-primario);
     transform: translateY(-1px);
 }
 
