@@ -10,6 +10,7 @@ const { exec } = require('child_process');
 const nodemailer = require('nodemailer');
 const dns = require('dns');
 const { createClient } = require('@libsql/client');
+const mysql = require('mysql2/promise');
 
 // 🛡️ CONFIGURACIÓN DE RUTA SEGURA (DOCUMENTOS)
 const ARCHIPEG_SAFE_PATH = path.join(os.homedir(), 'Documents', 'ARCHIPEG_PRO_DATA');
@@ -64,6 +65,21 @@ let db;
 let dbLock = false;
 
 // --- ADAPTADOR TURSO (LibSQL) PARA COMPATIBILIDAD CON SQLITE3 ---
+    async exec(sql) { 
+        try {
+            return await this.client.executeMultiple(sql); 
+        } catch (e) { 
+            if (e.message.includes('duplicate column name')) {
+                console.log(`ℹ️ [DB-INFO]: Estructura ya actualizada (${e.message.split(':').pop().trim()})`);
+            } else {
+                console.error("🛑 [DB-EXEC-ERROR]:", e.message); 
+            }
+            throw e; 
+        }
+    }
+}
+
+// --- ADAPTADOR TURSO (LibSQL) PARA COMPATIBILIDAD CON SQLITE3 ---
 class LibSqlAdapter {
     constructor(client) { this.client = client; }
     async get(sql, args = []) {
@@ -102,6 +118,41 @@ class LibSqlAdapter {
                 console.error("🛑 [DB-EXEC-ERROR]:", e.message); 
             }
             throw e; 
+        }
+    }
+}
+
+// --- ADAPTADOR MYSQL (AIVEN) ---
+class MysqlAdapter {
+    constructor(pool) { this.pool = pool; }
+    async get(sql, args = []) {
+        try {
+            // Usamos query en lugar de execute para mayor compatibilidad con Aiven y DDL
+            const [rows] = await this.pool.query(sql, Array.isArray(args) ? args : [args]);
+            return rows[0] || null;
+        } catch (e) { console.error("🛑 [MYSQL-GET-ERROR]:", e.message); throw e; }
+    }
+    async all(sql, args = []) {
+        try {
+            const [rows] = await this.pool.query(sql, Array.isArray(args) ? args : [args]);
+            return rows;
+        } catch (e) { console.error("🛑 [MYSQL-ALL-ERROR]:", e.message); throw e; }
+    }
+    async run(sql, args = []) {
+        try {
+            const [result] = await this.pool.query(sql, Array.isArray(args) ? args : [args]);
+            return { lastID: result.insertId, changes: result.affectedRows };
+        } catch (e) { console.error("🛑 [MYSQL-RUN-ERROR]:", e.message); throw e; }
+    }
+    async exec(sql) {
+        try {
+            // MySQL query soporta múltiples sentencias si se configura, pero por seguridad las separamos
+            const stmts = sql.split(';').filter(s => s.trim());
+            for (const s of stmts) {
+                await this.pool.query(s);
+            }
+        } catch (e) { 
+            if (!e.message.includes('Duplicate column')) throw e;
         }
     }
 }
@@ -394,10 +445,30 @@ async function inicializarMotor() {
         const forceSqlite = process.env.FORCE_SQLITE === 'true';
         const tursoUrl = (!isElectron && !forceSqlite) ? (process.env.TURSO_URL || '').trim() : '';
         const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
+        const mysqlHost = (process.env.MYSQL_HOST || '').trim();
+
+        console.log("---------------------------------------------------------");
+        console.log("🔍 DIAGNÓSTICO DE ENTORNO:");
+        console.log("   - MYSQL_HOST:", mysqlHost ? "DETECTADO ✅" : "NO DETECTADO ❌");
+        console.log("   - TURSO_URL:", process.env.TURSO_URL ? "DETECTADO ✅" : "NO DETECTADO ❌");
+        console.log("   - MODO ELECTRÓN:", isElectron ? "SÍ" : "NO");
+        console.log("   - FORCE_SQLITE:", forceSqlite ? "SÍ" : "NO");
+        console.log("---------------------------------------------------------");
 
         console.log("🛡️ RUTA MAESTRA ACTIVADA:", sovereignPath);
 
-        if (tursoUrl && tursoToken) {
+        if (mysqlHost) {
+            console.log("🐬 CONECTANDO A MYSQL (Aiven/Cloud)...");
+            const pool = mysql.createPool({
+                host: mysqlHost,
+                port: parseInt(process.env.MYSQL_PORT) || 3306,
+                user: process.env.MYSQL_USER,
+                password: process.env.MYSQL_PASSWORD,
+                database: process.env.MYSQL_DATABASE || 'defaultdb',
+                ssl: { rejectUnauthorized: false }
+            });
+            db = new MysqlAdapter(pool);
+        } else if (tursoUrl && tursoToken) {
             console.log("☁️ CONECTANDO A TURSO CLOUD (Modo Persistente)...");
             const client = createClient({ url: tursoUrl, authToken: tursoToken });
             db = new LibSqlAdapter(client);
@@ -417,9 +488,13 @@ async function inicializarMotor() {
         }
 
         // 🛡️ CREACIÓN DE TABLAS UNA POR UNA (Resiliencia Extrema)
+        const isMysql = !!mysqlHost;
+        const autoInc = isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+        const nowSql = isMysql ? "CURRENT_TIMESTAMP" : "(datetime('now'))";
+
         const tablas = [
             `CREATE TABLE IF NOT EXISTS fotos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
                 titulo TEXT,
                 descripcion TEXT,
                 anio INTEGER,
@@ -431,11 +506,11 @@ async function inicializarMotor() {
                 en_papelera INTEGER DEFAULT 0
             )`,
             `CREATE TABLE IF NOT EXISTS albumes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
                 nombre TEXT NOT NULL,
                 descripcion TEXT,
                 portada_id INTEGER,
-                creado_en TEXT DEFAULT (datetime('now'))
+                creado_en TIMESTAMP DEFAULT ${nowSql}
             )`,
             `CREATE TABLE IF NOT EXISTS album_fotos (
                 album_id INTEGER,
@@ -443,7 +518,7 @@ async function inicializarMotor() {
                 PRIMARY KEY (album_id, foto_id)
             )`,
             `CREATE TABLE IF NOT EXISTS eventos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
                 nombre TEXT NOT NULL,
                 fecha_inicio TEXT,
                 fecha_fin TEXT,
@@ -455,7 +530,7 @@ async function inicializarMotor() {
                 PRIMARY KEY (evento_id, foto_id)
             )`,
             `CREATE TABLE IF NOT EXISTS personas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
                 nombre TEXT NOT NULL
             )`,
             `CREATE TABLE IF NOT EXISTS foto_personas (
@@ -464,16 +539,16 @@ async function inicializarMotor() {
                 PRIMARY KEY (foto_id, persona_id)
             )`,
             `CREATE TABLE IF NOT EXISTS usuarios (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
+                id ${isMysql ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+                email VARCHAR(255) UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
                 es_admin INTEGER DEFAULT 0,
                 aprobado INTEGER DEFAULT 0,
-                creado_en TEXT DEFAULT (datetime('now'))
+                creado_en TIMESTAMP DEFAULT ${nowSql}
             )`,
             `CREATE TABLE IF NOT EXISTS sesiones (
-                token TEXT PRIMARY KEY,
+                token VARCHAR(255) PRIMARY KEY,
                 usuario_id INTEGER NOT NULL
             )`
         ];
@@ -673,8 +748,14 @@ app.post('/api/auth/registro', dbCheck, async (req, res) => {
             message: aprobado === 1 ? 'Registro exitoso.' : 'Registro exitoso. Entrando en Modo Demo (Activación pendiente).'
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al registrar usuario' });
+        console.error("🔥 [ERROR REGISTRO]:", err);
+        if (err.message && err.message.includes('BLOCKED')) {
+            return res.status(507).json({ 
+                error: 'Base de Datos Bloqueada', 
+                detalle: 'Has excedido la cuota de Turso. Por favor, cambia a Aiven (MySQL) o espera al próximo mes.' 
+            });
+        }
+        res.status(500).json({ error: 'Error al registrar usuario', detalle: err.message });
     }
 });
 
