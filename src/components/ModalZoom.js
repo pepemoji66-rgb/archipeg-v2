@@ -350,19 +350,46 @@ const ModalZoom = ({ foto, onClose, onNavigate, onBorrar, getFotoUrl, setBusqued
                     <button className="modal-nav modal-nav-prev" onClick={e => { e.stopPropagation(); setEscala(1); setRotacion(0); setPos({ x: 0, y: 0 }); onNavigate('anterior'); }}>‹</button>
 
                     {esVideo ? (
-                        <video
-                            src={getFotoUrl(fotoLocal)}
-                            controls
-                            autoPlay
-                            style={{
-                                transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
-                                transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                outline: 'none'
-                            }}
-                            onClick={e => e.stopPropagation()}
-                        />
+                        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                            <video
+                                key={fotoLocal.id}
+                                src={getFotoUrl(fotoLocal)}
+                                controls
+                                autoPlay
+                                preload="auto"
+                                style={{
+                                    transform: `translate(${pos.x}px, ${pos.y}px) scale(${escala}) rotate(${rotacion}deg)`,
+                                    transition: arrastrando ? 'none' : 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    maxWidth: '95%',
+                                    maxHeight: '95%',
+                                    outline: 'none'
+                                }}
+                                onClick={e => e.stopPropagation()}
+                                onError={(e) => {
+                                    // Mostrar mensaje si el formato no es compatible
+                                    const container = e.target.parentElement;
+                                    if (container && !container.querySelector('.video-error-msg')) {
+                                        e.target.style.display = 'none';
+                                        const msg = document.createElement('div');
+                                        msg.className = 'video-error-msg';
+                                        msg.innerHTML = `
+                                            <div style="text-align:center; color:#ff3377; font-size:3rem; margin-bottom:15px;">⚠️</div>
+                                            <div style="text-align:center; color:#fff; font-size:1rem; font-weight:bold; margin-bottom:8px;">FORMATO NO COMPATIBLE</div>
+                                            <div style="text-align:center; color:#aaa; font-size:0.85rem; margin-bottom:20px;">
+                                                Este vídeo (.${fotoLocal.imagen_url?.split('.').pop()?.toUpperCase()}) no puede reproducirse en el navegador.<br/>
+                                                Los formatos compatibles son: MP4, WEBM.
+                                            </div>
+                                            <div style="text-align:center; color:#00f2ff; font-size:0.8rem; cursor:pointer; text-decoration:underline;" 
+                                                 onclick="window.open('${getFotoUrl(fotoLocal)}', '_blank')">
+                                                📥 Abrir archivo externo
+                                            </div>
+                                        `;
+                                        msg.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,0.9);border-radius:8px;padding:30px;';
+                                        container.appendChild(msg);
+                                    }
+                                }}
+                            />
+                        </div>
                     ) : (
                         <img
                             src={getFotoUrl(fotoLocal)}

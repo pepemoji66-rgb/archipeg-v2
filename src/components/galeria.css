@@ -269,14 +269,18 @@
 }
 
 .btn-pagi-flecha {
-    background: transparent;
-    border: 1px solid var(--cian-neon);
-    color: var(--cian-neon);
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: bold;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid #00f2ff;
+    color: #00f2ff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: 0.3s;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
+    box-shadow: 0 0 8px rgba(0, 242, 255, 0.2), inset 0 0 8px rgba(0, 242, 255, 0.05);
 }
 
 .btn-pagi-flecha:hover:not(:disabled) {
@@ -298,10 +302,12 @@
 }
 
 .btn-pagi-flecha:disabled {
-    opacity: 0.2;
+    opacity: 0.3;
     cursor: not-allowed;
-    border-color: #555;
-    color: #555;
+    border-color: #334;
+    color: #556;
+    box-shadow: none;
+    text-shadow: none;
 }
 
 .pagi-salto-zona {
@@ -435,6 +441,24 @@
     box-shadow: 0 0 15px var(--fucsia-neon);
     transition: width 0.4s ease;
     width: 0%;
+}
+
+/* Animación indeterminada (durante escaneo cuando total=0) */
+.import-progress-indeterminate {
+    width: 40% !important;
+    animation: indeterminate-slide 1.5s ease-in-out infinite !important;
+    background: linear-gradient(90deg, transparent, #00f2ff, var(--fucsia-neon), transparent) !important;
+    box-shadow: 0 0 20px #00f2ff !important;
+}
+
+@keyframes indeterminate-slide {
+    0%   { margin-left: -40%; }
+    100% { margin-left: 100%; }
+}
+
+@keyframes pulse-neon {
+    0%, 100% { opacity: 1; text-shadow: 0 0 8px #00f2ff; }
+    50%       { opacity: 0.5; text-shadow: 0 0 20px #00f2ff, 0 0 40px #00f2ff; }
 }
 
 .btn-ir-pagi {

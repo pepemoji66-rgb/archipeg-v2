@@ -52,8 +52,8 @@ const menuTemplate = [
                 click: async () => {
                     dialog.showMessageBox({
                         title: 'Acerca de',
-                        message: 'ARCHIPEG PRO V2.0',
-                        detail: 'Copyright © 2026 - Jose Moreno Jimenez\nGestión Fotográfica Profesional'
+                        message: 'ARCHIPEG PRO V2.3.4',
+                        detail: 'Copyright © 2026 - Jose Moreno Jimenez\nGestión Fotográfica Profesional\nSoberanía Digital Total'
                     });
                 }
             }

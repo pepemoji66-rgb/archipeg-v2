@@ -22,6 +22,15 @@ export function AuthProvider({ children }) {
             }
         }
 
+        // 🔐 DETECCIÓN DE APERTURA FRESCA: sessionStorage se borra al cerrar la ventana/app
+        // Si NO existe el flag 'archipeg_alive', es una apertura nueva → limpiar sesión
+        const isElectron = !!window.ipcRenderer;
+        if (isElectron && !sessionStorage.getItem('archipeg_alive')) {
+            localStorage.removeItem('archipeg_auth');
+            console.log('🔐 Sesión limpiada: apertura fresca de Archipeg');
+        }
+        sessionStorage.setItem('archipeg_alive', '1');
+
         const sesionGuardada = localStorage.getItem('archipeg_auth');
         if (sesionGuardada) {
             try {

@@ -603,16 +603,30 @@ const Galeria = () => {
                     {importando && (
                         <div className="import-progress-container">
                             <div className="import-progress-info">
-                                <span className="import-percentage">🚀 {Math.round((statusImport.actual / statusImport.total) * 100) || 0}%</span>
-                                <span className="import-count">({statusImport.actual} / {statusImport.total})</span>
+                                {statusImport.total > 0 ? (
+                                    <>
+                                        <span className="import-percentage">🚀 {Math.round((statusImport.actual / statusImport.total) * 100)}%</span>
+                                        <span className="import-count">({statusImport.actual.toLocaleString('es-ES')} / {statusImport.total.toLocaleString('es-ES')} archivos)</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="import-percentage" style={{color: '#00f2ff', animation: 'pulse-neon 1.2s ease-in-out infinite'}}>🔍 ESCANEANDO...</span>
+                                        <span className="import-count">{statusImport.actual > 0 ? `${statusImport.actual.toLocaleString('es-ES')} archivos encontrados` : 'Buscando archivos...'}</span>
+                                    </>
+                                )}
                                 <button className="btn-stop-import" onClick={cancelarImportacion}>🛑 DETENER</button>
                             </div>
                             <div className="import-progress-bar-bg">
                                 <div 
-                                    className="import-progress-bar-fill" 
-                                    style={{ width: `${(statusImport.actual / statusImport.total) * 100}%` }}
+                                    className={`import-progress-bar-fill ${statusImport.total === 0 ? 'import-progress-indeterminate' : ''}`}
+                                    style={{ width: statusImport.total > 0 ? `${Math.round((statusImport.actual / statusImport.total) * 100)}%` : '100%' }}
                                 ></div>
                             </div>
+                            {statusImport.mensaje && (
+                                <div style={{fontSize: '0.72rem', color: '#aaa', marginTop: '6px', fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'}}>
+                                    {statusImport.mensaje}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

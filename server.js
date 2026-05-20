@@ -383,12 +383,50 @@ async function extraerMetadata(ruta) {
     }
     
     if (!info.anio) {
+        // 🗂️ ESTRATEGIA 1: Buscar año en el NOMBRE DE LA CARPETA (muy fiable en colecciones organizadas)
+        // Ej: C:\Fotos\2018\vacaciones\foto.jpg → extrae 2018
+        const partesRuta = ruta.replace(/\\/g, '/').split('/');
+        for (let i = partesRuta.length - 2; i >= 0; i--) {
+            const matchCarpeta = partesRuta[i].match(/(?:^|\D)(19\d{2}|20[012]\d)(?:\D|$)/);
+            if (matchCarpeta) {
+                const anioCandidat = parseInt(matchCarpeta[1], 10);
+                if (anioCandidat >= 1950 && anioCandidat <= new Date().getFullYear() + 1) {
+                    info.anio = anioCandidat;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!info.anio) {
+        // 🗂️ ESTRATEGIA 2: Buscar año en el NOMBRE DEL PROPIO ARCHIVO
+        // Ej: IMG_20180623_120045.jpg → extrae 2018
+        const nombreArchivo = path.basename(ruta);
+        const matchNombre = nombreArchivo.match(/(19\d{2}|20[012]\d)/);
+        if (matchNombre) {
+            const anioCandidat = parseInt(matchNombre[1], 10);
+            if (anioCandidat >= 1950 && anioCandidat <= new Date().getFullYear() + 1) {
+                info.anio = anioCandidat;
+                // También intentar extraer mes del nombre si el patrón es YYYYMMDD
+                const matchFechaCompleta = nombreArchivo.match(/(19\d{2}|20[012]\d)(0[1-9]|1[0-2])/);
+                if (matchFechaCompleta && !info.mes) {
+                    info.mes = parseInt(matchFechaCompleta[2], 10);
+                }
+            }
+        }
+    }
+
+    if (!info.anio) {
+        // 🗂️ ESTRATEGIA 3: Usar la fecha de creación del archivo (birthtime si está disponible)
+        // En Windows, birthtime es más fiable que mtime para fotos no modificadas
         try {
             const s = fs.statSync(ruta);
-            const d = new Date(Math.min(s.mtimeMs, s.ctimeMs, s.birthtimeMs || Infinity));
-            if (!isNaN(d.getFullYear())) {
-                info.anio = d.getFullYear();
-                info.mes = d.getMonth() + 1;
+            // Usamos birthtime si existe y es válido, luego mtime como último recurso
+            const fechas = [s.birthtimeMs, s.mtimeMs].filter(t => t && t > 0);
+            const dMas = new Date(Math.min(...fechas));
+            if (!isNaN(dMas.getFullYear()) && dMas.getFullYear() >= 1950) {
+                info.anio = dMas.getFullYear();
+                info.mes = dMas.getMonth() + 1;
             }
         } catch (e) {}
     }
@@ -674,6 +712,7 @@ async function limpiarFotosRotas(fotos, req) {
 }
 
 // --- SERVICIO DE FOTOS LOCALES (USB / Discos Extraíbles) ---
+// Con soporte de Range Requests para reproducción de vídeo (seek, progress bar)
 app.get('/api/foto-local', (req, res) => {
     const ruta = req.query.ruta;
     if (!ruta) return res.status(400).send("Ruta no proporcionada");
@@ -682,17 +721,52 @@ app.get('/api/foto-local', (req, res) => {
     const rutaDecodificada = decodeURIComponent(ruta);
     
     // Verificamos que sea una ruta absoluta
-    const path = require('path');
     if (!path.isAbsolute(rutaDecodificada)) {
         return res.status(400).send("Ruta inválida");
     }
     
-    const fs = require('fs');
     if (!fs.existsSync(rutaDecodificada)) {
         return res.status(404).send("Archivo no encontrado o disco desconectado");
     }
-    
-    res.sendFile(rutaDecodificada);
+
+    const ext = path.extname(rutaDecodificada).toLowerCase();
+    const mimeType = MIME_TIPOS[ext] || 'application/octet-stream';
+    const esVideoArchivo = EXTENSIONES_VIDEO.has(ext);
+
+    // 🎬 Para vídeos: Soporte de Range Requests (streaming parcial)
+    if (esVideoArchivo) {
+        const stat = fs.statSync(rutaDecodificada);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+
+        if (range) {
+            // Range request: el navegador pide un trozo del archivo
+            const parts = range.replace(/bytes=/, '').split('-');
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : Math.min(start + 5 * 1024 * 1024, fileSize - 1); // 5MB chunks
+            const chunkSize = (end - start) + 1;
+
+            res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunkSize,
+                'Content-Type': mimeType,
+            });
+            fs.createReadStream(rutaDecodificada, { start, end }).pipe(res);
+        } else {
+            // Sin range: enviamos cabeceras para que el navegador sepa que puede pedir chunks
+            res.writeHead(200, {
+                'Content-Length': fileSize,
+                'Content-Type': mimeType,
+                'Accept-Ranges': 'bytes',
+            });
+            fs.createReadStream(rutaDecodificada).pipe(res);
+        }
+    } else {
+        // 📷 Para imágenes: sendFile normal con content-type correcto
+        res.setHeader('Content-Type', mimeType);
+        res.sendFile(rutaDecodificada);
+    }
 });
 
 // --- TEST ENDPOINT ---
@@ -1834,9 +1908,13 @@ app.post('/api/sistema/importar-automatico', async (req, res) => {
             return results;
         };
 
+        // 🔍 Activar progreso ANTES del escaneo para feedback inmediato
+        cancelarOperacion = false;
+        progresoOperacion = { actual: 0, total: 0, mensaje: "Escaneando disco con Magic Scan...", activa: true };
+
         const fotosAImportar = await scanRecursive(dirSubida);
         console.log(`📸 FOTOS ENCONTRADAS PARA IMPORTAR: ${fotosAImportar.length}`);
-        progresoOperacion = { actual: 0, total: fotosAImportar.length, mensaje: "Importando desde Magic Scan...", activa: true };
+        progresoOperacion = { actual: 0, total: fotosAImportar.length, mensaje: `${fotosAImportar.length.toLocaleString('es-ES')} archivos encontrados. Importando...`, activa: true };
         let importadas = 0;
         let saltadas = 0;
         let errores = 0;
@@ -1975,8 +2053,12 @@ app.post('/api/importar-masivo', async (req, res) => {
             return res.status(400).json({ error: 'La ruta seleccionada no es un directorio válido: ' + String(ruta) });
         }
 
+        // 🔍 Activar progreso ANTES del escaneo para que el usuario vea feedback inmediato
+        cancelarOperacion = false;
+        progresoOperacion = { actual: 0, total: 0, mensaje: "Escaneando disco...", activa: true };
+        
         const imagenes = await escanearRecursivo(ruta);
-        progresoOperacion = { actual: 0, total: imagenes.length, mensaje: "Importando desde carpeta...", activa: true };
+        progresoOperacion = { actual: 0, total: imagenes.length, mensaje: `${imagenes.length.toLocaleString('es-ES')} archivos encontrados. Importando...`, activa: true };
 
         let importadas = 0;
         let actualizadas = 0;
@@ -2101,7 +2183,7 @@ console.log(`📧 MOTOR DE EMAIL LISTO: Configurado para ${process.env.EMAIL_USE
 async function enviarEmailAprobacion(email) {
     console.log(`⏳ [SMTP-DEBUG]: Preparando envío de aprobación Pro para: ${email}`);
     
-    const downloadLink = process.env.DOWNLOAD_LINK || "https://drive.google.com/drive/folders/1svka0IwJG5FUi_Au3q3oNfl-kfvfI_po";
+    const downloadLink = process.env.DOWNLOAD_LINK || "https://drive.google.com/file/d/1q8F9zO7qQ9OEqMshbPrOhyyPU3wQvJJj/view?usp=drive_link";
 
     const textContent = `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`;
 

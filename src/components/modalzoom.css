@@ -82,6 +82,23 @@
     filter: drop-shadow(0 0 10px rgba(255,255,255,0.05));
 }
 
+/* Imágenes pequeñas: que al menos ocupen un mínimo razonable */
+.modal-imagen-zona img {
+    min-width: 300px;
+    min-height: 200px;
+}
+
+/* VÍDEO en el modal - ocupa todo el espacio disponible */
+.modal-imagen-zona video {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #000;
+    outline: none;
+    cursor: pointer;
+}
+
 .modal-nav {
     position: absolute;
     top: 50%;

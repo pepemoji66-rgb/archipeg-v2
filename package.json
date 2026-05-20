@@ -1,6 +1,6 @@
 {
   "name": "archipeg",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "homepage": ".",
   "description": "Sistema Archipeg - Gestión de Activos y Geo-localización",
   "main": "main.js",
@@ -91,7 +91,10 @@
       "oneClick": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Archipeg Pro"
+      "shortcutName": "Archipeg Pro",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "Archipeg Pro v2.3.4"
     },
     "mac": {
       "target": "dmg",
