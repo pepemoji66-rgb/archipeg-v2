@@ -96,8 +96,33 @@ const Presentacion = () => {
     };
 
     return (
-        <div className="presentacion-container" onClick={() => !audioStarted && startExperience()}>
+        <div className="presentacion-container" onClick={() => {
+            if (!audioStarted) {
+                startExperience();
+            } else {
+                if (currentSlide < slides.length - 1) {
+                    setCurrentSlide(prev => prev + 1);
+                } else {
+                    navigate('/galeria');
+                }
+            }
+        }}>
             <audio ref={audioRef} src={audioSrc} loop preload="auto" crossOrigin="anonymous" />
+            
+            {audioStarted && (
+                <>
+                    {currentSlide > 0 && (
+                        <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', fontSize: '4rem', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', zIndex: 1000, userSelect: 'none' }} onClick={(e) => { e.stopPropagation(); setCurrentSlide(prev => prev - 1); }}>
+                            ❮
+                        </div>
+                    )}
+                    {currentSlide < slides.length - 1 && (
+                        <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', fontSize: '4rem', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', zIndex: 1000, userSelect: 'none' }} onClick={(e) => { e.stopPropagation(); setCurrentSlide(prev => prev + 1); }}>
+                            ❯
+                        </div>
+                    )}
+                </>
+            )}
             
             {!audioStarted && (
                 <div style={{
@@ -171,7 +196,7 @@ const Presentacion = () => {
                         )}
 
                         {index === slides.length - 1 && (
-                            <button className="btn-start" style={{ opacity: 1 }} onClick={(e) => {
+                            <button className="btn-primary-neon" style={{ opacity: 1, marginTop: '30px', padding: '15px 30px', fontSize: '1.2rem', cursor: 'pointer' }} onClick={(e) => {
                                 e.stopPropagation();
                                 navigate('/galeria');
                             }}>

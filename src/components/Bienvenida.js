@@ -30,7 +30,7 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                 if (onAuthSuccess) onAuthSuccess();
                 navigate('/galeria-completa');
             } else {
-                const resData = await registro(email.trim().toLowerCase(), password, systemKey.trim());
+                const resData = await registro(email.trim().toLowerCase(), password, '');
                 if (resData && !resData.token) {
                     setError('PENDIENTE: Un administrador debe aprobar tu cuenta.');
                     setTimeout(() => {
@@ -98,19 +98,6 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                             autoComplete="new-password"
                             required
                         />
-                        <input
-                            className="indice-auth-input"
-                            type="text"
-                            name="system_key"
-                            id="system_key"
-                            placeholder="Clave de Sistema (Opcional)"
-                            value={systemKey}
-                            onChange={e => setSystemKey(e.target.value)}
-                            autoComplete="off"
-                        />
-                        <p style={{ fontSize: '0.7rem', color: '#ffcc00', marginTop: '-5px' }}>
-                            * Solo si eres administrador o tienes invitación Pro.
-                        </p>
                     </>
                 )}
 
@@ -128,11 +115,15 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                     {cargando ? 'VALIDANDO...' : modo === 'login' ? 'ENTRAR AHORA' : 'CONSEGUIR MI CUENTA'}
                 </button>
 
-                <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '0.8rem', color: '#666' }}>
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
                     {modo === 'login' ? (
-                        <>¿Nuevo en Archipeg? <span onClick={() => cambiarModo('registro')} style={{ color:  'var(--acento-turquesa)' , cursor: 'pointer' }}>Regístrate gratis</span></>
+                        <button type="button" onClick={() => cambiarModo('registro')} style={{ background: 'transparent', border: '1px solid var(--acento-turquesa)', color: 'var(--acento-turquesa)', padding: '8px 20px', borderRadius: '5px', cursor: 'pointer', width: '100%' }}>
+                            ¿No tienes cuenta? CREAR CUENTA
+                        </button>
                     ) : (
-                        <>¿Ya tienes cuenta? <span onClick={() => cambiarModo('login')} style={{ color:  'var(--acento-turquesa)' , cursor: 'pointer' }}>Inicia sesión</span></>
+                        <button type="button" onClick={() => cambiarModo('login')} style={{ background: 'transparent', border: '1px solid #aaa', color: '#ccc', padding: '8px 20px', borderRadius: '5px', cursor: 'pointer', width: '100%' }}>
+                            ⬅️ Volver a Iniciar Sesión
+                        </button>
                     )}
                 </div>
             </form>
