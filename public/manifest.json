@@ -1,0 +1,17 @@
+{
+  "short_name": "Archipeg",
+  "name": "Archipeg Pro - Archivo Fotográfico",
+  "icons": [
+    {
+      "src": "logo_archipeg_principal.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a0b2e",
+  "background_color": "#0a0b2e",
+  "description": "Sistema de gestión y organización de archivos fotográficos con geolocalización."
+}
