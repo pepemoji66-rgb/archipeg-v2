@@ -1485,7 +1485,17 @@ app.get('/api/tags', dbCheck, async (req, res) => {
 // ÁLBUMES — CRUD
 app.get('/api/albumes', dbCheck, async (req, res) => {
     try {
-        const albumes = await db.all("SELECT a.*, COUNT(af.foto_id) as total FROM albumes a LEFT JOIN album_fotos af ON a.id = af.album_id WHERE a.usuario_id = ? GROUP BY a.id ORDER BY a.creado_en DESC", [req.usuario?.id]);
+        const userId = req.usuario?.id;
+        const albumes = await db.all(
+            "SELECT a.*, COUNT(f.id) as total " +
+            "FROM albumes a " +
+            "LEFT JOIN album_fotos af ON a.id = af.album_id " +
+            "LEFT JOIN fotos f ON af.foto_id = f.id AND f.en_papelera = 0 AND f.usuario_id = ? " +
+            "WHERE a.usuario_id = ? " +
+            "GROUP BY a.id " +
+            "ORDER BY a.creado_en DESC",
+            [userId, userId]
+        );
         res.json(albumes);
     } catch (err) { res.status(500).json(err); }
 });
@@ -1571,7 +1581,17 @@ app.delete('/api/albumes/:id/fotos/:fotoId', async (req, res) => {
 
 app.get('/api/eventos', dbCheck, async (req, res) => {
     try {
-        const eventos = await db.all("SELECT e.*, COUNT(ef.foto_id) as total FROM eventos e LEFT JOIN evento_fotos ef ON e.id = ef.evento_id WHERE e.usuario_id = ? GROUP BY e.id ORDER BY e.fecha_inicio DESC", [req.usuario?.id]);
+        const userId = req.usuario?.id;
+        const eventos = await db.all(
+            "SELECT e.*, COUNT(f.id) as total " +
+            "FROM eventos e " +
+            "LEFT JOIN evento_fotos ef ON e.id = ef.evento_id " +
+            "LEFT JOIN fotos f ON ef.foto_id = f.id AND f.en_papelera = 0 AND f.usuario_id = ? " +
+            "WHERE e.usuario_id = ? " +
+            "GROUP BY e.id " +
+            "ORDER BY e.fecha_inicio DESC",
+            [userId, userId]
+        );
         res.json(eventos);
     } catch (err) { res.status(500).json(err); }
 });
@@ -1697,7 +1717,17 @@ app.post('/api/eventos/:id/auto-scan', async (req, res) => {
 // PERSONAS — CRUD
 app.get('/api/personas', dbCheck, async (req, res) => {
     try {
-        const personas = await db.all("SELECT p.*, COUNT(fp.foto_id) as total FROM personas p LEFT JOIN foto_personas fp ON p.id = fp.persona_id WHERE p.usuario_id = ? GROUP BY p.id ORDER BY p.nombre", [req.usuario?.id]);
+        const userId = req.usuario?.id;
+        const personas = await db.all(
+            "SELECT p.*, COUNT(f.id) as total " +
+            "FROM personas p " +
+            "LEFT JOIN foto_personas fp ON p.id = fp.persona_id " +
+            "LEFT JOIN fotos f ON fp.foto_id = f.id AND f.en_papelera = 0 AND f.usuario_id = ? " +
+            "WHERE p.usuario_id = ? " +
+            "GROUP BY p.id " +
+            "ORDER BY p.nombre",
+            [userId, userId]
+        );
         res.json(personas);
     } catch (err) { res.status(500).json(err); }
 });

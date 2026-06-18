@@ -5,17 +5,29 @@ import './landing.css'; // Reutilizamos los estilos del nuevo diseño
 
 export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
     const [modo, setModo] = useState(initialMode); // 'login' | 'registro'
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState(() => initialMode === 'login' ? (localStorage.getItem('archipeg_remembered_email') || '') : '');
+    const [password, setPassword] = useState(() => initialMode === 'login' ? (localStorage.getItem('archipeg_remembered_password') || '') : '');
     const [confirmar, setConfirmar] = useState('');
     const [error, setError] = useState('');
     const [systemKey, setSystemKey] = useState('');
     const [cargando, setCargando] = useState(false);
+    const [recordar, setRecordar] = useState(true);
     const { login, registro } = useAuth();
     const navigate = useNavigate();
 
-    const limpiar = () => { setEmail(''); setPassword(''); setConfirmar(''); setSystemKey(''); setError(''); };
-    const cambiarModo = (nuevoModo) => { limpiar(); setModo(nuevoModo); };
+    const cambiarModo = (nuevoModo) => {
+        setError('');
+        setConfirmar('');
+        setSystemKey('');
+        if (nuevoModo === 'registro') {
+            setEmail('');
+            setPassword('');
+        } else {
+            setEmail(localStorage.getItem('archipeg_remembered_email') || '');
+            setPassword(localStorage.getItem('archipeg_remembered_password') || '');
+        }
+        setModo(nuevoModo);
+    };
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -27,6 +39,13 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
         try {
             if (modo === 'login') {
                 await login(email.trim().toLowerCase(), password);
+                if (recordar) {
+                    localStorage.setItem('archipeg_remembered_email', email);
+                    localStorage.setItem('archipeg_remembered_password', password);
+                } else {
+                    localStorage.removeItem('archipeg_remembered_email');
+                    localStorage.removeItem('archipeg_remembered_password');
+                }
                 if (onAuthSuccess) onAuthSuccess();
                 navigate('/galeria-completa');
             } else {
@@ -84,6 +103,18 @@ export default function Bienvenida({ initialMode = 'login', onAuthSuccess }) {
                     autoComplete={modo === 'registro' ? "new-password" : "off"}
                     required
                 />
+                
+                {modo === 'login' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none', paddingLeft: '2px' }}>
+                        <input
+                            type="checkbox"
+                            checked={recordar}
+                            onChange={e => setRecordar(e.target.checked)}
+                            style={{ accentColor: 'var(--acento-turquesa)', width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        Recordar mi contraseña
+                    </label>
+                )}
                 
                 {modo === 'registro' && (
                     <>
