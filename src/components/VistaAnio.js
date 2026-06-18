@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './vistaAnio.css';
 import { API_BASE_URL, UPLOADS_URL } from '../config';
+import { apiFetch } from '../api';
 
 const API = `${API_BASE_URL}/api`;
 const URL_BASE_FOTOS = UPLOADS_URL;

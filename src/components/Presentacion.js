@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 import './presentacion.css';
 
 const Presentacion = () => {
@@ -196,12 +197,35 @@ const Presentacion = () => {
                         )}
 
                         {index === slides.length - 1 && (
-                            <button className="btn-primary-neon" style={{ opacity: 1, marginTop: '30px', padding: '15px 30px', fontSize: '1.2rem', cursor: 'pointer' }} onClick={(e) => {
-                                e.stopPropagation();
-                                navigate('/galeria');
-                            }}>
-                                ENTRAR A LA GALERÍA
-                            </button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center', marginTop: '25px' }}>
+                                <button className="btn-primary-neon" style={{ opacity: 1, padding: '15px 30px', fontSize: '1.2rem', cursor: 'pointer', width: '100%', maxWidth: '300px' }} onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/galeria');
+                                }}>
+                                    ENTRAR A LA GALERÍA
+                                </button>
+                                <a 
+                                    href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.0.0.exe`}
+                                    className="btn-secondary-neon"
+                                    style={{
+                                        opacity: 1,
+                                        padding: '12px 24px',
+                                        fontSize: '1rem',
+                                        cursor: 'pointer',
+                                        textDecoration: 'none',
+                                        textAlign: 'center',
+                                        border: '1px solid var(--acento-turquesa)',
+                                        color: 'var(--acento-turquesa)',
+                                        width: '100%',
+                                        maxWidth: '300px',
+                                        borderRadius: '8px',
+                                        fontWeight: '700'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    📥 DESCARGAR DEMO PC
+                                </a>
+                            </div>
                         )}
                     </div>
                 </div>

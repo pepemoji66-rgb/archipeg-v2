@@ -616,6 +616,10 @@ async function inicializarMotor() {
             `CREATE TABLE IF NOT EXISTS sesiones (
                 token VARCHAR(255) PRIMARY KEY,
                 usuario_id INTEGER NOT NULL
+            )`,
+            `CREATE TABLE IF NOT EXISTS visitas (
+                id ${isMysql ? "INT PRIMARY KEY" : "INTEGER PRIMARY KEY"},
+                contador INTEGER DEFAULT 0
             )`
         ];
 
@@ -660,6 +664,19 @@ async function inicializarMotor() {
                 const columns = await db.all("SHOW COLUMNS FROM usuarios");
                 console.log("📊 ESTRUCTURA ACTUAL DE 'usuarios':", columns.map(c => c.Field).join(', '));
             } catch (e) { console.error("Error en diagnóstico:", e.message); }
+        }
+
+        // Inicializar el contador de visitas si no existe
+        try {
+            const row = await db.get("SELECT contador FROM visitas WHERE id = 1");
+            if (!row) {
+                await db.run("INSERT INTO visitas (id, contador) VALUES (1, 0)");
+                console.log("📊 CONTADOR DE VISITAS: Inicializado en 0.");
+            } else {
+                console.log(`📊 CONTADOR DE VISITAS: Cargar con valor actual ${row.contador}`);
+            }
+        } catch (e) {
+            console.log("⚠️ Aviso al inicializar contador de visitas:", e.message);
         }
 
         console.log("✅ MOTOR ARCHIPEG: Sistema autónomo conectado y listo.");
@@ -778,6 +795,26 @@ app.get('/api/test', (req, res) => {
         dbStatus: !!db ? 'connected' : 'not initialization',
         isCDrive: (process.env.ARCHIPEG_DATA_DIR || __dirname).toLowerCase().startsWith('c:')
     });
+});
+
+// --- CONTADOR DE VISITAS ---
+app.get('/api/visitas', dbCheck, async (req, res) => {
+    try {
+        const row = await db.get("SELECT contador FROM visitas WHERE id = 1");
+        res.json({ visitas: row ? row.contador : 0 });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/visitas/incrementar', dbCheck, async (req, res) => {
+    try {
+        await db.run("UPDATE visitas SET contador = contador + 1 WHERE id = 1");
+        const row = await db.get("SELECT contador FROM visitas WHERE id = 1");
+        res.json({ visitas: row ? row.contador : 0 });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // NUEVO: Endpoint para que el frontal consulte el progreso de tareas largas
@@ -1622,16 +1659,22 @@ app.post('/api/eventos/:id/auto-scan', async (req, res) => {
         if (!anioInicio || !mesInicio) return res.status(400).json({ error: "Formato de fecha de evento inválido" });
 
         // Escanear DB: Esto depende de si tienen guardado anio y mes. Si no, habría que extraerlo de algo más elaborado o usar los campos que tenemos.
-        // Archipeg extrae "anio" y "mes" al subir/importar. Usaremos esos para coincidencia aproximada, o un escaneo preciso si implementamos fechas completas en fotos.
-        // Por ahora, como 'fotos' tiene 'anio' y 'mes', compararemos con esos:
-        let query = "SELECT id FROM fotos WHERE en_papelera = 0 AND usuario_id = ? AND anio >= ? AND anio <= ?";
-        let bindParams = [req.usuario?.id, parseInt(anioInicio), parseInt(anioFin)];
+        // Archipeg extrae "anio" y "mes" al subir/importar. Usaremos esos para coincidencia aproximada.
+        // Además, si el nombre del evento coincide con parte de la ruta o nombre de la carpeta (imagen_url), la asociamos.
+        let query = "SELECT id FROM fotos WHERE en_papelera = 0 AND usuario_id = ? AND (";
+        let bindParams = [req.usuario?.id];
+
+        let dateQuery = "anio >= ? AND anio <= ?";
+        let dateParams = [parseInt(anioInicio), parseInt(anioFin)];
         
-        // Si el inicio y fin ocurren en el mismo año, podemos afinar los meses
         if (anioInicio === anioFin) {
-            query += " AND mes >= ? AND mes <= ?";
-            bindParams.push(parseInt(mesInicio), parseInt(mesFin));
+            dateQuery += " AND mes >= ? AND mes <= ?";
+            dateParams.push(parseInt(mesInicio), parseInt(mesFin));
         }
+
+        query += `(${dateQuery}) OR (imagen_url LIKE ?)`;
+        bindParams = [...bindParams, ...dateParams, `%${evento.nombre}%`];
+        query += ")";
 
         const fotosMatcheadas = await db.all(query, bindParams);
 

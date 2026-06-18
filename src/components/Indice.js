@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import Bienvenida from './Bienvenida';
+import { API_BASE_URL } from '../config';
 import './landing.css';
 
 const Indice = () => {
@@ -10,6 +11,30 @@ const Indice = () => {
 
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [authMode, setAuthMode] = useState('registro'); 
+    const [visitas, setVisitas] = useState(0);
+
+    useEffect(() => {
+        // Incrementar y obtener el número de visitas al cargar la página
+        fetch(`${API_BASE_URL}/api/visitas/incrementar`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.visitas !== undefined) {
+                    setVisitas(data.visitas);
+                }
+            })
+            .catch(err => {
+                console.error("Error al registrar visita:", err);
+                // Si falla el POST (por ej. CORS o problemas de red), intentamos obtener el contador actual con GET
+                fetch(`${API_BASE_URL}/api/visitas`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.visitas !== undefined) {
+                            setVisitas(data.visitas);
+                        }
+                    })
+                    .catch(console.error);
+            });
+    }, []);
 
     const abrirModal = (modo) => {
         setAuthMode(modo);
@@ -56,6 +81,96 @@ const Indice = () => {
                             <Link to="/presentacion" className="btn-secondary-neon" style={{ border: '1px solid #00ffff', color: '#00ffff', width: '100%', marginTop: '10px', textAlign: 'center' }}>✨ VER PRESENTACIÓN ARCHIPEG</Link>
                         </>
                     )}
+                </div>
+            </section>
+
+            {/* DEMO DOWNLOAD SECTION */}
+            <section className="landing-demo-download" style={{
+                padding: '50px 20px',
+                background: 'linear-gradient(90deg, rgba(241, 0, 255, 0.05) 0%, rgba(0, 242, 255, 0.05) 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                textAlign: 'center',
+                position: 'relative'
+            }}>
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{
+                        display: 'inline-block',
+                        background: 'rgba(241, 0, 255, 0.15)',
+                        color: '#f100ff',
+                        padding: '8px 18px',
+                        borderRadius: '50px',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        marginBottom: '20px',
+                        border: '1px solid rgba(241, 0, 255, 0.3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                    }}>
+                        PRUEBA ARCHIPEG EN TU ORDENADOR
+                    </div>
+                    <h2 style={{ fontSize: '2.5rem', marginBottom: '15px', fontWeight: '800', textShadow: '0 0 20px rgba(241, 0, 255, 0.2)' }}>
+                        Descarga la Demo de Escritorio
+                    </h2>
+                    <p style={{ color: '#ccc', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '30px', maxWidth: '650px', margin: '0 auto 30px' }}>
+                        Instala Archipeg Pro en tu sistema Windows y pruébalo con tus propias colecciones de fotos locales. 
+                        La versión demo tiene habilitadas todas las funciones de organización inteligente con un límite de 50 fotos/activos.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <a 
+                            href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.0.0.exe`}
+                            className="btn-primary-neon"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                textDecoration: 'none',
+                                background: 'linear-gradient(135deg, #00ffff 0%, #f100ff 100%)',
+                                boxShadow: '0 0 25px rgba(0, 242, 255, 0.4)',
+                                padding: '16px 40px',
+                                borderRadius: '12px',
+                                fontWeight: '800',
+                                fontSize: '1.1rem'
+                            }}
+                        >
+                            📥 DESCARGAR DEMO GRATIS (WINDOWS)
+                        </a>
+                        <Link 
+                            to="/presentacion" 
+                            className="btn-secondary-neon" 
+                            style={{ 
+                                border: '1px solid #00ffff', 
+                                color: '#00ffff', 
+                                textDecoration: 'none', 
+                                padding: '16px 30px',
+                                borderRadius: '12px',
+                                fontWeight: '800',
+                                fontSize: '1.1rem'
+                            }}
+                        >
+                            ✨ VER PRESENTACIÓN
+                        </Link>
+                    </div>
+                    
+                    {/* VISITOR COUNTER */}
+                    <div style={{ 
+                        marginTop: '35px', 
+                        fontSize: '0.95rem', 
+                        color: '#aaa', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '10px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        padding: '10px 20px',
+                        borderRadius: '30px',
+                        width: 'fit-content',
+                        margin: '35px auto 0',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                        <span style={{ fontSize: '1.3rem', filter: 'drop-shadow(0 0 5px rgba(0, 242, 255, 0.5))' }}>👁️</span>
+                        <span>Esta página de presentación ha sido mirada por <strong>{visitas}</strong> personas</span>
+                    </div>
                 </div>
             </section>
 
