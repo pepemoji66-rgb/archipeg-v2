@@ -118,7 +118,7 @@ const Indice = () => {
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <a 
-                            href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.0.0.exe`}
+                            href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.3.4.exe`}
                             className="btn-primary-neon"
                             style={{
                                 display: 'inline-flex',

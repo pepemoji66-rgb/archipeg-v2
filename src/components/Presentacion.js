@@ -205,7 +205,7 @@ const Presentacion = () => {
                                     ENTRAR A LA GALERÍA
                                 </button>
                                 <a 
-                                    href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.0.0.exe`}
+                                    href={`${API_BASE_URL}/downloads/Archipeg Pro Setup 2.3.4.exe`}
                                     className="btn-secondary-neon"
                                     style={{
                                         opacity: 1,
