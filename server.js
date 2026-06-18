@@ -1403,9 +1403,28 @@ app.post('/api/papelera/operaciones', dbCheck, async (req, res) => {
         if (accion === 'restaurar') {
             await db.run("UPDATE fotos SET en_papelera = 0 WHERE id = ? AND usuario_id = ?", [id, req.usuario?.id]);
         } else {
+            const foto = await db.get("SELECT imagen_url FROM fotos WHERE id = ? AND usuario_id = ?", [id, req.usuario?.id]);
+            if (foto && foto.imagen_url) {
+                const url = foto.imagen_url.trim();
+                const pathFisico = path.isAbsolute(url) ? url : path.join(dirDestino, url);
+                
+                try {
+                    if (fs.existsSync(pathFisico)) {
+                        fs.unlinkSync(pathFisico);
+                        console.log(`🔥 Archivo físico eliminado: ${pathFisico}`);
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ No se pudo borrar físicamente el archivo ${pathFisico}:`, e.message);
+                }
+            }
+            
+            // Limpieza de relaciones para evitar registros huérfanos
+            await db.run("DELETE FROM album_fotos WHERE foto_id = ?", [id]);
+            await db.run("DELETE FROM evento_fotos WHERE foto_id = ?", [id]);
+            await db.run("DELETE FROM foto_personas WHERE foto_id = ?", [id]);
             await db.run("DELETE FROM fotos WHERE id = ? AND usuario_id = ?", [id, req.usuario?.id]);
         }
-    res.json({ message: "Operación realizada" });
+        res.json({ message: "Operación realizada" });
     } catch (err) { res.status(500).json(err); }
 });
 
