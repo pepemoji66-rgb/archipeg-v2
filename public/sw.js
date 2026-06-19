@@ -1,5 +1,5 @@
-// Service Worker básico para PWA
-const CACHE_NAME = 'archipeg-pwa-v1';
+// Service Worker con estrategia Network First para HTML
+const CACHE_NAME = 'archipeg-pwa-v2'; // Cambiado a v2 para forzar actualización
 const urlsToCache = [
   '/',
   '/index.html',
@@ -14,24 +14,33 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
   );
+  // Fuerza al SW a activarse inmediatamente
+  self.skipWaiting();
 });
 
-// Cache y Network fallback
+// Estrategia de Fetch: Network First, fallback to Cache
 self.addEventListener('fetch', event => {
-  // Ignorar peticiones a la API para no cachear datos dinámicos
+  // Ignorar peticiones a la API
   if (event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Devuelve el recurso cacheado si existe
-        if (response) {
-          return response;
+        // Si la red responde bien, clonamos la respuesta y la actualizamos en caché
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
         }
-        // Si no está en caché, lo pide a la red
-        return fetch(event.request);
+        return response;
+      })
+      .catch(() => {
+        // Si no hay red (offline), buscamos en la caché
+        return caches.match(event.request);
       })
   );
 });
@@ -48,6 +57,9 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      // Tomar control de los clientes inmediatamente
+      return self.clients.claim();
     })
   );
 });
