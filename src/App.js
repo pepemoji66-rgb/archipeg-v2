@@ -17,6 +17,8 @@ import Duplicados from './components/Duplicados';
 import Usuarios from './components/Usuarios';
 import Mapa from './components/Mapa';
 import Presentacion from './components/Presentacion';
+import Privacidad from './components/Privacidad';
+import Terminos from './components/Terminos';
 
 const RutaAprobada = ({ children }) => {
     const { usuario } = useAuth();
@@ -39,6 +41,8 @@ function AppRoutes() {
             <Routes>
                 <Route path="/" element={<Indice />} />
                 <Route path="/presentacion" element={<Presentacion />} />
+                <Route path="/privacidad" element={<Privacidad />} />
+                <Route path="/terminos" element={<Terminos />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         );
@@ -63,6 +67,8 @@ function AppRoutes() {
                 <Route path="/favoritos" element={<Favoritos />} />
                 <Route path="/mapa" element={<Mapa />} />
                 <Route path="/presentacion" element={<Presentacion />} />
+                <Route path="/privacidad" element={<Privacidad />} />
+                <Route path="/terminos" element={<Terminos />} />
             </Routes>
         </Layout>
     );

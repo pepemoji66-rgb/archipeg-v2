@@ -79,6 +79,9 @@ const Indice = () => {
                             <button className="btn-primary-neon" onClick={() => abrirModal('registro')}>EMPEZAR GRATIS</button>
                             <button className="btn-secondary-neon" onClick={() => abrirModal('login')}>INICIAR SESIÓN</button>
                             <Link to="/presentacion" className="btn-secondary-neon" style={{ border: '1px solid #00ffff', color: '#00ffff', width: '100%', marginTop: '10px', textAlign: 'center' }}>✨ VER PRESENTACIÓN ARCHIPEG</Link>
+                            <div style={{width: '100%', textAlign: 'center', marginTop: '15px', color: '#aaa', fontSize: '0.85rem', background: 'rgba(0,0,0,0.4)', padding: '8px', borderRadius: '5px'}}>
+                                ⚠️ <b>Aviso:</b> La versión de escritorio es actualmente exclusiva para <b>Windows</b>. Estamos trabajando en la versión para Mac.
+                            </div>
                         </>
                     )}
                 </div>
@@ -357,7 +360,11 @@ const Indice = () => {
                 <div style={{marginTop: '10px', fontSize: '0.8rem', color: '#888'}}>
                     Soporte oficial: <a href="mailto:archipegv2@gmail.com" style={{color:  'var(--acento-turquesa)' , textDecoration: 'none'}}>archipegv2@gmail.com</a>
                 </div>
-                <p style={{marginTop: '10px', fontSize: '0.7rem'}}>© 2026 Jose Moreno Jimenez. Todos los derechos reservados.</p>
+                <div style={{marginTop: '15px', fontSize: '0.85rem', display: 'flex', gap: '20px', justifyContent: 'center'}}>
+                    <Link to="/privacidad" style={{color: '#aaa', textDecoration: 'none'}}>Política de Privacidad</Link>
+                    <Link to="/terminos" style={{color: '#aaa', textDecoration: 'none'}}>Términos y Condiciones</Link>
+                </div>
+                <p style={{marginTop: '15px', fontSize: '0.7rem'}}>© 2026 Jose Moreno Jimenez. Todos los derechos reservados.</p>
                 {usuario?.esAdmin && <Link to="/usuarios" style={{color: '#444', textDecoration: 'none', marginLeft: '20px'}}>Dashboard Admin</Link>}
             </footer>
 
