@@ -2331,7 +2331,7 @@ async function enviarEmailAprobacion(email) {
     
     const downloadLink = process.env.DOWNLOAD_LINK || "https://drive.google.com/file/d/1q8F9zO7qQ9OEqMshbPrOhyyPU3wQvJJj/view?usp=drive_link";
 
-    const textContent = `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`;
+    const textContent = `¡Hola historiador!\n\nTu cuenta en ARCHIPEG PRO ha sido aprobada por un administrador.\n\nYa puedes descargar e instalar la versión de escritorio para empezar a gestionar tus archivos con 100% de soberanía.\n\n🔗 ENLACE DE DESCARGA:\n${downloadLink}\n\n⚠️ IMPORTANTE: La versión de escritorio actual es exclusiva para Windows (.exe). Estamos trabajando en la versión para Mac.\n\nSi tienes cualquier duda, puedes responder a este correo.\n\n¡Bienvenido al futuro de tus activos digitales!`;
 
     const htmlContent = `
         <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
@@ -2341,6 +2341,9 @@ async function enviarEmailAprobacion(email) {
                 <a href="${downloadLink}" style="background-color: #28a745; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                     DESCARGAR ARCHIPEG PRO
                 </a>
+            </div>
+            <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
+                <b>⚠️ Atención usuarios de Mac:</b> Actualmente la aplicación de escritorio descargable es exclusiva para <b>Windows (.exe)</b>. Estamos trabajando duro para lanzar la versión compatible con Mac próximamente.
             </div>
             <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
             <p style="word-break: break-all;"><a href="${downloadLink}">${downloadLink}</a></p>
@@ -2367,7 +2370,7 @@ async function enviarEmailRegistroPendiente(email) {
     const paymentLink = process.env.STRIPE_PAYMENT_LINK || "https://buy.stripe.com/test_xxx";
     const paymentLinkWithEmail = `${paymentLink}?prefilled_email=${encodeURIComponent(email)}`;
 
-    const textContent = `¡Hola! 👋\n\nGracias por registrarte en Archipeg Pro.\n\nTu solicitud ha sido recibida correctamente.\n\nNota: Mientras activas tu cuenta, ya puedes entrar en la aplicación, pero estarás en Modo Demo con algunas funciones limitadas.\n\n🚀 Activa la Versión Pro (Pago Único de 5€):\n💳 Paga de forma segura con Tarjeta a través de Stripe:\n${paymentLinkWithEmail}\n\nEn cuanto completes el pago, tu cuenta se aprobará automáticamente y recibirás la versión de escritorio.`;
+    const textContent = `¡Hola! 👋\n\nGracias por registrarte en Archipeg Pro.\n\nTu solicitud ha sido recibida correctamente.\n\nNota: Mientras activas tu cuenta, ya puedes entrar en la aplicación, pero estarás en Modo Demo con algunas funciones limitadas.\n\n🚀 Activa la Versión Pro (Pago Único de 5€):\n💳 Paga de forma segura con Tarjeta a través de Stripe:\n${paymentLinkWithEmail}\n\n⚠️ AVISO IMPORTANTE: La versión de escritorio que recibes al pagar es exclusiva para Windows (.exe). Estamos trabajando en la versión para Mac.\n\nEn cuanto completes el pago, tu cuenta se aprobará automáticamente y recibirás la versión de escritorio.`;
 
     try {
         await enviarViaGoogleBridge({
@@ -2388,6 +2391,9 @@ async function enviarEmailRegistroPendiente(email) {
                         <a href="${paymentLinkWithEmail}" style="background-color: #635bff; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                             💳 PAGAR 5€ CON STRIPE
                         </a>
+                    </div>
+                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
+                        <b>⚠️ Aviso importante para usuarios de Mac:</b> La versión de escritorio descargable que recibes al pagar es exclusiva para <b>Windows (.exe)</b>. Si usas Mac, te recomendamos usar la versión Web mientras trabajamos en lanzar la versión para Apple próximamente.
                     </div>
                     <p>En cuanto completes el pago, tu cuenta se aprobará automáticamente y te enviaremos el enlace de descarga de la versión completa.</p>
                     <hr>
