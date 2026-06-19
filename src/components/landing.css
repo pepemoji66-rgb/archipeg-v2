@@ -112,7 +112,6 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 30px rgba(0, 242, 255, 0.2));
     letter-spacing: -2px;
 }
 
