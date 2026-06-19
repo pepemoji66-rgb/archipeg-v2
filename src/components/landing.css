@@ -108,10 +108,8 @@
     line-height: 1;
     max-width: 1200px;
     margin-bottom: 20px;
-    background: linear-gradient(to right, var(--acento-turquesa), #fff, #f100ff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(0, 242, 255, 0.5), 0 0 40px rgba(241, 0, 255, 0.4);
     letter-spacing: -2px;
 }
 
