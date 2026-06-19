@@ -11,7 +11,6 @@ const nodemailer = require('nodemailer');
 const dns = require('dns');
 const { createClient } = require('@libsql/client');
 const mysql = require('mysql2/promise');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // 🛡️ CONFIGURACIÓN DE RUTA SEGURA (DOCUMENTOS)
 const ARCHIPEG_SAFE_PATH = path.join(os.homedir(), 'Documents', 'ARCHIPEG_PRO_DATA');
@@ -53,6 +52,14 @@ try {
 
 const MASTER_PIN = process.env.MASTER_PIN || '142536'; 
 const PORT = process.env.PORT || 5001;
+
+let stripe;
+if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    console.log("💳 Stripe inicializado correctamente.");
+} else {
+    console.warn("⚠️ Advertencia: STRIPE_SECRET_KEY no definido. Stripe no funcionará.");
+}
 
 const express = require('express');
 const sqlite3 = require('sqlite3');
@@ -168,6 +175,10 @@ app.use(cors());
 // --- STRIPE WEBHOOK ---
 // Se necesita raw body para verificar la firma de Stripe
 app.post('/api/webhook/stripe', express.raw({type: 'application/json'}), async (req, res) => {
+    if (!stripe) {
+        return res.status(500).send("Stripe no está configurado en el servidor");
+    }
+
     const sig = req.headers['stripe-signature'];
     let event;
     try {
