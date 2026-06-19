@@ -11,6 +11,7 @@ const nodemailer = require('nodemailer');
 const dns = require('dns');
 const { createClient } = require('@libsql/client');
 const mysql = require('mysql2/promise');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // 🛡️ CONFIGURACIÓN DE RUTA SEGURA (DOCUMENTOS)
 const ARCHIPEG_SAFE_PATH = path.join(os.homedir(), 'Documents', 'ARCHIPEG_PRO_DATA');
@@ -163,6 +164,48 @@ class MysqlAdapter {
 
 // --- MIDDLEWARES ---
 app.use(cors());
+
+// --- STRIPE WEBHOOK ---
+// Se necesita raw body para verificar la firma de Stripe
+app.post('/api/webhook/stripe', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error("⚠️ Error firma webhook:", err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const email = session.customer_details?.email || session.customer_email;
+        
+        if (email) {
+            console.log(`💰 Pago de Stripe recibido para: ${email}`);
+            try {
+                // Busca usuario y actualiza si no está aprobado
+                const user = await db.get("SELECT id, aprobado FROM usuarios WHERE email = ?", [email]);
+                if (user) {
+                    if (user.aprobado === 0) {
+                        await db.run("UPDATE usuarios SET aprobado = 1 WHERE id = ?", [user.id]);
+                        console.log(`✅ Usuario ${email} aprobado automáticamente por Stripe.`);
+                        // Enviar email con enlace al drive
+                        enviarEmailAprobacion(email).catch(e => console.error("Error envío email post-pago:", e));
+                    } else {
+                        console.log(`ℹ️ Usuario ${email} ya estaba aprobado.`);
+                    }
+                } else {
+                    console.error(`⚠️ Pago recibido pero no existe usuario en DB con email: ${email}`);
+                }
+            } catch (dbErr) {
+                console.error("Error actualizando usuario post-pago:", dbErr);
+            }
+        }
+    }
+    res.json({received: true});
+});
+
 app.use(express.json());
 
 // --- MIDDLEWARE DE AUTENTICACIÓN ---
@@ -2310,7 +2353,10 @@ async function enviarEmailAprobacion(email) {
 }
 
 async function enviarEmailRegistroPendiente(email) {
-    const textContent = `¡Hola! 👋\n\nGracias por registrarte en Archipeg Pro.\n\nTu solicitud ha sido recibida correctamente y está pendiente de validación por un administrador.\n\nNota: Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en Modo Demo con algunas funciones limitadas.\n\n🚀 Activa la Versión Pro (Pago Único):\n📲 Bizum: 667657244\n📝 Concepto: Archipeg Pro [tu email]\n💰 Precio: 5€ (Acceso de por vida)`;
+    const paymentLink = process.env.STRIPE_PAYMENT_LINK || "https://buy.stripe.com/test_xxx";
+    const paymentLinkWithEmail = `${paymentLink}?prefilled_email=${encodeURIComponent(email)}`;
+
+    const textContent = `¡Hola! 👋\n\nGracias por registrarte en Archipeg Pro.\n\nTu solicitud ha sido recibida correctamente.\n\nNota: Mientras activas tu cuenta, ya puedes entrar en la aplicación, pero estarás en Modo Demo con algunas funciones limitadas.\n\n🚀 Activa la Versión Pro (Pago Único de 5€):\n💳 Paga de forma segura con Tarjeta a través de Stripe:\n${paymentLinkWithEmail}\n\nEn cuanto completes el pago, tu cuenta se aprobará automáticamente y recibirás la versión de escritorio.`;
 
     try {
         await enviarViaGoogleBridge({
@@ -2321,18 +2367,18 @@ async function enviarEmailRegistroPendiente(email) {
                 <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
                     <h2 style="color: #007bff;">¡Hola! 👋</h2>
                     <p>Gracias por registrarte en <b>Archipeg Pro</b>.</p>
-                    <p>Tu solicitud ha sido recibida correctamente y está <b>pendiente de validación</b> por un administrador.</p>
+                    <p>Tu solicitud ha sido recibida correctamente.</p>
                     <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 20px 0;">
-                        <b>Nota:</b> Mientras revisamos tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
+                        <b>Nota:</b> Mientras activas tu cuenta, ya puedes entrar en la aplicación, pero estarás en <b>Modo Demo</b> con algunas funciones limitadas.
                     </div>
                     <h3 style="color: #28a745;">🚀 Activa la Versión Pro (Pago Único)</h3>
-                    <p>Para desbloquear todas las funciones y obtener la versión de escritorio soberana, puedes realizar un <b>pago único de 5€</b>:</p>
-                    <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6;">
-                        <p style="margin: 5px 0;"><b>📲 Bizum:</b> 667657244</p>
-                        <p style="margin: 5px 0;"><b>📝 Concepto:</b> Archipeg Pro [tu email]</p>
-                        <p style="margin: 5px 0;"><b>💰 Precio:</b> 5€ (Acceso de por vida)</p>
+                    <p>Para desbloquear todas las funciones y obtener la versión de escritorio soberana, puedes realizar un <b>pago único de 5€</b> de forma 100% segura mediante tarjeta:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${paymentLinkWithEmail}" style="background-color: #635bff; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            💳 PAGAR 5€ CON STRIPE
+                        </a>
                     </div>
-                    <p>Te enviaremos otro correo en cuanto tu cuenta sea aprobada para que puedas descargar la versión completa.</p>
+                    <p>En cuanto completes el pago, tu cuenta se aprobará automáticamente y te enviaremos el enlace de descarga de la versión completa.</p>
                     <hr>
                     <p style="font-size: 0.8em; color: #666;">No es necesario que respondas a este correo automátizado.</p>
                 </div>
